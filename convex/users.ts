@@ -79,6 +79,27 @@ export const currentUser = query({
   },
 });
 
+export const getByUsername = query({
+  args: { username: v.string() },
+  handler: async (ctx, { username }) => {
+    const profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_username", (q) => q.eq("username", username))
+      .unique();
+    if (!profile) return null;
+
+    const authUser = await ctx.db.get(profile.userId);
+    if (!authUser) return null;
+
+    return {
+      username: profile.username,
+      bio: profile.bio ?? null,
+      avatarUrl: profile.avatarUrl ?? null,
+      xp: profile.xp,
+    };
+  },
+});
+
 export const updateProfile = mutation({
   args: {
     bio: v.optional(v.string()),
