@@ -8,6 +8,9 @@ import Link from "next/link";
 export default function ProfilePage() {
   const user = useQuery(api.users.currentUser);
   const updateProfile = useMutation(api.users.updateProfile);
+  const [uploading, setUploading] = useState(false);
+  const generateUploadUrl = useMutation(api.users.generateUploadUrl);
+  const setAvatarMutation = useMutation(api.users.setAvatar);
 
   const [bio, setBio] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
@@ -22,6 +25,29 @@ export default function ProfilePage() {
       setAvatarUrl(user.avatarUrl ?? "");
     }
   }, [user]);
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    setError(null);
+    try {
+      const uploadUrl = await generateUploadUrl();
+      const result = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      const { storageId } = await result.json();
+      const newUrl = await setAvatarMutation({ storageId });
+      setAvatarUrl(newUrl);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
