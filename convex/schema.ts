@@ -3,11 +3,8 @@ import { v } from "convex/values";
 import { authTables } from "@convex-dev/auth/server";
 
 export default defineSchema({
-  // authTables provides: users, authSessions, authAccounts, authRefreshTokens, etc.
   ...authTables,
 
-  // Extend the built-in `users` table's shape via a separate profile table
-  // keyed by userId — keeps auth internals untouched and easy to upgrade.
   profiles: defineTable({
     userId: v.id("users"),
     username: v.string(),
@@ -17,4 +14,30 @@ export default defineSchema({
   })
     .index("by_userId", ["userId"])
     .index("by_username", ["username"]),
+
+  challenges: defineTable({
+    title: v.string(),
+    description: v.string(),
+    category: v.union(
+      v.literal("coding"),
+      v.literal("game"),
+      v.literal("web"),
+      v.literal("ai"),
+      v.literal("creative"),
+      v.literal("innovation"),
+      v.literal("speed"),
+      v.literal("hackathon")
+    ),
+    difficulty: v.union(
+      v.literal("beginner"),
+      v.literal("intermediate"),
+      v.literal("advanced")
+    ),
+    theme: v.optional(v.string()),
+    xpReward: v.number(),
+    deadline: v.optional(v.number()),
+    createdAt: v.number(),
+  })
+    .index("by_category", ["category"])
+    .index("by_difficulty", ["difficulty"]),
 });

@@ -8,6 +8,9 @@ import Link from "next/link";
 export default function ProfilePage() {
   const user = useQuery(api.users.currentUser);
   const updateProfile = useMutation(api.users.updateProfile);
+  const [uploading, setUploading] = useState(false);
+  const generateUploadUrl = useMutation(api.users.generateUploadUrl);
+  const setAvatarMutation = useMutation(api.users.setAvatar);
 
   const [bio, setBio] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
@@ -22,6 +25,29 @@ export default function ProfilePage() {
       setAvatarUrl(user.avatarUrl ?? "");
     }
   }, [user]);
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    setError(null);
+    try {
+      const uploadUrl = await generateUploadUrl();
+      const result = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      const { storageId } = await result.json();
+      const newUrl = await setAvatarMutation({ storageId });
+      setAvatarUrl(newUrl);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -85,14 +111,15 @@ export default function ProfilePage() {
 
         <form onSubmit={handleSave} className="space-y-4">
           <div>
-            <label className="block text-sm text-neutral-300 mb-1">Avatar URL</label>
+            <label className="block text-sm text-neutral-300 mb-1">Avatar</label>
             <input
-              type="url"
-              value={avatarUrl}
-              onChange={(e) => setAvatarUrl(e.target.value)}
-              placeholder="https://example.com/your-photo.jpg"
-              className="w-full rounded-md bg-neutral-900 border border-neutral-800 px-3 py-2 text-white outline-none focus:border-neutral-500"
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              disabled={uploading}
+              className="w-full text-sm text-neutral-300 file:mr-3 file:rounded-md file:border-0 file:bg-neutral-800 file:px-3 file:py-2 file:text-white hover:file:bg-neutral-700"
             />
+            {uploading && <p className="text-xs text-neutral-500 mt-1">Uploading…</p>}
           </div>
 
           <div>

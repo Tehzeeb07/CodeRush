@@ -67,3 +67,4 @@ TypeError: (0 , _lib_code_execution_interactive_manager__WEBPACK_IMPORTED_MODULE
  POST /api/code/interactive/eof?sessionId=f862fef3-8e0a-454b-88c5-e8cce07758f1 200 in 219ms
  GET /api/code/interactive/stream?sessionId=f862fef3-8e0a-454b-88c5-e8cce07758f1 200 in 182758ms
  ✓ Compiled in 30ms
+ ✓ Compiled in 190ms (397 modules)
