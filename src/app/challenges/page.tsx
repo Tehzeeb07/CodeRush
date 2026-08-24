@@ -16,7 +16,7 @@ const CATEGORIES = [
   { value: "speed", label: "⚡ Speed" },
   { value: "hackathon", label: "🏆 Hackathon" },
 ];
-
+const [themeSearch, setThemeSearch] = useState("");
 const DIFFICULTIES = [
   { value: "", label: "All" },
   { value: "beginner", label: "Beginner" },
@@ -73,6 +73,14 @@ export default function ChallengesPage() {
             </button>
           ))}
         </div>
+
+              <input
+                  type="text"
+                  value={themeSearch}
+                  onChange={(e) => setThemeSearch(e.target.value)}
+                  placeholder="Search by theme (e.g. Space, Sustainability)…"
+                  className="w-full rounded-md bg-neutral-900 border border-neutral-800 px-3 py-2 text-white text-sm outline-none focus:border-neutral-500 mb-8"
+              />
 
         {challenges === undefined && (
           <p className="text-neutral-500">Loading challenges…</p>
