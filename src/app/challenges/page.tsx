@@ -90,8 +90,14 @@ export default function ChallengesPage() {
           <p className="text-neutral-500">No challenges match these filters.</p>
         )}
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          {challenges?.map((challenge) => (
+              <div className="grid gap-4 sm:grid-cols-2">
+                  {challenges
+                      ?.filter((c) =>
+                          themeSearch
+                              ? c.theme?.toLowerCase().includes(themeSearch.toLowerCase())
+                              : true
+                      )
+                      .map((challenge) => (
             <Link
               key={challenge._id}
               href={`/challenges/${challenge._id}`}
