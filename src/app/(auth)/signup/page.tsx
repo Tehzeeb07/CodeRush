@@ -34,6 +34,7 @@ export default function SignupPage() {
     setLoading(true);
     try {
       await signIn("password", { email, password, flow: "signUp" });
+      await new Promise((resolve) => setTimeout(resolve, 300));
       await createProfile({ username });
 
       router.push("/dashboard");

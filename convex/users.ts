@@ -41,6 +41,35 @@ export const createProfile = mutation({
   },
 });
 
+export const generateUploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
+export const setAvatar = mutation({
+  args: { storageId: v.id("_storage") },
+  handler: async (ctx, { storageId }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .unique();
+    if (!profile) throw new Error("Profile not found");
+
+    const url = await ctx.storage.getUrl(storageId);
+    if (!url) throw new Error("Upload failed");
+
+    await ctx.db.patch(profile._id, { avatarUrl: url });
+    return url;
+  },
+});
+
 export const usernameAvailable = query({
   args: { username: v.string() },
   handler: async (ctx, { username }) => {
