@@ -111,14 +111,15 @@ export default function ProfilePage() {
 
         <form onSubmit={handleSave} className="space-y-4">
           <div>
-            <label className="block text-sm text-neutral-300 mb-1">Avatar URL</label>
+            <label className="block text-sm text-neutral-300 mb-1">Avatar</label>
             <input
-              type="url"
-              value={avatarUrl}
-              onChange={(e) => setAvatarUrl(e.target.value)}
-              placeholder="https://example.com/your-photo.jpg"
-              className="w-full rounded-md bg-neutral-900 border border-neutral-800 px-3 py-2 text-white outline-none focus:border-neutral-500"
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              disabled={uploading}
+              className="w-full text-sm text-neutral-300 file:mr-3 file:rounded-md file:border-0 file:bg-neutral-800 file:px-3 file:py-2 file:text-white hover:file:bg-neutral-700"
             />
+            {uploading && <p className="text-xs text-neutral-500 mt-1">Uploading…</p>}
           </div>
 
           <div>
