@@ -3,6 +3,7 @@
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import LogoutButton from "./logout-button";
+import Link from "next/dist/client/link";
 
 export default function DashboardPage() {
   const user = useQuery(api.users.currentUser);
@@ -33,7 +34,15 @@ export default function DashboardPage() {
             </h1>
             <p className="text-neutral-400 text-sm">{user.email}</p>
           </div>
-          <LogoutButton />
+          <div className="flex items-center gap-3">
+            <Link href={`/u/${user.username}`} className="text-sm text-neutral-400 hover:underline">
+              View profile
+            </Link>
+            <Link href="/profile" className="text-sm text-neutral-400 hover:underline">
+              Edit profile
+            </Link>
+            <LogoutButton />
+          </div>
         </div>
 
         <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-6">
