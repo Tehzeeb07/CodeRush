@@ -1,0 +1,69 @@
+
+> coderush@0.1.0 dev
+> next dev
+
+ ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of E:\coding platform\package-lock.json as the root directory.
+ To silence this warning, set `outputFileTracingRoot` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/output#caveats for more information.
+ Detected additional lockfiles: 
+   * E:\coding platform\coderush\package-lock.json
+
+   ▲ Next.js 15.5.23
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.1.4:3000
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 6s
+ ✓ Compiled /middleware in 289ms (202 modules)
+ ○ Compiling /api/code/interactive/heartbeat ...
+ ✓ Compiled /api/code/interactive/heartbeat in 1746ms (308 modules)
+ POST /api/code/interactive/heartbeat?sessionId=probe 200 in 1976ms
+ ✓ Compiled /api/code/interactive/start in 224ms (312 modules)
+ POST /api/code/interactive/start 201 in 340ms
+ ✓ Compiled /api/code/interactive/stream in 168ms (314 modules)
+ POST /api/code/interactive/heartbeat?sessionId=0dc8a470-37b4-4199-883f-fc8e93ba3cbf 200 in 47ms
+ ✓ Compiled /api/code/interactive/input in 182ms (316 modules)
+ POST /api/code/interactive/input?sessionId=0dc8a470-37b4-4199-883f-fc8e93ba3cbf 200 in 319ms
+ POST /api/code/interactive/input?sessionId=0dc8a470-37b4-4199-883f-fc8e93ba3cbf 200 in 38ms
+ POST /api/code/interactive/start 201 in 41ms
+ GET /api/code/interactive/stream?sessionId=fecf8772-a469-4c51-814e-8006346155d4 200 in 401ms
+ GET /api/code/interactive/stream?sessionId=0dc8a470-37b4-4199-883f-fc8e93ba3cbf 200 in 182636ms
+ POST /api/code/interactive/start 201 in 23ms
+ POST /api/code/interactive/input?sessionId=1b77ceae-5c42-4e99-8499-21c0970c9c98 200 in 37ms
+ POST /api/code/interactive/input?sessionId=1b77ceae-5c42-4e99-8499-21c0970c9c98 200 in 40ms
+ GET /api/code/interactive/stream?sessionId=1b77ceae-5c42-4e99-8499-21c0970c9c98 200 in 25084ms
+ ✓ Compiled in 24ms
+ ✓ Compiled in 246ms (397 modules)
+ ✓ Compiled /api/code/interactive/start in 156ms (115 modules)
+ POST /api/code/interactive/start 201 in 394ms
+ ✓ Compiled /api/code/interactive/stream in 51ms (117 modules)
+ ✓ Compiled /api/code/interactive/input in 71ms (119 modules)
+ POST /api/code/interactive/input?sessionId=eccf7fc0-1778-498a-a2a3-b402740bc611 200 in 222ms
+ POST /api/code/interactive/input?sessionId=eccf7fc0-1778-498a-a2a3-b402740bc611 200 in 25ms
+ ✓ Compiled /api/code/interactive/eof in 199ms (316 modules)
+TypeError: (0 , _lib_code_execution_interactive_manager__WEBPACK_IMPORTED_MODULE_1__.getSessionManager)(...).get(...)?.endStdin is not a function
+    at POST (src\app\api\code\interactive\eof\route.ts:26:57)
+  24 |     let delivered = false;
+  25 |     if (sessionId) {
+> 26 |         delivered = getSessionManager().get(sessionId)?.endStdin() ?? false;
+     |                                                         ^
+  27 |     }
+  28 |
+  29 |     return NextResponse.json({ ok: true, delivered });
+ POST /api/code/interactive/eof?sessionId=eccf7fc0-1778-498a-a2a3-b402740bc611 500 in 375ms
+ GET /api/code/interactive/stream?sessionId=eccf7fc0-1778-498a-a2a3-b402740bc611 200 in 25211ms
+ ✓ Compiled in 25ms
+ ✓ Compiled /api/code/interactive/start in 96ms (115 modules)
+ POST /api/code/interactive/start 201 in 155ms
+ ✓ Compiled /api/code/interactive/stream in 48ms (117 modules)
+ ✓ Compiled /api/code/interactive/heartbeat in 146ms (119 modules)
+ POST /api/code/interactive/heartbeat?sessionId=f862fef3-8e0a-454b-88c5-e8cce07758f1 200 in 297ms
+ ✓ Compiled /api/code/interactive/input in 105ms (121 modules)
+ POST /api/code/interactive/input?sessionId=f862fef3-8e0a-454b-88c5-e8cce07758f1 200 in 273ms
+ POST /api/code/interactive/input?sessionId=f862fef3-8e0a-454b-88c5-e8cce07758f1 200 in 36ms
+ ✓ Compiled /api/code/interactive/eof in 87ms (123 modules)
+ POST /api/code/interactive/eof?sessionId=f862fef3-8e0a-454b-88c5-e8cce07758f1 200 in 219ms
+ GET /api/code/interactive/stream?sessionId=f862fef3-8e0a-454b-88c5-e8cce07758f1 200 in 182758ms
+ ✓ Compiled in 30ms

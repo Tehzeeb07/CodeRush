@@ -1,0 +1,51 @@
+
+> coderush@0.1.0 dev
+> next dev
+
+   ▲ Next.js 15.5.23
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.1.4:3000
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 3.4s
+ ✓ Compiled /middleware in 319ms (202 modules)
+ ○ Compiling /api/code/interactive/start ...
+ ✓ Compiled /api/code/interactive/start in 944ms (310 modules)
+ POST /api/code/interactive/start 201 in 1203ms
+ ✓ Compiled /api/code/interactive/stream in 134ms (312 modules)
+ ✓ Compiled /api/code/interactive/input in 245ms (314 modules)
+ POST /api/code/interactive/input?sessionId=3d83d444-75d1-4879-9e72-8ec8b7c14242 200 in 305ms
+ POST /api/code/interactive/input?sessionId=3d83d444-75d1-4879-9e72-8ec8b7c14242 200 in 38ms
+ POST /api/code/interactive/input?sessionId=3d83d444-75d1-4879-9e72-8ec8b7c14242 200 in 38ms
+ ✓ Compiled /api/code/interactive/stop in 207ms (316 modules)
+ POST /api/code/interactive/stop?sessionId=3d83d444-75d1-4879-9e72-8ec8b7c14242 200 in 308ms
+ GET /api/code/interactive/stream?sessionId=3d83d444-75d1-4879-9e72-8ec8b7c14242 200 in 6005ms
+ POST /api/code/interactive/start 201 in 81ms
+ POST /api/code/interactive/input?sessionId=f62b0b5c-9823-4590-8bed-9e84472b66ae 200 in 48ms
+ POST /api/code/interactive/input?sessionId=f62b0b5c-9823-4590-8bed-9e84472b66ae 200 in 38ms
+ POST /api/code/interactive/input?sessionId=f62b0b5c-9823-4590-8bed-9e84472b66ae 200 in 37ms
+ POST /api/code/interactive/stop?sessionId=f62b0b5c-9823-4590-8bed-9e84472b66ae 200 in 30ms
+ GET /api/code/interactive/stream?sessionId=f62b0b5c-9823-4590-8bed-9e84472b66ae 200 in 5734ms
+ POST /api/code/interactive/start 201 in 60ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 6.9s (853 modules)
+ POST /api/code/interactive/input?sessionId=0e674890-a401-4787-8ca3-6dabb88af7e6 404 in 7431ms
+ ○ Compiling /_error ...
+ ✓ Compiled /_error in 1811ms (1168 modules)
+ POST /api/code/interactive/input?sessionId=0e674890-a401-4787-8ca3-6dabb88af7e6 500 in 2636ms
+ ✓ Compiled /api/code/interactive/stop in 180ms (742 modules)
+ POST /api/code/interactive/stop?sessionId=0e674890-a401-4787-8ca3-6dabb88af7e6 200 in 372ms
+ GET /api/code/interactive/stream?sessionId=0e674890-a401-4787-8ca3-6dabb88af7e6 200 in 47703ms
+ ✓ Compiled in 294ms (437 modules)
+ POST /api/code/interactive/start 201 in 38ms
+ ✓ Compiled /_error in 184ms (738 modules)
+ POST /api/code/interactive/input?sessionId=5fbc3146-f56e-4c39-ab1a-152e35b2f16b 500 in 731ms
+ POST /api/code/interactive/input?sessionId=5fbc3146-f56e-4c39-ab1a-152e35b2f16b 500 in 301ms
+ POST /api/code/interactive/input?sessionId=5fbc3146-f56e-4c39-ab1a-152e35b2f16b 500 in 291ms
+ POST /api/code/interactive/input?sessionId=5fbc3146-f56e-4c39-ab1a-152e35b2f16b 500 in 317ms
+ POST /api/code/interactive/input?sessionId=5fbc3146-f56e-4c39-ab1a-152e35b2f16b 500 in 299ms
+ ✓ Compiled /api/code/interactive/stop in 125ms (316 modules)
+ POST /api/code/interactive/stop?sessionId=5fbc3146-f56e-4c39-ab1a-152e35b2f16b 200 in 253ms
+ GET /api/code/interactive/stream?sessionId=5fbc3146-f56e-4c39-ab1a-152e35b2f16b 200 in 8509ms
+[?25h

@@ -1,0 +1,2 @@
+[mock-piston] listening on http://localhost:2000
+[mock-piston] endpoints: GET /api/v2/piston/runtimes, POST /api/v2/piston/execute

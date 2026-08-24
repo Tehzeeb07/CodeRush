@@ -1,0 +1,470 @@
+"use client";
+
+/**
+ * Interactive Terminal / console panel.
+ *
+ * Features:
+ * - Displays live stdout/stderr streamed from the SSE connection.
+ * - Proper vertical scrolling for long output.
+ * - Horizontal scrolling for very long lines.
+ * - The entire terminal is clickable and focuses the input.
+ * - User can type directly into the terminal.
+ * - Enter sends the current line to the running process stdin.
+ * - Supports multiple sequential inputs.
+ * - Keeps the input focused while the program is running.
+ * - Ctrl+D sends EOF.
+ * - Stop terminates the current process.
+ * - Clear removes terminal output.
+ * - Auto-scrolls as new output arrives.
+ */
+
+import {
+    useCallback,
+    useEffect,
+    useRef,
+    useState,
+    type FormEvent,
+    type KeyboardEvent,
+    type MouseEvent,
+} from "react";
+
+import type { InteractiveRun } from "@/lib/code-execution/interactive-client";
+
+export interface TerminalProps {
+    run: InteractiveRun | null;
+
+    /** Live chunks received from the SSE stream. */
+    output: TerminalSegment[];
+
+    onClear: () => void;
+
+    /** Called after a line is successfully sent for local terminal echo. */
+    onInput?: (line: string) => void;
+}
+
+export interface TerminalSegment {
+    kind: "stdout" | "stderr" | "meta";
+    text: string;
+}
+
+export default function Terminal({
+    run,
+    output,
+    onClear,
+    onInput,
+}: TerminalProps) {
+    const terminalRef = useRef<HTMLDivElement | null>(null);
+    const scrollRef = useRef<HTMLDivElement | null>(null);
+    const inputRef = useRef<HTMLInputElement | null>(null);
+
+    const [value, setValue] = useState("");
+    const [inputError, setInputError] = useState<string | null>(null);
+    const [sending, setSending] = useState(false);
+
+    /**
+     * Focus terminal input.
+     */
+    const focusTerminal = useCallback(() => {
+        if (!run) return;
+
+        requestAnimationFrame(() => {
+            inputRef.current?.focus();
+        });
+    }, [run]);
+
+    /**
+     * Submit one line to the running process.
+     */
+    const handleSubmit = useCallback(
+        async (e: FormEvent<HTMLFormElement>) => {
+            e.preventDefault();
+
+            if (!run || sending) {
+                return;
+            }
+
+            const text = value;
+
+            setValue("");
+            setInputError(null);
+            setSending(true);
+
+            try {
+                const ok = await run.sendLine(text);
+
+                if (!ok) {
+                    setInputError(
+                        "Could not send input. The program may have ended.",
+                    );
+
+                    setValue(text);
+                    return;
+                }
+
+                onInput?.(text);
+            } catch {
+                setInputError(
+                    "Could not send input. The program may have ended.",
+                );
+
+                setValue(text);
+            } finally {
+                setSending(false);
+
+                focusTerminal();
+            }
+        },
+        [run, value, sending, onInput, focusTerminal],
+    );
+
+    /**
+     * Stop current program.
+     */
+    const handleStop = useCallback(async () => {
+        if (!run) return;
+
+        setValue("");
+        setInputError(null);
+
+        await run.stop();
+
+        inputRef.current?.blur();
+    }, [run]);
+
+    /**
+     * Send EOF.
+     */
+    const handleEof = useCallback(async () => {
+        if (!run) return;
+
+        setValue("");
+        setInputError(null);
+
+        const ok = await run.sendEof();
+
+        if (!ok) {
+            setInputError(
+                "Could not send EOF. The program may have already ended.",
+            );
+        }
+
+        focusTerminal();
+    }, [run, focusTerminal]);
+
+    /**
+     * Keyboard shortcuts.
+     *
+     * Ctrl+D sends EOF.
+     */
+    const handleKeyDown = useCallback(
+        (e: KeyboardEvent<HTMLInputElement>) => {
+            if (!run) return;
+
+            if (e.ctrlKey && e.key.toLowerCase() === "d") {
+                e.preventDefault();
+                void handleEof();
+            }
+        },
+        [run, handleEof],
+    );
+
+    /**
+     * Clicking terminal focuses input.
+     *
+     * Buttons and input are excluded.
+     */
+    const handleTerminalClick = useCallback(
+        (e: MouseEvent<HTMLDivElement>) => {
+            if (!run) return;
+
+            const target = e.target as HTMLElement;
+
+            if (
+                target.closest("button") ||
+                target.closest("input") ||
+                target.closest("form")
+            ) {
+                return;
+            }
+
+            focusTerminal();
+        },
+        [run, focusTerminal],
+    );
+
+    /**
+     * Automatically scroll to the latest output.
+     *
+     * We use scrollTop instead of scrollTo({ behavior: "smooth" })
+     * so that rapid output from a running program does not create
+     * delayed scrolling animations.
+     */
+    useEffect(() => {
+        const element = scrollRef.current;
+
+        if (!element) return;
+
+        element.scrollTop = element.scrollHeight;
+    }, [output]);
+
+    /**
+     * Focus terminal when a new run starts.
+     */
+    useEffect(() => {
+        if (!run) {
+            setValue("");
+            setInputError(null);
+            setSending(false);
+            return;
+        }
+
+        focusTerminal();
+    }, [run, focusTerminal]);
+
+    /**
+     * Keep focus after the Run button finishes creating the process.
+     */
+    useEffect(() => {
+        if (!run) return;
+
+        const timer = window.setTimeout(() => {
+            inputRef.current?.focus();
+        }, 100);
+
+        return () => {
+            window.clearTimeout(timer);
+        };
+    }, [run]);
+
+    const isRunning = Boolean(run);
+
+    return (
+        <div
+            ref={terminalRef}
+            onClick={handleTerminalClick}
+            className={[
+                "flex h-[420px] min-h-0 w-full flex-col overflow-hidden rounded-lg",
+                "border border-neutral-800 bg-neutral-950",
+                "shadow-inner",
+            ].join(" ")}
+        >
+            {/* ====================================================== */}
+            {/* TERMINAL HEADER                                         */}
+            {/* ====================================================== */}
+
+            <div
+                className={[
+                    "flex shrink-0 items-center justify-between",
+                    "border-b border-neutral-800",
+                    "bg-neutral-950 px-4 py-2",
+                ].join(" ")}
+            >
+                <div className="flex items-center gap-2">
+                    <h2 className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
+                        Terminal
+                    </h2>
+
+                    {run && (
+                        <span className="flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-300">
+                            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+                            Running
+                        </span>
+                    )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                    {run && (
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                void handleEof();
+                            }}
+                            title="Ctrl+D — send EOF to the running program"
+                            className={[
+                                "rounded-md border border-sky-500/30",
+                                "bg-sky-500/10 px-3 py-1",
+                                "text-xs font-medium text-sky-300",
+                                "transition-colors hover:bg-sky-500/20",
+                            ].join(" ")}
+                        >
+                            End Input
+                        </button>
+                    )}
+
+                    {run && (
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                void handleStop();
+                            }}
+                            className={[
+                                "rounded-md border border-red-500/30",
+                                "bg-red-500/10 px-3 py-1",
+                                "text-xs font-medium text-red-400",
+                                "transition-colors hover:bg-red-500/20",
+                            ].join(" ")}
+                        >
+                            Stop
+                        </button>
+                    )}
+
+                    {output.length > 0 && (
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onClear();
+                            }}
+                            className={[
+                                "text-xs text-neutral-500",
+                                "transition-colors hover:text-neutral-300",
+                            ].join(" ")}
+                        >
+                            Clear
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            {/* ====================================================== */}
+            {/* TERMINAL OUTPUT                                         */}
+            {/* ====================================================== */}
+
+            <div
+                ref={scrollRef}
+                onClick={handleTerminalClick}
+                className={[
+                    /*
+                     * IMPORTANT:
+                     * min-h-0 allows the flex child to shrink.
+                     * overflow-y-auto creates the vertical scrollbar.
+                     * overflow-x-auto creates horizontal scrolling.
+                     */
+                    "min-h-0 flex-1",
+                    "overflow-x-auto overflow-y-auto",
+                    "overscroll-contain",
+                    "px-4 py-3",
+                    "font-mono text-sm leading-6",
+                    run ? "cursor-text" : "cursor-default",
+                ].join(" ")}
+                style={{
+                    scrollbarGutter: "stable",
+                }}
+            >
+                <div
+                    className={[
+                        "min-w-full",
+                        "whitespace-pre",
+                        "break-normal",
+                    ].join(" ")}
+                >
+                    {output.length === 0 ? (
+                        <p className="whitespace-pre-wrap text-neutral-600">
+                            {run
+                                ? "Program started. Click here and type your input."
+                                : "Run your code to see live output here."}
+                        </p>
+                    ) : (
+                        output.map((seg, i) => {
+                            if (seg.kind === "stderr") {
+                                return (
+                                    <span
+                                        key={`stderr-${i}`}
+                                        className="text-red-400"
+                                    >
+                                        {seg.text}
+                                    </span>
+                                );
+                            }
+
+                            if (seg.kind === "meta") {
+                                return (
+                                    <span
+                                        key={`meta-${i}`}
+                                        className="text-neutral-500"
+                                    >
+                                        {seg.text}
+                                    </span>
+                                );
+                            }
+
+                            return (
+                                <span
+                                    key={`stdout-${i}`}
+                                    className="text-neutral-100"
+                                >
+                                    {seg.text}
+                                </span>
+                            );
+                        })
+                    )}
+                </div>
+            </div>
+
+            {/* ====================================================== */}
+            {/* INTERACTIVE INPUT                                       */}
+            {/* ====================================================== */}
+
+            <form
+                onSubmit={(e) => void handleSubmit(e)}
+                onClick={(e) => e.stopPropagation()}
+                className="shrink-0 border-t border-neutral-800 bg-neutral-950"
+            >
+                <div className="flex items-center gap-2 px-4 py-2">
+                    <span className="select-none font-mono text-emerald-400">
+                        ›
+                    </span>
+
+                    <input
+                        ref={inputRef}
+                        value={value}
+                        onChange={(e) => {
+                            setValue(e.target.value);
+                            setInputError(null);
+                        }}
+                        onKeyDown={handleKeyDown}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                        }}
+                        disabled={!isRunning || sending}
+                        placeholder={
+                            isRunning
+                                ? sending
+                                    ? "Sending input..."
+                                    : "Type input here and press Enter..."
+                                : "Run Code to start the program."
+                        }
+                        spellCheck={false}
+                        autoComplete="off"
+                        autoCapitalize="off"
+                        autoCorrect="off"
+                        className={[
+                            "min-w-0 flex-1 bg-transparent px-0 py-1",
+                            "font-mono text-sm text-neutral-100",
+                            "outline-none",
+                            "placeholder:text-neutral-600",
+                            "disabled:cursor-not-allowed",
+                            "disabled:text-neutral-500",
+                        ].join(" ")}
+                    />
+
+                    {isRunning && !sending && (
+                        <span className="select-none text-[10px] text-neutral-600">
+                            Enter ↵
+                        </span>
+                    )}
+                </div>
+
+                {inputError && (
+                    <div className="border-t border-red-500/10 px-4 py-1.5">
+                        <p className="text-xs text-red-400">
+                            {inputError}
+                        </p>
+                    </div>
+                )}
+            </form>
+        </div>
+    );
+}

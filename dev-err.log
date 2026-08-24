@@ -1,0 +1,42 @@
+ ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of E:\coding platform\package-lock.json as the root directory.
+ To silence this warning, set `outputFileTracingRoot` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/output#caveats for more information.
+ Detected additional lockfiles: 
+   * E:\coding platform\coderush\package-lock.json
+
+ ⨯ SyntaxError: Unexpected end of JSON input
+    at JSON.parse (<anonymous>) {
+  page: '/api/code/execute'
+}
+ ⨯ SyntaxError: Unexpected end of JSON input
+    at JSON.parse (<anonymous>) {
+  page: '/api/code/execute'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open 'E:\coding platform\coderush\.next\server\pages\_document.js'] {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'E:\\coding platform\\coderush\\.next\\server\\pages\\_document.js'
+}
+[Error: ENOENT: no such file or directory, stat 'E:\coding platform\coderush\.next\cache\webpack\server-development\8.pack.gz'] {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: 'E:\\coding platform\\coderush\\.next\\cache\\webpack\\server-development\\8.pack.gz'
+}
+ ⨯ unhandledRejection: [Error: ENOENT: no such file or directory, stat 'E:\coding platform\coderush\.next\cache\webpack\server-development\8.pack.gz'] {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: 'E:\\coding platform\\coderush\\.next\\cache\\webpack\\server-development\\8.pack.gz'
+}
+ ⨯ unhandledRejection:  [Error: ENOENT: no such file or directory, stat 'E:\coding platform\coderush\.next\cache\webpack\server-development\8.pack.gz'] {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: 'E:\\coding platform\\coderush\\.next\\cache\\webpack\\server-development\\8.pack.gz'
+}
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, stat 'E:\coding platform\coderush\.next\cache\webpack\server-development\8.pack.gz'
+ ⨯ ReferenceError: self is not defined
+    at Object.<anonymous> (E:\coding platform\coderush\.next\server\middleware.js:9:1)

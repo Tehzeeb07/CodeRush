@@ -1,0 +1,195 @@
+
+> coderush@0.1.0 dev
+> next dev
+
+   ▲ Next.js 15.5.23
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.1.4:3000
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 3.5s
+ ○ Compiling /middleware ...
+ ✓ Compiled /middleware in 1141ms (202 modules)
+ ○ Compiling /api/code/execute ...
+ ✓ Compiled /api/code/execute in 3.7s (309 modules)
+ POST /api/code/execute 200 in 4551ms
+ POST /api/code/execute 200 in 42ms
+ POST /api/code/execute 200 in 31ms
+ POST /api/code/execute 200 in 141ms
+ POST /api/code/execute 200 in 39ms
+ POST /api/code/execute 200 in 144ms
+ POST /api/code/execute 200 in 35ms
+ POST /api/code/execute 200 in 31ms
+ POST /api/code/execute 200 in 53ms
+ POST /api/code/execute 200 in 155ms
+ POST /api/code/execute 200 in 10088ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 4.7s (835 modules)
+ POST /api/code/execute 404 in 5245ms
+ POST /api/code/execute 200 in 76ms
+ POST /api/code/execute 400 in 28ms
+ ✓ Compiled in 365ms (289 modules)
+ POST /api/code/execute 200 in 142ms
+ ✓ Compiled in 234ms (289 modules)
+ POST /api/code/execute 200 in 109ms
+ ✓ Compiled in 304ms (289 modules)
+ POST /api/code/execute 200 in 284ms
+ ✓ Compiled in 182ms (289 modules)
+ POST /api/code/execute 200 in 129ms
+ ✓ Compiled in 203ms (289 modules)
+ POST /api/code/execute 200 in 177ms
+ ○ Compiling /_error ...
+ ✓ Compiled /_error in 1554ms (1163 modules)
+ POST /api/code/execute 500 in 2239ms
+ POST /api/code/execute 200 in 131ms
+ POST /api/code/execute 200 in 124ms
+ ✓ Compiled in 182ms (442 modules)
+ ✓ Compiled in 168ms (442 modules)
+ POST /api/code/execute 200 in 162ms
+ ✓ Compiled in 179ms (442 modules)
+ POST /api/code/execute 200 in 302ms
+ ✓ Compiled in 156ms (442 modules)
+ ✓ Compiled in 143ms (442 modules)
+ POST /api/code/execute 200 in 10098ms
+ POST /api/code/execute 200 in 34ms
+ ✓ Compiled in 553ms (1163 modules)
+ POST /api/code/execute 500 in 882ms
+ POST /api/code/execute 400 in 73ms
+ POST /api/code/execute 400 in 18ms
+ POST /api/code/execute 400 in 20ms
+ POST /api/code/execute 200 in 141ms
+ ✓ Compiled in 190ms (438 modules)
+ POST /api/code/execute 200 in 136ms
+ ✓ Compiled in 166ms (438 modules)
+ ✓ Compiled in 194ms (438 modules)
+ POST /api/code/execute 200 in 228ms
+ ✓ Compiled in 181ms (438 modules)
+ POST /api/code/execute 200 in 83ms
+ ✓ Compiled in 201ms (438 modules)
+ POST /api/code/execute 200 in 90ms
+ ✓ Compiled in 140ms (438 modules)
+ ✓ Compiled in 148ms (438 modules)
+ POST /api/code/execute 200 in 218ms
+ ✓ Compiled in 123ms (438 modules)
+ POST /api/code/execute 200 in 43ms
+ ✓ Compiled in 176ms (438 modules)
+ POST /api/code/execute 200 in 97ms
+ ✓ Compiled in 138ms (438 modules)
+ POST /api/code/execute 200 in 112ms
+ ✓ Compiled in 140ms (438 modules)
+ ✓ Compiled in 186ms (438 modules)
+ POST /api/code/execute 200 in 275ms
+ ✓ Compiled in 132ms (438 modules)
+ ✓ Compiled in 165ms (438 modules)
+ ✓ Compiled in 118ms (438 modules)
+ POST /api/code/execute 200 in 10060ms
+ POST /api/code/execute 200 in 67ms
+ ✓ Compiled in 151ms (438 modules)
+ POST /api/code/execute 200 in 127ms
+ ✓ Compiled in 217ms (438 modules)
+ POST /api/code/execute 400 in 42ms
+ ✓ Compiled in 151ms (438 modules)
+ POST /api/code/execute 400 in 50ms
+ ✓ Compiled in 182ms (438 modules)
+ POST /api/code/execute 400 in 114ms
+ ✓ Compiled in 177ms (438 modules)
+ ✓ Compiled in 116ms (438 modules)
+ ✓ Compiled in 192ms (437 modules)
+ ✓ Compiled in 144ms (437 modules)
+ ✓ Compiled in 494ms (437 modules)
+ ✓ Compiled in 377ms (437 modules)
+ ✓ Compiled in 417ms (437 modules)
+ ✓ Compiled in 396ms (437 modules)
+ ✓ Compiled in 398ms (437 modules)
+ ✓ Compiled in 387ms (437 modules)
+ ✓ Compiled in 390ms (437 modules)
+ ✓ Compiled in 384ms (437 modules)
+ ✓ Compiled in 134ms (437 modules)
+ ✓ Compiled in 126ms (437 modules)
+ ✓ Compiled in 132ms (437 modules)
+ ✓ Compiled in 131ms (437 modules)
+ ✓ Compiled in 134ms (437 modules)
+ ✓ Compiled in 169ms (437 modules)
+ ✓ Compiled in 155ms (437 modules)
+ ✓ Compiled in 107ms (437 modules)
+ ✓ Compiled in 149ms (437 modules)
+ ✓ Compiled in 139ms (437 modules)
+ ✓ Compiled in 152ms (437 modules)
+ ✓ Compiled in 823ms (733 modules)
+ ✓ Compiled in 104ms (437 modules)
+ ✓ Compiled in 155ms (733 modules)
+ ✓ Compiled in 160ms (437 modules)
+ ✓ Compiled in 130ms (437 modules)
+ ✓ Compiled in 127ms (437 modules)
+ ✓ Compiled in 143ms (437 modules)
+ ✓ Compiled in 138ms (437 modules)
+ ✓ Compiled in 329ms (747 modules)
+ ✓ Compiled in 113ms (437 modules)
+ ✓ Compiled in 168ms (733 modules)
+ ✓ Compiled in 113ms (437 modules)
+ ✓ Compiled in 164ms (437 modules)
+ ✓ Compiled in 139ms (437 modules)
+ ✓ Compiled in 123ms (437 modules)
+ ✓ Compiled in 248ms (747 modules)
+ ✓ Compiled in 128ms (437 modules)
+ ✓ Compiled in 158ms (733 modules)
+ ✓ Compiled in 96ms (437 modules)
+ ✓ Compiled in 132ms (437 modules)
+ ✓ Compiled in 126ms (437 modules)
+ ✓ Compiled in 92ms (437 modules)
+ ✓ Compiled in 148ms (437 modules)
+ ✓ Compiled in 117ms (437 modules)
+ ✓ Compiled in 127ms (437 modules)
+ ✓ Compiled in 131ms (437 modules)
+ ✓ Compiled in 104ms (437 modules)
+ ✓ Compiled in 125ms (437 modules)
+ ✓ Compiled in 98ms (437 modules)
+ ✓ Compiled in 106ms (437 modules)
+ ✓ Compiled in 143ms (437 modules)
+ ✓ Compiled in 141ms (437 modules)
+ ✓ Compiled in 102ms (437 modules)
+ ✓ Compiled in 104ms (437 modules)
+ ✓ Compiled in 124ms (437 modules)
+ ✓ Compiled in 137ms (437 modules)
+ ✓ Compiled in 168ms (437 modules)
+ ✓ Compiled in 126ms (437 modules)
+ ✓ Compiled in 126ms (437 modules)
+ ✓ Compiled in 101ms (437 modules)
+ ✓ Compiled in 135ms (437 modules)
+ ✓ Compiled in 140ms (437 modules)
+ ✓ Compiled in 99ms (437 modules)
+ ✓ Compiled in 120ms (437 modules)
+ ✓ Compiled in 101ms (437 modules)
+ ✓ Compiled in 108ms (437 modules)
+ ✓ Compiled in 212ms (437 modules)
+ ✓ Compiled in 149ms (437 modules)
+ ✓ Compiled in 114ms (437 modules)
+ ✓ Compiled in 108ms (437 modules)
+ ✓ Compiled in 130ms (437 modules)
+ ✓ Compiled in 154ms (437 modules)
+ ✓ Compiled in 151ms (437 modules)
+ ✓ Compiled in 151ms (437 modules)
+ ✓ Compiled in 109ms (437 modules)
+ ✓ Compiled in 177ms (437 modules)
+ ✓ Compiled in 108ms (437 modules)
+ ✓ Compiled in 108ms (437 modules)
+ ✓ Compiled in 115ms (437 modules)
+ ✓ Compiled in 99ms (437 modules)
+ ○ Compiling /_error ...
+ ✓ Compiled /_error in 919ms (641 modules)
+ GET / 404 in 14ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 4.5s (1158 modules)
+ ✓ Compiled in 620ms (438 modules)
+ ✓ Compiled in 366ms (438 modules)
+ ✓ Compiled in 318ms (438 modules)
+ ✓ Compiled in 284ms (438 modules)
+ ✓ Compiled in 305ms (438 modules)
+ ✓ Compiled in 273ms (438 modules)
+ ✓ Compiled in 308ms (438 modules)
+ ✓ Compiled in 302ms (438 modules)
+ ✓ Compiled in 292ms (438 modules)
+ ✓ Compiled in 408ms (438 modules)
+ ✓ Compiled in 383ms (438 modules)
+[?25h

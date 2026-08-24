@@ -41,6 +41,15 @@ export default function DashboardPage() {
           <p className="text-3xl font-bold text-emerald-400">{user.xp}</p>
         </div>
 
+        <div className="mt-4 flex justify-end">
+          <a
+            href="/code"
+            className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-500"
+          >
+            Open Code Editor →
+          </a>
+        </div>
+
         <p className="text-neutral-500 text-sm mt-8">
           This is the placeholder dashboard — challenge browsing, profile
           editing, and the rest of CodeRush will build on top of this.

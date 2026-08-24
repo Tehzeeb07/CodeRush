@@ -1,0 +1,34 @@
+
+> coderush@0.1.0 dev
+> next dev
+
+   ▲ Next.js 15.5.23
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.1.4:3000
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 3.7s
+ ○ Compiling /middleware ...
+ ✓ Compiled /middleware in 972ms (202 modules)
+ ○ Compiling /api/code/interactive/start ...
+ ✓ Compiled /api/code/interactive/start in 1758ms (310 modules)
+ POST /api/code/interactive/start 201 in 2021ms
+ ✓ Compiled /api/code/interactive/stream in 258ms (312 modules)
+ ✓ Compiled /api/code/interactive/input in 178ms (314 modules)
+ POST /api/code/interactive/input?sessionId=90264a8d-26b7-425d-baf1-a59c3c9182c2 200 in 239ms
+ POST /api/code/interactive/input?sessionId=90264a8d-26b7-425d-baf1-a59c3c9182c2 200 in 38ms
+ ✓ Compiled /api/code/interactive/stop in 178ms (316 modules)
+ POST /api/code/interactive/stop?sessionId=90264a8d-26b7-425d-baf1-a59c3c9182c2 200 in 286ms
+ GET /api/code/interactive/stream?sessionId=90264a8d-26b7-425d-baf1-a59c3c9182c2 200 in 4411ms
+ POST /api/code/interactive/start 201 in 60ms
+ POST /api/code/interactive/input?sessionId=0c12e697-1495-485b-9d12-d5d2ee635718 200 in 44ms
+ POST /api/code/interactive/input?sessionId=0c12e697-1495-485b-9d12-d5d2ee635718 200 in 35ms
+ POST /api/code/interactive/stop?sessionId=0c12e697-1495-485b-9d12-d5d2ee635718 200 in 34ms
+ GET /api/code/interactive/stream?sessionId=0c12e697-1495-485b-9d12-d5d2ee635718 200 in 3622ms
+ POST /api/code/interactive/start 201 in 48ms
+ POST /api/code/interactive/input?sessionId=57f6f2f9-c185-4d92-a670-a755fcaa51ac 200 in 38ms
+ POST /api/code/interactive/input?sessionId=57f6f2f9-c185-4d92-a670-a755fcaa51ac 200 in 32ms
+ POST /api/code/interactive/stop?sessionId=57f6f2f9-c185-4d92-a670-a755fcaa51ac 200 in 28ms
+ GET /api/code/interactive/stream?sessionId=57f6f2f9-c185-4d92-a670-a755fcaa51ac 200 in 3740ms
+[?25h

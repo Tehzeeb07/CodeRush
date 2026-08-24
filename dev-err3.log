@@ -1,0 +1,49 @@
+ ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of E:\coding platform\package-lock.json as the root directory.
+ To silence this warning, set `outputFileTracingRoot` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/output#caveats for more information.
+ Detected additional lockfiles: 
+   * E:\coding platform\coderush\package-lock.json
+
+ ⨯ [Error: ENOENT: no such file or directory, open 'E:\coding platform\coderush\.next\server\app\api\code\interactive\input\route.js'] {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'E:\\coding platform\\coderush\\.next\\server\\app\\api\\code\\interactive\\input\\route.js',
+  page: '/api/code/interactive/input'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open 'E:\coding platform\coderush\.next\server\app\api\code\interactive\input\route.js'] {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'E:\\coding platform\\coderush\\.next\\server\\app\\api\\code\\interactive\\input\\route.js',
+  page: '/api/code/interactive/input'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open 'E:\coding platform\coderush\.next\server\app\api\code\interactive\input\route.js'] {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'E:\\coding platform\\coderush\\.next\\server\\app\\api\\code\\interactive\\input\\route.js',
+  page: '/api/code/interactive/input'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open 'E:\coding platform\coderush\.next\server\app\api\code\interactive\input\route.js'] {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'E:\\coding platform\\coderush\\.next\\server\\app\\api\\code\\interactive\\input\\route.js',
+  page: '/api/code/interactive/input'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open 'E:\coding platform\coderush\.next\server\app\api\code\interactive\input\route.js'] {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'E:\\coding platform\\coderush\\.next\\server\\app\\api\\code\\interactive\\input\\route.js',
+  page: '/api/code/interactive/input'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open 'E:\coding platform\coderush\.next\server\app\api\code\interactive\input\route.js'] {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'E:\\coding platform\\coderush\\.next\\server\\app\\api\\code\\interactive\\input\\route.js',
+  page: '/api/code/interactive/input'
+}

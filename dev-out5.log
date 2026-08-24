@@ -1,0 +1,34 @@
+
+> coderush@0.1.0 dev
+> next dev
+
+   ▲ Next.js 15.5.23
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.1.4:3000
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 3.1s
+ ✓ Compiled /middleware in 349ms (202 modules)
+ ○ Compiling /api/code/interactive/start ...
+ ✓ Compiled /api/code/interactive/start in 516ms (310 modules)
+ POST /api/code/interactive/start 201 in 846ms
+ ✓ Compiled /api/code/interactive/stream in 130ms (312 modules)
+ ✓ Compiled /api/code/interactive/input in 201ms (314 modules)
+ POST /api/code/interactive/input?sessionId=4ebc136d-e031-4605-8791-3c955774fa02 200 in 260ms
+ POST /api/code/interactive/input?sessionId=4ebc136d-e031-4605-8791-3c955774fa02 200 in 38ms
+ ✓ Compiled /api/code/interactive/stop in 150ms (316 modules)
+ POST /api/code/interactive/stop?sessionId=4ebc136d-e031-4605-8791-3c955774fa02 200 in 209ms
+ GET /api/code/interactive/stream?sessionId=4ebc136d-e031-4605-8791-3c955774fa02 200 in 4588ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 6.1s (849 modules)
+ ○ Compiling /_error ...
+ ✓ Compiled /_error in 3.1s (1164 modules)
+ POST /api/code/interactive/start 404 in 9799ms
+ POST /api/code/interactive/start 404 in 392ms
+ POST /api/code/interactive/start 404 in 89ms
+ POST /api/code/interactive/start 404 in 70ms
+ POST /api/code/interactive/start 404 in 139ms
+ ✓ Compiled in 330ms (442 modules)
+ ✓ Compiled in 260ms (442 modules)
+[?25h
