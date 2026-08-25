@@ -232,6 +232,7 @@ async function buildLeaderboard(
       joinedAt: profile?._creationTime ?? stats?._creationTime ?? 0,
       successRate: successRate(agg.successfulSubmissions, agg.totalSubmissions),
       ...agg,
+      points: profile?.xp ?? 0, // rank by submission XP, not code-execution points
     });
   }
 
