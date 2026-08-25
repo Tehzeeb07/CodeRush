@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { api } from "../../../../convex/_generated/api";
 import Link from "next/link";
 import { Id } from "../../../../convex/_generated/dataModel";
+import SubmitForm from "./submit-form";
 
 const CATEGORY_LABELS: Record<string, string> = {
   coding: "🧩 Coding",
@@ -80,12 +81,9 @@ export default function ChallengeDetailsPage() {
           {challenge.description}
         </p>
 
-        <button
-          disabled
-          className="w-full rounded-md bg-emerald-500/50 text-black/60 font-semibold py-3 cursor-not-allowed"
-        >
-          Submit Project (coming soon)
-        </button>
+        <SubmitForm challengeId={challenge._id} />
+
+        <SubmissionsList challengeId={challenge._id} />
       </div>
     </div>
   );
