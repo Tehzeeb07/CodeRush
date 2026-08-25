@@ -15,6 +15,17 @@ export default defineSchema({
     .index("by_userId", ["userId"])
     .index("by_username", ["username"]),
 
+  submissions: defineTable({
+    challengeId: v.id("challenges"),
+    userId: v.id("users"),
+    repoUrl: v.string(),
+    demoUrl: v.optional(v.string()),
+    description: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_challenge", ["challengeId"])
+    .index("by_user", ["userId"]),
+
   challenges: defineTable({
     title: v.string(),
     description: v.string(),

@@ -31,6 +31,7 @@ export default function ChallengesPage() {
   const challenges = useQuery(api.challenges.list, {
     category: category || undefined,
     difficulty: difficulty || undefined,
+    theme: themeSearch || undefined,
   });
 
   return (
