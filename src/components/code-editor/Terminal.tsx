@@ -61,6 +61,18 @@ export default function Terminal({
     const [inputError, setInputError] = useState<string | null>(null);
     const [sending, setSending] = useState(false);
 
+    // Clear terminal input when a run finishes. Uses the "adjust state
+    // during render" pattern (React docs) instead of an effect.
+    const [previousRun, setPreviousRun] = useState(run);
+    if (run !== previousRun) {
+        setPreviousRun(run);
+        if (!run) {
+            setValue("");
+            setInputError(null);
+            setSending(false);
+        }
+    }
+
     /**
      * Focus terminal input.
      */
@@ -211,14 +223,7 @@ export default function Terminal({
      * Focus terminal when a new run starts.
      */
     useEffect(() => {
-        if (!run) {
-            setValue("");
-            setInputError(null);
-            setSending(false);
-            return;
-        }
-
-        focusTerminal();
+        if (run) focusTerminal();
     }, [run, focusTerminal]);
 
     /**

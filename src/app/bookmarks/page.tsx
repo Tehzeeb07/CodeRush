@@ -292,24 +292,6 @@ function Shell({
 }) {
     return (
         <div className="min-h-screen bg-neutral-950 text-white">
-            <header className="border-b border-neutral-800 px-4 py-3">
-                <div className="mx-auto flex max-w-4xl items-center justify-between">
-                    <Link href="/dashboard" className="text-lg font-bold tracking-tight">
-                        Code<span className="text-emerald-400">Rush</span>
-                    </Link>
-                    <nav className="flex items-center gap-3 text-sm">
-                        <Link href="/code" className="rounded-md border border-neutral-700 px-3 py-1.5 text-neutral-300 transition-colors hover:border-neutral-500 hover:text-white">
-                            Editor
-                        </Link>
-                        <Link href="/leaderboard" className="rounded-md border border-neutral-700 px-3 py-1.5 text-neutral-300 transition-colors hover:border-neutral-500 hover:text-white">
-                            Leaderboard
-                        </Link>
-                        <Link href="/dashboard" className="rounded-md border border-neutral-700 px-3 py-1.5 text-neutral-300 transition-colors hover:border-neutral-500 hover:text-white">
-                            Dashboard
-                        </Link>
-                    </nav>
-                </div>
-            </header>
             <main className="mx-auto w-full max-w-4xl space-y-6 p-4 pb-16">
                 {children}
             </main>

@@ -26,12 +26,16 @@ const DIFFICULTIES = [
 export default function ChallengesPage() {
   const [category, setCategory] = useState("");
   const [difficulty, setDifficulty] = useState("");
-  const [themeSearch, setThemeSearch] = useState("");
+  const [themeSearch, setThemeSearch] = useState(
+    () =>
+      typeof window !== "undefined"
+        ? new URLSearchParams(window.location.search).get("theme") ?? ""
+        : ""
+  );
 
   const challenges = useQuery(api.challenges.list, {
     category: category || undefined,
     difficulty: difficulty || undefined,
-    theme: themeSearch || undefined,
   });
 
   return (

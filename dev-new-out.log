@@ -1,0 +1,37 @@
+
+> coderush@0.1.0 dev
+> next dev
+
+   ▲ Next.js 15.5.23
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.1.4:3000
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 5.4s
+ ○ Compiling /middleware ...
+ ✓ Compiled /middleware in 1430ms (202 modules)
+ ○ Compiling /login ...
+ ✓ Compiled /login in 16.8s (957 modules)
+ GET /login 200 in 17481ms
+ ○ Compiling /challenges ...
+ ✓ Compiled /challenges in 1689ms (946 modules)
+ GET /challenges 200 in 2272ms
+ ✓ Compiled /showcase in 416ms (941 modules)
+ GET /showcase 200 in 660ms
+ ○ Compiling /leaderboard ...
+ ✓ Compiled /leaderboard in 573ms (950 modules)
+ GET /leaderboard 200 in 927ms
+ ✓ Compiled /profile in 363ms (957 modules)
+ GET /profile 200 in 678ms
+ ○ Compiling / ...
+ ✓ Compiled / in 964ms (963 modules)
+ GET / 200 in 1525ms
+ GET /login 200 in 143ms
+ GET /challenges 200 in 131ms
+ GET /showcase 200 in 147ms
+ GET /leaderboard 200 in 133ms
+ GET /profile 200 in 159ms
+ GET / 200 in 73ms
+ GET /challenges 200 in 341ms
+ GET /login 200 in 306ms
