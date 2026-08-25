@@ -184,6 +184,14 @@ async function buildLeaderboard(
   // the previous per-profile `userStats` lookup with a single scan.
   const profiles = await ctx.db.query("profiles").collect();
   const allStats = await ctx.db.query("userStats").collect();
+  const allSubmissions = await ctx.db.query("submissions").collect();
+  const submissionCountByUser = new Map<string, number>();
+  for (const s of allSubmissions) {
+    submissionCountByUser.set(
+      s.userId,
+      (submissionCountByUser.get(s.userId) ?? 0) + 1
+    );
+  }
 
   const profileByUser = new Map<string, any>(
     profiles.map((p: any) => [p.userId as string, p])
@@ -223,6 +231,7 @@ async function buildLeaderboard(
 
     const profile = profileByUser.get(userId);
     const stats = statsByUser.get(userId);
+    const projectSubmissions = submissionCountByUser.get(userId) ?? 0;
 
     entries.push({
       rank: 0,
@@ -232,6 +241,9 @@ async function buildLeaderboard(
       joinedAt: profile?._creationTime ?? stats?._creationTime ?? 0,
       successRate: successRate(agg.successfulSubmissions, agg.totalSubmissions),
       ...agg,
+      points: profile?.xp ?? 0,
+      totalSubmissions: projectSubmissions,
+      successfulSubmissions: projectSubmissions, // every project submission counts as "successful"
     });
   }
 
