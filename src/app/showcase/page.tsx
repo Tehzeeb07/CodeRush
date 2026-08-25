@@ -42,21 +42,11 @@ export default function ShowcasePage() {
               <p className="text-neutral-400 text-sm mb-3">{s.description}</p>
 
               <div className="flex gap-3 text-xs">
-                
-                  href={s.repoUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-emerald-400 hover:underline"
-                >
+                <a href={s.repoUrl} target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:underline">
                   Repo →
                 </a>
                 {s.demoUrl && (
-                  
-                    href={s.demoUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-emerald-400 hover:underline"
-                  >
+                  <a href={s.demoUrl} target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:underline">
                     Live demo →
                   </a>
                 )}
