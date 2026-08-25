@@ -31,6 +31,33 @@ export const create = mutation({
   },
 });
 
+// All submissions across every challenge, newest first — powers the
+// Project Showcase page.
+export const listAll = query({
+  args: {},
+  handler: async (ctx) => {
+    const submissions = await ctx.db.query("submissions").collect();
+
+    const enriched = await Promise.all(
+      submissions.map(async (s) => {
+        const profile = await ctx.db
+          .query("profiles")
+          .withIndex("by_userId", (q) => q.eq("userId", s.userId))
+          .unique();
+        const challenge = await ctx.db.get(s.challengeId);
+
+        return {
+          ...s,
+          username: profile?.username ?? "unknown",
+          challengeTitle: challenge?.title ?? "Unknown challenge",
+        };
+      })
+    );
+
+    return enriched.sort((a, b) => b.createdAt - a.createdAt);
+  },
+});
+
 export const update = mutation({
   args: {
     submissionId: v.id("submissions"),
