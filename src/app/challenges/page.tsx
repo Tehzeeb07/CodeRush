@@ -16,7 +16,6 @@ const CATEGORIES = [
   { value: "speed", label: "⚡ Speed" },
   { value: "hackathon", label: "🏆 Hackathon" },
 ];
-
 const DIFFICULTIES = [
   { value: "", label: "All" },
   { value: "beginner", label: "Beginner" },
@@ -27,10 +26,12 @@ const DIFFICULTIES = [
 export default function ChallengesPage() {
   const [category, setCategory] = useState("");
   const [difficulty, setDifficulty] = useState("");
+  const [themeSearch, setThemeSearch] = useState("");
 
   const challenges = useQuery(api.challenges.list, {
     category: category || undefined,
     difficulty: difficulty || undefined,
+    theme: themeSearch || undefined,
   });
 
   return (
@@ -74,6 +75,14 @@ export default function ChallengesPage() {
           ))}
         </div>
 
+              <input
+                  type="text"
+                  value={themeSearch}
+                  onChange={(e) => setThemeSearch(e.target.value)}
+                  placeholder="Search by theme (e.g. Space, Sustainability)…"
+                  className="w-full rounded-md bg-neutral-900 border border-neutral-800 px-3 py-2 text-white text-sm outline-none focus:border-neutral-500 mb-8"
+              />
+
         {challenges === undefined && (
           <p className="text-neutral-500">Loading challenges…</p>
         )}
@@ -82,8 +91,14 @@ export default function ChallengesPage() {
           <p className="text-neutral-500">No challenges match these filters.</p>
         )}
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          {challenges?.map((challenge) => (
+              <div className="grid gap-4 sm:grid-cols-2">
+                  {challenges
+                      ?.filter((c) =>
+                          themeSearch
+                              ? c.theme?.toLowerCase().includes(themeSearch.toLowerCase())
+                              : true
+                      )
+                      .map((challenge) => (
             <Link
               key={challenge._id}
               href={`/challenges/${challenge._id}`}
