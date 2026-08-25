@@ -23,11 +23,31 @@ export const create = mutation({
     const challenge = await ctx.db.get(args.challengeId);
     if (!challenge) throw new Error("Challenge not found");
 
-    return await ctx.db.insert("submissions", {
+    const submissionId = await ctx.db.insert("submissions", {
       ...args,
       userId,
       createdAt: Date.now(),
     });
+
+    // Award XP once per challenge — only on the user's first submission to it.
+    const priorSubmissions = await ctx.db
+      .query("submissions")
+      .withIndex("by_challenge", (q) => q.eq("challengeId", args.challengeId))
+      .collect();
+    const isFirstSubmission =
+      priorSubmissions.filter((s) => s.userId === userId).length === 1;
+
+    if (isFirstSubmission) {
+      const profile = await ctx.db
+        .query("profiles")
+        .withIndex("by_userId", (q) => q.eq("userId", userId))
+        .unique();
+      if (profile) {
+        await ctx.db.patch(profile._id, { xp: profile.xp + challenge.xpReward });
+      }
+    }
+
+    return submissionId;
   },
 });
 
@@ -57,6 +77,7 @@ export const listAll = query({
     return enriched.sort((a, b) => b.createdAt - a.createdAt);
   },
 });
+
 
 export const update = mutation({
   args: {
