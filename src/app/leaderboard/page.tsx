@@ -50,8 +50,8 @@ function Avatar({
     size?: string;
 }) {
     if (avatarUrl) {
-        // eslint-disable-next-line @next/next/no-img-element
         return (
+            // eslint-disable-next-line @next/next/no-img-element
             <img
                 src={avatarUrl}
                 alt={`${username}'s avatar`}
@@ -110,26 +110,6 @@ export default function LeaderboardPage() {
 
     return (
         <div className="min-h-screen bg-neutral-950 text-white">
-            {/* Header */}
-            <header className="border-b border-neutral-800 px-4 py-3">
-                <div className="mx-auto flex max-w-5xl items-center justify-between">
-                    <Link href="/dashboard" className="text-lg font-bold tracking-tight">
-                        Code<span className="text-emerald-400">Rush</span>
-                    </Link>
-                    <nav className="flex items-center gap-3 text-sm">
-                        <Link href="/code" className="rounded-md border border-neutral-700 px-3 py-1.5 text-neutral-300 transition-colors hover:border-neutral-500 hover:text-white">
-                            Editor
-                        </Link>
-                        <Link href="/bookmarks" className="rounded-md border border-neutral-700 px-3 py-1.5 text-neutral-300 transition-colors hover:border-neutral-500 hover:text-white">
-                            Bookmarks
-                        </Link>
-                        <Link href="/dashboard" className="rounded-md border border-neutral-700 px-3 py-1.5 text-neutral-300 transition-colors hover:border-neutral-500 hover:text-white">
-                            Dashboard
-                        </Link>
-                    </nav>
-                </div>
-            </header>
-
             <main className="mx-auto w-full max-w-5xl flex-1 space-y-6 p-4 pb-16">
                 <div>
                     <h1 className="text-2xl font-bold">Leaderboard</h1>

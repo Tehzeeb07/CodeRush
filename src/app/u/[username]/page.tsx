@@ -39,7 +39,7 @@ export default function PublicProfilePage() {
   if (profile === null) {
     return (
       <div className="min-h-screen bg-neutral-950 flex flex-col items-center justify-center text-neutral-400 gap-4">
-        <p>No user found with username "{params.username}"</p>
+        <p>No user found with username &quot;{params.username}&quot;</p>
         <Link href="/dashboard" className="text-emerald-400 hover:underline text-sm">
           ← Back to dashboard
         </Link>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
@@ -20,14 +20,16 @@ export default function SubmitForm({ challengeId }: { challengeId: Id<"challenge
   const [submitting, setSubmitting] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  // Prefill form when an existing submission loads or edit mode opens
-  useEffect(() => {
-    if (existing && editing) {
-      setRepoUrl(existing.repoUrl);
-      setDemoUrl(existing.demoUrl ?? "");
-      setDescription(existing.description);
-    }
-  }, [existing, editing]);
+  // Prefill the form when edit mode opens with an existing submission
+  // loaded. This uses the "adjust state during render" pattern (React
+  // docs) so the form stays a controlled component without an effect.
+  const [prefilledId, setPrefilledId] = useState<string | null>(null);
+  if (existing && editing && prefilledId !== existing._id) {
+    setPrefilledId(existing._id);
+    setRepoUrl(existing.repoUrl);
+    setDemoUrl(existing.demoUrl ?? "");
+    setDescription(existing.description);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import Link from "next/link";
@@ -18,13 +18,14 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Prefill the form once the user data loads
-  useEffect(() => {
-    if (user) {
-      setBio(user.bio ?? "");
-      setAvatarUrl(user.avatarUrl ?? "");
-    }
-  }, [user]);
+  // Prefill the form as soon as the user profile loads. Uses the
+  // "adjust state during render" pattern (React docs) — no effect.
+  const [loadedUserId, setLoadedUserId] = useState<string | null>(null);
+  if (user && loadedUserId !== user.id) {
+    setLoadedUserId(user.id);
+    setBio(user.bio ?? "");
+    setAvatarUrl(user.avatarUrl ?? "");
+  }
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
