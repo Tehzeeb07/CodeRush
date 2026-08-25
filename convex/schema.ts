@@ -5,6 +5,14 @@ import { authTables } from "@convex-dev/auth/server";
 export default defineSchema({
   ...authTables,
 
+  likes: defineTable({
+    submissionId: v.id("submissions"),
+    userId: v.id("users"),
+    createdAt: v.number(),
+  })
+    .index("by_submission", ["submissionId"])
+    .index("by_user_and_submission", ["userId", "submissionId"]),
+
   profiles: defineTable({
     userId: v.id("users"),
     username: v.string(),
