@@ -11,6 +11,7 @@
 import type * as auth from "../auth.js";
 import type * as challenges from "../challenges.js";
 import type * as http from "../http.js";
+import type * as likes from "../likes.js";
 import type * as submissions from "../submissions.js";
 import type * as users from "../users.js";
 
@@ -24,6 +25,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   challenges: typeof challenges;
   http: typeof http;
+  likes: typeof likes;
   submissions: typeof submissions;
   users: typeof users;
 }>;
