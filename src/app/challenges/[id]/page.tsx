@@ -87,4 +87,40 @@ export default function ChallengeDetailsPage() {
       </div>
     </div>
   );
+  function SubmissionsList({ challengeId }: { challengeId: Id<"challenges"> }) {
+    const submissions = useQuery(api.submissions.listForChallenge, { challengeId });
+
+    if (!submissions || submissions.length === 0) return null;
+
+    return (
+      <div className="mt-8">
+        <h3 className="font-semibold text-lg mb-3">
+          Submissions ({submissions.length})
+        </h3>
+        <div className="space-y-3">
+          {submissions.map((s) => (
+            <div key={s._id} className="border border-neutral-800 rounded-lg p-4 bg-neutral-900">
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-medium text-sm">{s.username}</span>
+                <span className="text-xs text-neutral-500">
+                  {new Date(s.createdAt).toLocaleDateString()}
+                </span>
+              </div>
+              <p className="text-neutral-400 text-sm mb-2">{s.description}</p>
+              <div className="flex gap-3 text-xs">
+                <a href={s.repoUrl} target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:underline">
+                  Repo →
+                </a>
+                {s.demoUrl && (
+                  <a href={s.demoUrl} target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:underline">
+                    Live demo →
+                  </a>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 }
