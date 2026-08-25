@@ -31,6 +31,28 @@ export const create = mutation({
   },
 });
 
+export const update = mutation({
+  args: {
+    submissionId: v.id("submissions"),
+    repoUrl: v.string(),
+    demoUrl: v.optional(v.string()),
+    description: v.string(),
+  },
+  handler: async (ctx, { submissionId, ...updates }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const submission = await ctx.db.get(submissionId);
+    if (!submission) throw new Error("Submission not found");
+    if (submission.userId !== userId) throw new Error("Not your submission");
+
+    if (!updates.repoUrl.trim()) throw new Error("A GitHub repo URL is required");
+    if (!updates.description.trim()) throw new Error("A description is required");
+
+    await ctx.db.patch(submissionId, updates);
+  },
+});
+
 // All submissions for one challenge, newest first — used on the challenge
 // details page to show "what people built".
 export const listForChallenge = query({
