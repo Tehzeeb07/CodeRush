@@ -35,6 +35,12 @@ export default function DashboardPage() {
             <p className="text-neutral-400 text-sm">{user.email}</p>
           </div>
           <div className="flex items-center gap-3">
+            <Link href="/leaderboard" className="text-sm text-neutral-400 hover:underline">
+              Leaderboard
+            </Link>
+            <Link href="/bookmarks" className="text-sm text-neutral-400 hover:underline">
+              Bookmarks
+            </Link>
             <Link href={`/u/${user.username}`} className="text-sm text-neutral-400 hover:underline">
               View profile
             </Link>

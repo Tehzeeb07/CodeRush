@@ -9,8 +9,12 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as bookmarks from "../bookmarks.js";
 import type * as challenges from "../challenges.js";
+import type * as executionLogs from "../executionLogs.js";
+import type * as executions from "../executions.js";
 import type * as http from "../http.js";
+import type * as leaderboard from "../leaderboard.js";
 import type * as users from "../users.js";
 
 import type {
@@ -21,8 +25,12 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  bookmarks: typeof bookmarks;
   challenges: typeof challenges;
+  executionLogs: typeof executionLogs;
+  executions: typeof executions;
   http: typeof http;
+  leaderboard: typeof leaderboard;
   users: typeof users;
 }>;
 

@@ -11,6 +11,8 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useConvex } from "convex/react";
+import { api } from "../../../convex/_generated/api";
 
 import CodeEditor from "@/components/code-editor/CodeEditor";
 import LanguageSelector from "@/components/code-editor/LanguageSelector";
@@ -18,6 +20,8 @@ import RunButton from "@/components/code-editor/RunButton";
 import Terminal, {
     type TerminalSegment,
 } from "@/components/code-editor/Terminal";
+import BookmarkButton from "@/components/bookmarks/BookmarkButton";
+import { ToastStack, type ToastItem } from "@/components/ui/Toast";
 
 import { getLanguage } from "@/lib/code-execution/languages";
 import {
@@ -51,9 +55,123 @@ export default function CodePage() {
 
     const [run, setRun] = useState<InteractiveRun | null>(null);
     const [output, setOutput] = useState<TerminalSegment[]>([]);
+    const [toasts, setToasts] = useState<ToastItem[]>([]);
+    const toastSeq = useRef(0);
+
+    const convex = useConvex();
 
     const runRef = useRef<InteractiveRun | null>(null);
     const runFnRef = useRef<() => void>(() => {});
+
+    // ------------------------------------------------------------
+    // Toasts (shared bridge with the BookmarkButton component)
+    // ------------------------------------------------------------
+
+    useEffect(() => {
+        function onToast(event: Event) {
+            const detail = (event as CustomEvent).detail as
+                | { message: string; kind: ToastItem["kind"] }
+                | undefined;
+            if (!detail) return;
+            const id = ++toastSeq.current;
+            setToasts((prev) => [...prev, { id, ...detail }]);
+            window.setTimeout(() => {
+                setToasts((prev) => prev.filter((t) => t.id !== id));
+            }, 3000);
+        }
+        window.addEventListener("coderush:toast", onToast);
+        return () => window.removeEventListener("coderush:toast", onToast);
+    }, []);
+
+    // ------------------------------------------------------------
+    // Open a bookmarked snippet (/code?snippet=<bookmarkId>)
+    // ------------------------------------------------------------
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const snippetId = params.get("snippet");
+        if (!snippetId) return;
+
+        let cancelled = false;
+        convex
+            .query(api.bookmarks.getBookmark, { id: snippetId as never })
+            .then((bookmark) => {
+                if (cancelled || !bookmark) {
+                    if (!bookmark) {
+                        // Missing content / someone else's bookmark — ignore silently.
+                        console.warn("Snippet could not be loaded.");
+                    }
+                    return;
+                }
+                setLanguage(bookmark.language as LanguageId);
+                setCodeByLang((prev) => ({
+                    ...prev,
+                    [bookmark.language]: bookmark.code,
+                }));
+                setHydrated(true);
+            })
+            .catch(() => {
+                /* transient error — editor keeps its current state */
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [convex]);
+
+    // Record a finished interactive run as a submission. The Convex
+    // mutation resolves the user server-side and updates stats/points.
+    //
+    // Duplicate-award guard: each interactive session has a unique
+    // sessionId; a session is submitted to the backend at most once,
+    // no matter how often React re-renders or how the stream callback
+    // fires. (The exit event itself only ever fires once per stream.)
+    const recordedSessionsRef = useRef<Set<string>>(new Set());
+    const recordSubmission = useCallback(
+        async (
+            status: "success" | "runtime_error" | "timeout",
+            sessionLanguage: LanguageId,
+            startedAtMs: number,
+            exitCode: number | null,
+            sessionId?: string,
+        ) => {
+            if (sessionId) {
+                if (recordedSessionsRef.current.has(sessionId)) {
+                    console.warn(
+                        `[CodeRush] Submission for session ${sessionId} already recorded — skipping.`,
+                    );
+                    return;
+                }
+                recordedSessionsRef.current.add(sessionId);
+            }
+
+            try {
+                const result = await convex.mutation(api.leaderboard.recordSubmission, {
+                    language: sessionLanguage,
+                    status,
+                    executionTime: Math.max(0, Date.now() - startedAtMs),
+                    exitCode: exitCode ?? undefined,
+                });
+                console.info(
+                    `[CodeRush] Recorded ${status} run — points awarded: ${result.pointsAwarded}`,
+                );
+                if ((result.pointsAwarded ?? 0) > 0) {
+                    const id = ++toastSeq.current;
+                    setToasts((prev) => [
+                        ...prev,
+                        { id, message: `+${result.pointsAwarded} points for a successful run!`, kind: "success" },
+                    ]);
+                    window.setTimeout(() => {
+                        setToasts((prev) => prev.filter((t) => t.id !== id));
+                    }, 3000);
+                }
+            } catch (err) {
+                // Stats recording must never break the coding experience.
+                console.error("[CodeRush] Could not record this run:", err);
+            }
+        },
+        [convex],
+    );
+
     // ------------------------------------------------------------
     // Restore + save code to localStorage
     // ------------------------------------------------------------
@@ -142,6 +260,7 @@ export default function CodePage() {
         setRun(null);
         const sessionCode = code;
         const sessionLanguage = language;
+        const startedAtMs = Date.now();
 
         try {
             const interactive = await startInteractiveRun(
@@ -166,6 +285,24 @@ export default function CodePage() {
                             text: `\n[${exitReasonLabel(event.reason)}]\n`,
                         },
                     ]);
+                    // Record the finished run: exit code 0 = success (+10
+                    // points), non-zero = runtime error, timeout = timeout.
+                    // User-initiated stops are not counted as submissions.
+                    if (event.reason !== "stopped") {
+                        const status =
+                            event.reason === "timeout" || event.reason === "idle_timeout"
+                                ? ("timeout" as const)
+                                : (event.exitCode ?? 1) === 0
+                                    ? ("success" as const)
+                                    : ("runtime_error" as const);
+                        void recordSubmission(
+                            status,
+                            sessionLanguage,
+                            startedAtMs,
+                            event.exitCode,
+                            interactive.sessionId,
+                        );
+                    }
                 } else if (event.kind === "error") {
                     runRef.current = null;
                     setRun(null);
@@ -183,7 +320,7 @@ export default function CodePage() {
                     : "Failed to start the program.";
             appendOutput([{ kind: "stderr", text: `\n[${message}]\n` }]);
         }
-    }, [code, language, appendOutput]);
+    }, [code, language, appendOutput, recordSubmission]);
 
     // Latest run for Monaco's Ctrl/Cmd+Enter shortcut.
     useEffect(() => {
@@ -237,6 +374,26 @@ export default function CodePage() {
                         onChange={handleLanguageChange}
                         disabled={running}
                     />
+
+                    <BookmarkButton
+                        language={language}
+                        code={code}
+                        disabled={running || !hydrated || code.trim().length === 0}
+                    />
+
+                    <Link
+                        href="/leaderboard"
+                        className="hidden rounded-md border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 transition-colors hover:border-neutral-500 hover:text-white sm:inline-block"
+                    >
+                        Leaderboard
+                    </Link>
+
+                    <Link
+                        href="/bookmarks"
+                        className="hidden rounded-md border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 transition-colors hover:border-neutral-500 hover:text-white sm:inline-block"
+                    >
+                        Bookmarks
+                    </Link>
 
                     <Link
                         href="/dashboard"
@@ -329,6 +486,8 @@ export default function CodePage() {
                     </div>
                 </div>
             </main>
+
+            <ToastStack toasts={toasts} />
         </div>
     );
 }
