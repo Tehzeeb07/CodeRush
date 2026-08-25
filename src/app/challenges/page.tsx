@@ -16,7 +16,6 @@ const CATEGORIES = [
   { value: "speed", label: "⚡ Speed" },
   { value: "hackathon", label: "🏆 Hackathon" },
 ];
-const [themeSearch, setThemeSearch] = useState("");
 const DIFFICULTIES = [
   { value: "", label: "All" },
   { value: "beginner", label: "Beginner" },
@@ -27,6 +26,7 @@ const DIFFICULTIES = [
 export default function ChallengesPage() {
   const [category, setCategory] = useState("");
   const [difficulty, setDifficulty] = useState("");
+  const [themeSearch, setThemeSearch] = useState("");
 
   const challenges = useQuery(api.challenges.list, {
     category: category || undefined,
