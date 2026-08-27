@@ -23,6 +23,25 @@ export default defineSchema({
     .index("by_userId", ["userId"])
     .index("by_username", ["username"]),
 
+  teams: defineTable({
+    name: v.string(),
+    description: v.optional(v.string()),
+    ownerId: v.id("users"),
+    createdAt: v.number(),
+  })
+    .index("by_owner", ["ownerId"]),
+
+  teamMembers: defineTable({
+    teamId: v.id("teams"),
+    userId: v.id("users"),
+    status: v.union(v.literal("pending"), v.literal("accepted")),
+    requestedAt: v.number(),
+  })
+    .index("by_team", ["teamId"])
+    .index("by_user", ["userId"])
+    .index("by_team_and_user", ["teamId", "userId"]),
+    
+    
   submissions: defineTable({
     challengeId: v.id("challenges"),
     userId: v.id("users"),
