@@ -23,6 +23,25 @@ export default defineSchema({
     .index("by_userId", ["userId"])
     .index("by_username", ["username"]),
 
+  teams: defineTable({
+    name: v.string(),
+    description: v.optional(v.string()),
+    ownerId: v.id("users"),
+    createdAt: v.number(),
+  })
+    .index("by_owner", ["ownerId"]),
+
+  teamMembers: defineTable({
+    teamId: v.id("teams"),
+    userId: v.id("users"),
+    status: v.union(v.literal("pending"), v.literal("accepted")),
+    requestedAt: v.number(),
+  })
+    .index("by_team", ["teamId"])
+    .index("by_user", ["userId"])
+    .index("by_team_and_user", ["teamId", "userId"]),
+    
+    
   submissions: defineTable({
     challengeId: v.id("challenges"),
     userId: v.id("users"),
@@ -150,4 +169,70 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_user_content", ["userId", "contentId"]),
+
+  /**
+   * Competitive-programming problems judged against test cases.
+   *
+   * IMPORTANT: `testCases` (including expected outputs for hidden tests)
+   * must NEVER be exposed through a public query that omits projection —
+   * see convex/problems.ts where only sanitized projections are public
+   * and full data is gated behind the judge internal secret.
+   */
+  problems: defineTable({
+    slug: v.string(),
+    title: v.string(),
+    difficulty: v.union(
+      v.literal("easy"), v.literal("medium"), v.literal("hard")),
+    tags: v.array(v.string()),
+    description: v.string(),
+    examples: v.array(
+      v.object({
+        id: v.string(),
+        input: v.string(),
+        output: v.string(),
+        explanation: v.optional(v.string()),
+      })),
+    constraints: v.array(v.string()),
+    timeLimitMs: v.number(),
+    memoryLimitMb: v.number(),
+    testCases: v.array(
+      v.object({
+        id: v.string(),
+        input: v.string(),
+        expectedOutput: v.string(),
+        isSample: v.boolean(),
+      })),
+    createdAt: v.number(),
+  }).index("by_slug", ["slug"]),
+
+  /**
+   * Judge submissions created server-side through /api/judge with the
+   * caller's authenticated identity. Never written directly by clients.
+   */
+  judgeSubmissions: defineTable({
+    userId: v.id("users"),
+    problemId: v.id("problems"),
+    problemSlug: v.string(),
+    language: v.string(),
+    code: v.string(),
+    outcome: v.union(
+      v.literal("queued"),
+      v.literal("accepted"),
+      v.literal("wrong_answer"),
+      v.literal("compilation_error"),
+      v.literal("runtime_error"),
+      v.literal("time_limit_exceeded"),
+      v.literal("memory_limit_exceeded"),
+      v.literal("internal_error"),
+    ),
+    passedCount: v.optional(v.number()),
+    totalCount: v.optional(v.number()),
+    runtimeMs: v.optional(v.number()),
+    memoryKb: v.optional(v.number()),
+    createdAt: v.number(),
+    completedAt: v.optional(v.number()),
+  })
+    .index("by_user_problem_created", ["userId", "problemId", "createdAt"])
+    .index("by_user_created", ["userId", "createdAt"])
+    .index("by_problem", ["problemId"]),
 });

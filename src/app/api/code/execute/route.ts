@@ -1,42 +1,19 @@
 /**
  * POST /api/code/execute
  *
- * Receives { language, code, stdin } ("input" is accepted as an alias)
- * from the editor, validates it, runs the code inside an isolated
- * execution backend (never in this process), and returns a consistent,
- * structured result on HTTP 200:
- *
- *   {
- *     "success": true|false,
- *     "status": "success" | "runtime_error" | "compilation_error"
- *               | "timeout" | "internal_error",
- *     "stdout": "...",            // program standard output
- *     "stderr": "...",            // runtime/syntax error output
- *     "compile_output": "...",    // compiler diagnostics (C++/Java)
- *     "output": "...",            // legacy alias of stdout (UI compat)
- *     "error": null | "...",      // legacy combined error (UI compat)
- *     "message": "...",           // short human summary
- *     "execution_time": 0.12,     // seconds
- *     "executionTime": 120,       // legacy ms (UI compat)
- *     "memoryUsageKb": null
- *   }
- *
- * Non-200 statuses are reserved for request/infrastructure problems:
- *   400 -> invalid JSON / unsupported language / empty code
- *   413 -> code or input exceeds size limits
- *   429 -> too many requests
- *   503 -> execution service unavailable / misconfigured (401, 403,
- *          unreachable, missing runtime). Raw service errors are logged
- *          server-side only; the client gets a friendly message.
- *   500 -> internal execution failure (details are never leaked)
+ * Executes code and stores execution logs in Convex.
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { ConvexHttpClient } from "convex/browser";
+
+import { api } from "@/../convex/_generated/api";
 
 import { executeCode } from "@/lib/code-execution/executor";
 import { SANDBOX_LIMITS } from "@/lib/code-execution/sandbox";
 import { isSupportedLanguage } from "@/lib/code-execution/languages";
 import { checkRateLimit } from "@/lib/code-execution/rate-limit";
+
 import {
     BackendUnavailableError,
     ConfigurationError,
@@ -47,6 +24,13 @@ import {
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
+/**
+ * Convex server client.
+ */
+const convex = new ConvexHttpClient(
+    process.env.NEXT_PUBLIC_CONVEX_URL!
+);
+
 function getClientKey(request: NextRequest): string {
     return (
         request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
@@ -54,96 +38,269 @@ function getClientKey(request: NextRequest): string {
     );
 }
 
+/**
+ * Save a log into Convex.
+ */
+async function saveExecutionLog(
+    executionId: string | undefined,
+    type: "stdout" | "stderr" | "stdin" | "system",
+    data: string,
+    sequence: number
+) {
+    if (!executionId || !data) {
+        return;
+    }
+
+    try {
+        // The inbound executionId is the client-side correlation UUID, but the
+        // logs table references the executions row by its Convex document id,
+        // so resolve it first (mirrors the editor client in code/page.tsx).
+        const execution = await convex.query(api.executions.getExecution, {
+            executionId,
+        });
+        if (!execution) {
+            console.warn(
+                `[execution-log] cannot save log: execution ${executionId} not found`
+            );
+            return;
+        }
+
+        await convex.mutation(api.executionLogs.addLog, {
+            executionId: execution._id,
+            type,
+            data,
+            sequence,
+        });
+
+        console.log(
+            `[execution-log] saved ${type} for execution ${executionId}`
+        );
+    } catch (error) {
+        /**
+         * Logging failure should NOT make the actual code execution fail.
+         */
+        console.error(
+            "[execution-log] failed to save log:",
+            error
+        );
+    }
+}
+
 export async function POST(request: NextRequest) {
-    // --- Rate limiting -------------------------------------------------
+    // -------------------------------------------------------------
+    // Rate limiting
+    // -------------------------------------------------------------
     if (!checkRateLimit(getClientKey(request))) {
         return NextResponse.json(
-            { error: "Too many requests. Please wait a moment and try again." },
-            { status: 429 },
+            {
+                error:
+                    "Too many requests. Please wait a moment and try again.",
+            },
+            { status: 429 }
         );
     }
 
-    // --- Parse body ----------------------------------------------------
+    // -------------------------------------------------------------
+    // Parse body
+    // -------------------------------------------------------------
     let body: unknown;
+
     try {
         body = await request.json();
     } catch {
         return NextResponse.json(
-            { error: "Invalid request: body must be valid JSON." },
-            { status: 400 },
+            {
+                error:
+                    "Invalid request: body must be valid JSON.",
+            },
+            { status: 400 }
         );
     }
 
-    if (typeof body !== "object" || body === null) {
+    if (
+        typeof body !== "object" ||
+        body === null
+    ) {
         return NextResponse.json(
-            { error: "Invalid request: expected a JSON object." },
-            { status: 400 },
+            {
+                error:
+                    "Invalid request: expected a JSON object.",
+            },
+            { status: 400 }
         );
     }
 
-    const { language, code } = body as Record<string, unknown>;
-    // Accept both "stdin" (spec) and "input" (legacy editor field).
-    const rawInput = (body as Record<string, unknown>);
-    const input =
-        rawInput.stdin !== undefined && rawInput.stdin !== null
-            ? rawInput.stdin
-            : rawInput.input;
+    const requestBody =
+        body as Record<string, unknown>;
 
-    // --- Validate language ----------------------------------------------
+    const language = requestBody.language;
+    const code = requestBody.code;
+
+    /**
+     * IMPORTANT:
+     *
+     * The frontend must send the same executionId that was
+     * created in the executions table.
+     */
+    const executionId =
+        typeof requestBody.executionId === "string"
+            ? requestBody.executionId
+            : undefined;
+
+    // Accept both stdin and input.
+    const input =
+        requestBody.stdin !== undefined &&
+        requestBody.stdin !== null
+            ? requestBody.stdin
+            : requestBody.input;
+
+    // -------------------------------------------------------------
+    // Validate language
+    // -------------------------------------------------------------
     if (!isSupportedLanguage(language)) {
         return NextResponse.json(
             {
                 error:
                     "Invalid or unsupported language. Supported languages: javascript, python, cpp, java.",
             },
-            { status: 400 },
+            { status: 400 }
         );
     }
 
-    // --- Validate code ---------------------------------------------------
-    if (typeof code !== "string" || code.trim().length === 0) {
+    // -------------------------------------------------------------
+    // Validate code
+    // -------------------------------------------------------------
+    if (
+        typeof code !== "string" ||
+        code.trim().length === 0
+    ) {
         return NextResponse.json(
-            { error: "Invalid request: code must be a non-empty string." },
-            { status: 400 },
+            {
+                error:
+                    "Invalid request: code must be a non-empty string.",
+            },
+            { status: 400 }
         );
     }
-    if (Buffer.byteLength(code, "utf8") > SANDBOX_LIMITS.maxCodeBytes) {
+
+    if (
+        Buffer.byteLength(code, "utf8") >
+        SANDBOX_LIMITS.maxCodeBytes
+    ) {
         return NextResponse.json(
             {
                 error: `Code too large. Maximum ${SANDBOX_LIMITS.maxCodeBytes} bytes allowed.`,
             },
-            { status: 413 },
+            { status: 413 }
         );
     }
 
-    // --- Validate input --------------------------------------------------
-    if (input !== undefined && input !== null && typeof input !== "string") {
+    // -------------------------------------------------------------
+    // Validate input
+    // -------------------------------------------------------------
+    if (
+        input !== undefined &&
+        input !== null &&
+        typeof input !== "string"
+    ) {
         return NextResponse.json(
-            { error: "Invalid request: input must be a string." },
-            { status: 400 },
+            {
+                error:
+                    "Invalid request: input must be a string.",
+            },
+            { status: 400 }
         );
     }
-    const stdin = typeof input === "string" ? input : "";
-    if (Buffer.byteLength(stdin, "utf8") > SANDBOX_LIMITS.maxInputBytes) {
+
+    const stdin =
+        typeof input === "string"
+            ? input
+            : "";
+
+    if (
+        Buffer.byteLength(stdin, "utf8") >
+        SANDBOX_LIMITS.maxInputBytes
+    ) {
         return NextResponse.json(
             {
                 error: `Input too large. Maximum ${SANDBOX_LIMITS.maxInputBytes} bytes allowed.`,
             },
-            { status: 413 },
+            { status: 413 }
         );
     }
 
-    // --- Execute in an isolated backend ---------------------------------
-    try {
-        const result = await executeCode({ language, code, input: stdin });
+    // -------------------------------------------------------------
+    // Save system log
+    // -------------------------------------------------------------
+    await saveExecutionLog(
+        executionId,
+        "system",
+        `Starting ${language} execution`,
+        0
+    );
 
-        // Map the internal result to the consistent public response
-        // format. Compilation diagnostics go to `compile_output`,
-        // runtime/syntax errors to `stderr`; legacy fields (`output`,
-        // `error`, `executionTime`) are kept for UI compatibility.
-        const isCompileError = result.status === "compilation_error";
-        const stderr = isCompileError ? "" : result.error ?? "";
-        const compileOutput = isCompileError ? result.error ?? "" : "";
+    // -------------------------------------------------------------
+    // Execute code
+    // -------------------------------------------------------------
+    try {
+        const result = await executeCode({
+            language,
+            code,
+            input: stdin,
+        });
+
+        const isCompileError =
+            result.status === "compilation_error";
+
+        const stdout =
+            result.output ?? "";
+
+        const stderr =
+            isCompileError
+                ? ""
+                : result.error ?? "";
+
+        const compileOutput =
+            isCompileError
+                ? result.error ?? ""
+                : "";
+
+        // ---------------------------------------------------------
+        // Save STDOUT
+        // ---------------------------------------------------------
+        if (stdout.trim()) {
+            await saveExecutionLog(
+                executionId,
+                "stdout",
+                stdout,
+                1
+            );
+        }
+
+        // ---------------------------------------------------------
+        // Save STDERR
+        // ---------------------------------------------------------
+        if (stderr.trim()) {
+            await saveExecutionLog(
+                executionId,
+                "stderr",
+                stderr,
+                2
+            );
+        }
+
+        // ---------------------------------------------------------
+        // Save compilation error
+        // ---------------------------------------------------------
+        if (compileOutput.trim()) {
+            await saveExecutionLog(
+                executionId,
+                "stderr",
+                compileOutput,
+                2
+            );
+        }
+
         const message =
             result.status === "success"
                 ? "Execution completed"
@@ -155,50 +312,114 @@ export async function POST(request: NextRequest) {
                             ? "Runtime error"
                             : "Execution failed";
 
+        // ---------------------------------------------------------
+        // Save completion system log
+        // ---------------------------------------------------------
+        await saveExecutionLog(
+            executionId,
+            "system",
+            message,
+            3
+        );
+
+        // ---------------------------------------------------------
+        // Return response
+        // ---------------------------------------------------------
         return NextResponse.json(
             {
                 success: result.success,
+
                 status: result.status,
-                stdout: result.output,
+
+                stdout,
+
                 stderr,
+
                 compile_output: compileOutput,
+
                 message,
+
                 execution_time:
-                    Math.round(result.executionTime) / 1000,
-                // Legacy fields consumed by the existing output panel.
-                output: result.output,
+                    Math.round(
+                        result.executionTime
+                    ) / 1000,
+
+                // Legacy fields
+                output: stdout,
+
                 error: result.error,
-                executionTime: result.executionTime,
-                memoryUsageKb: result.memoryUsageKb,
+
+                executionTime:
+                    result.executionTime,
+
+                memoryUsageKb:
+                    result.memoryUsageKb,
             },
-            { status: 200 },
+            { status: 200 }
         );
+
     } catch (err) {
-        // Timeouts are a normal, expected outcome of running user code
-        // (e.g. infinite loops) — report them as a structured result so
-        // the output panel can show the "Time Limit Exceeded" state.
-        if (err instanceof ExecutionTimeoutError) {
+
+        // ---------------------------------------------------------
+        // Timeout
+        // ---------------------------------------------------------
+        if (
+            err instanceof
+            ExecutionTimeoutError
+        ) {
+            const timeoutMessage =
+                `Execution exceeded the ${SANDBOX_LIMITS.timeoutMs / 1000}s time limit and was terminated.`;
+
+            await saveExecutionLog(
+                executionId,
+                "stderr",
+                timeoutMessage,
+                1
+            );
+
+            await saveExecutionLog(
+                executionId,
+                "system",
+                "Time limit exceeded",
+                2
+            );
+
             return NextResponse.json({
                 success: false,
                 status: "timeout",
                 stdout: "",
                 stderr: "",
                 compile_output: "",
-                message: "Time limit exceeded",
-                error: `Execution exceeded the ${SANDBOX_LIMITS.timeoutMs / 1000}s time limit and was terminated.`,
+                message:
+                    "Time limit exceeded",
+                error: timeoutMessage,
                 output: "",
-                executionTime: SANDBOX_LIMITS.timeoutMs,
+                executionTime:
+                    SANDBOX_LIMITS.timeoutMs,
                 memoryUsageKb: null,
             });
         }
 
-        if (err instanceof ConfigurationError) {
-            // Log the real reason server-side; show only the friendly
-            // configuration message to the user.
+        // ---------------------------------------------------------
+        // Configuration error
+        // ---------------------------------------------------------
+        if (
+            err instanceof
+            ConfigurationError
+        ) {
             console.error(
                 "[code-execution] configuration error:",
-                err.detail ?? err.message,
+                err.detail ??
+                    err.message
             );
+
+            await saveExecutionLog(
+                executionId,
+                "system",
+                "Execution service misconfigured",
+                1
+            );
+
             return NextResponse.json(
                 {
                     success: false,
@@ -206,39 +427,90 @@ export async function POST(request: NextRequest) {
                     stdout: "",
                     stderr: "",
                     compile_output: "",
-                    message: "Execution service misconfigured",
+                    message:
+                        "Execution service misconfigured",
                     error: err.message,
                     output: "",
                     executionTime: 0,
                     memoryUsageKb: null,
                 },
-                { status: 503 },
+                { status: 503 }
             );
         }
 
-        if (err instanceof ValidationError) {
+        // ---------------------------------------------------------
+        // Validation error
+        // ---------------------------------------------------------
+        if (
+            err instanceof
+            ValidationError
+        ) {
+            await saveExecutionLog(
+                executionId,
+                "system",
+                err.message,
+                1
+            );
+
             return NextResponse.json(
-                { error: err.message },
-                { status: err.statusCode },
+                {
+                    error: err.message,
+                },
+                {
+                    status:
+                        err.statusCode,
+                }
             );
         }
 
-        if (err instanceof BackendUnavailableError) {
+        // ---------------------------------------------------------
+        // Backend unavailable
+        // ---------------------------------------------------------
+        if (
+            err instanceof
+            BackendUnavailableError
+        ) {
             console.error(
                 "[code-execution] backend unavailable:",
-                err.message,
+                err.message
             );
+
+            await saveExecutionLog(
+                executionId,
+                "system",
+                err.message,
+                1
+            );
+
             return NextResponse.json(
-                { error: err.message },
-                { status: 503 },
+                {
+                    error: err.message,
+                },
+                { status: 503 }
             );
         }
 
-        // Log server-side only; never leak internals to the client.
-        console.error("[code-execution] unexpected error:", err);
+        // ---------------------------------------------------------
+        // Unknown error
+        // ---------------------------------------------------------
+        console.error(
+            "[code-execution] unexpected error:",
+            err
+        );
+
+        await saveExecutionLog(
+            executionId,
+            "system",
+            "Internal execution error",
+            1
+        );
+
         return NextResponse.json(
-            { error: "Internal execution error. Please try again later." },
-            { status: 500 },
+            {
+                error:
+                    "Internal execution error. Please try again later.",
+            },
+            { status: 500 }
         );
     }
 }

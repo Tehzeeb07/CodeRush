@@ -5,10 +5,10 @@ import { v } from "convex/values";
  * Add a terminal log for an execution.
  *
  * Log types:
- * - stdout  → normal program output
- * - stderr  → compiler/runtime error output
- * - stdin   → input entered by the user
- * - system  → system messages such as program started/finished
+ * - stdout -> normal program output
+ * - stderr -> compiler/runtime error output
+ * - stdin  -> input entered by the user
+ * - system -> system messages
  */
 export const addLog = mutation({
   args: {
@@ -24,6 +24,8 @@ export const addLog = mutation({
     data: v.string(),
 
     sequence: v.number(),
+
+    timestamp: v.optional(v.number()),
   },
 
   handler: async (ctx, args) => {
@@ -32,16 +34,13 @@ export const addLog = mutation({
       type: args.type,
       data: args.data,
       sequence: args.sequence,
-      timestamp: Date.now(),
+      timestamp: args.timestamp ?? Date.now(),
     });
   },
 });
 
 /**
  * Get all logs for one execution.
- *
- * Logs are returned in the exact order in which
- * they were recorded.
  */
 export const getLogs = query({
   args: {

@@ -8,15 +8,19 @@
  * @module
  */
 
+import type * as analytics from "../analytics.js";
 import type * as auth from "../auth.js";
 import type * as bookmarks from "../bookmarks.js";
 import type * as challenges from "../challenges.js";
 import type * as executionLogs from "../executionLogs.js";
 import type * as executions from "../executions.js";
 import type * as http from "../http.js";
+import type * as judgeSubmissions from "../judgeSubmissions.js";
 import type * as leaderboard from "../leaderboard.js";
 import type * as likes from "../likes.js";
+import type * as problems from "../problems.js";
 import type * as submissions from "../submissions.js";
+import type * as teams from "../teams.js";
 import type * as users from "../users.js";
 
 import type {
@@ -26,15 +30,19 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  analytics: typeof analytics;
   auth: typeof auth;
   bookmarks: typeof bookmarks;
   challenges: typeof challenges;
   executionLogs: typeof executionLogs;
   executions: typeof executions;
   http: typeof http;
+  judgeSubmissions: typeof judgeSubmissions;
   leaderboard: typeof leaderboard;
   likes: typeof likes;
+  problems: typeof problems;
   submissions: typeof submissions;
+  teams: typeof teams;
   users: typeof users;
 }>;
 

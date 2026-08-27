@@ -77,7 +77,8 @@ function runDocker(args: string[], timeoutMs: number): Promise<SpawnOutcome> {
 export class DockerBackend implements ExecutionBackend {
     readonly name = "docker";
 
-    async isAvailable(_job?: ExecutionJob): Promise<boolean> {
+    async isAvailable(job?: ExecutionJob): Promise<boolean> {
+        void job;
         try {
             const result = await runDocker(["info", "--format", "ok"], 5_000);
             return !result.timedOut && result.stdout.trim() === "ok";
