@@ -236,6 +236,7 @@ export default function DashboardView() {
                             <QuickAction href="/leaderboard" label="Leaderboard" icon={<TrophyGlyph size={15} />} />
                             <QuickAction href="/bookmarks" label="Bookmarks" icon={<BookmarkGlyph size={15} />} />
                             <QuickAction href="/showcase" label="Showcase" icon={<ShowcaseGlyph size={15} />} />
+                            <QuickAction href="/teams" label="Teams" icon={<TeamsGlyph size={15} />} />
                             <QuickAction href={profileHref} label="View Profile" icon={<UserGlyph size={15} />} />
                             <QuickAction href="/profile" label="Edit Profile" icon={<EditGlyph size={15} />} />
                         </div>
@@ -452,6 +453,17 @@ function BookmarkGlyph({ size = 18 }: { size?: number }) {
     return (
         <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
+        </svg>
+    );
+}
+
+function TeamsGlyph({ size = 18 }: { size?: number }) {
+    return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
         </svg>
     );
 }
