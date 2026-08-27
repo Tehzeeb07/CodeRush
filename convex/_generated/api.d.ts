@@ -17,6 +17,7 @@ import type * as http from "../http.js";
 import type * as leaderboard from "../leaderboard.js";
 import type * as likes from "../likes.js";
 import type * as submissions from "../submissions.js";
+import type * as teams from "../teams.js";
 import type * as users from "../users.js";
 
 import type {
@@ -35,6 +36,7 @@ declare const fullApi: ApiFromModules<{
   leaderboard: typeof leaderboard;
   likes: typeof likes;
   submissions: typeof submissions;
+  teams: typeof teams;
   users: typeof users;
 }>;
 
