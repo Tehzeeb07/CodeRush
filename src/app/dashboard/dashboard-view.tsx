@@ -216,6 +216,14 @@ export default function DashboardView() {
                             description="Quickly access your saved challenges and coding resources."
                             cta="Open Bookmarks"
                         />
+                        <FeatureCard
+                            className="stagger-6"
+                            href="/teams"
+                            icon={<TeamsGlyph size={18} />}
+                            title="Teams"
+                            description="Create or join a team and build hackathon projects together."
+                            cta="View Teams"
+                        />
                     </div>
                 </section>
 
