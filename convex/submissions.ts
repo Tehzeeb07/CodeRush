@@ -83,6 +83,7 @@ export const listAll = query({
 export const update = mutation({
   args: {
     submissionId: v.id("submissions"),
+    teamId: v.optional(v.id("teams")),
     repoUrl: v.string(),
     demoUrl: v.optional(v.string()),
     description: v.string(),
