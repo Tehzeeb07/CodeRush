@@ -26,13 +26,31 @@ function useScrollReveal() {
   return { ref, visible };
 }
 
+function Reveal({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
+  const { ref, visible } = useScrollReveal();
+  return (
+    <div
+      ref={ref}
+      style={{
+        transitionDelay: `${delay}ms`,
+        transform: visible ? "translateY(0) scale(1)" : "translateY(40px) scale(0.97)",
+        opacity: visible ? 1 : 0,
+        transition: "transform 0.7s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.7s ease",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
 export default function Home() {
   return (
     <div className="min-h-screen bg-neutral-950 text-white overflow-hidden relative">
-      {/* Ambient glow background */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-emerald-500/20 rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-purple-500/10 rounded-full blur-[100px]" />
+      {/* Ambient glow background — now animated */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[900px] bg-emerald-500/40 rounded-full blur-[100px] animate-[drift1_12s_ease-in-out_infinite]" />
+        <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-purple-500/30 rounded-full blur-[90px] animate-[drift2_15s_ease-in-out_infinite]" />
+        <div className="absolute top-1/3 left-0 w-[500px] h-[500px] bg-emerald-400/25 rounded-full blur-[90px] animate-[drift3_18s_ease-in-out_infinite]" />
       </div>
 
       <nav className="relative z-10 max-w-6xl mx-auto flex items-center justify-between px-6 py-6">
@@ -56,10 +74,7 @@ export default function Home() {
       </nav>
 
       <main className="relative z-10 max-w-4xl mx-auto px-6 pt-16 sm:pt-24 pb-20 text-center">
-        <div
-          className="inline-block mb-8"
-          style={{ perspective: "1000px" }}
-        >
+        <div className="inline-block mb-8" style={{ perspective: "1000px" }}>
           <div
             className="text-6xl sm:text-8xl font-black tracking-tight animate-[float_4s_ease-in-out_infinite]"
             style={{
@@ -101,7 +116,7 @@ export default function Home() {
           </Link>
         </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-left">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-left">
           {[
             { emoji: "🎮", label: "Game Challenges" },
             { emoji: "🌐", label: "Web Challenges" },
@@ -121,6 +136,7 @@ export default function Home() {
 
       {/* Stats strip */}
       <section className="relative z-10 border-y border-neutral-800 bg-neutral-900/40 backdrop-blur">
+       <Reveal>
         <div className="max-w-4xl mx-auto px-6 py-8 grid grid-cols-3 gap-4 text-center">
           <div>
             <p className="text-3xl font-bold text-emerald-400">8</p>
@@ -141,10 +157,12 @@ export default function Home() {
             </p>
           </div>
         </div>
+       </Reveal>
       </section>
 
       {/* How it works */}
       <section className="relative z-10 max-w-4xl mx-auto px-6 py-20">
+       <Reveal>
         <h2 className="text-2xl sm:text-3xl font-bold text-center mb-3">
           How CodeRush works
         </h2>
@@ -184,10 +202,12 @@ export default function Home() {
             </div>
           ))}
         </div>
+       </Reveal>
       </section>
 
       {/* All challenge categories */}
       <section className="relative z-10 max-w-4xl mx-auto px-6 pb-20">
+       <Reveal>
         <h2 className="text-2xl sm:text-3xl font-bold text-center mb-10">
           Every kind of challenge
         </h2>
@@ -211,10 +231,12 @@ export default function Home() {
             </div>
           ))}
         </div>
+       </Reveal>
       </section>
 
       {/* Final CTA */}
       <section className="relative z-10 max-w-2xl mx-auto px-6 pb-24 text-center">
+       <Reveal>
         <h2 className="text-2xl sm:text-3xl font-bold mb-4">
           Ready to build something?
         </h2>
@@ -227,6 +249,7 @@ export default function Home() {
         >
           Create your account
         </Link>
+       </Reveal>
       </section>
 
       <footer className="relative z-10 border-t border-neutral-800 py-8 text-center text-neutral-500 text-xs">
@@ -242,6 +265,18 @@ export default function Home() {
           50% {
             transform: rotateX(8deg) rotateY(4deg) translateY(-12px);
           }
+        }
+        @keyframes drift1 {
+          0%, 100% { transform: translate(-50%, 0) scale(1); }
+          50% { transform: translate(-40%, 40px) scale(1.15); }
+        }
+        @keyframes drift2 {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          50% { transform: translate(-30px, -50px) scale(1.2); }
+        }
+        @keyframes drift3 {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          50% { transform: translate(50px, 30px) scale(0.9); }
         }
       `}</style>
     </div>
