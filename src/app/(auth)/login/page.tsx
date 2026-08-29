@@ -4,11 +4,14 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuthActions } from "@convex-dev/auth/react";
+import { useConvex } from "convex/react";
+import { destinationForRole, fetchIdentityWithRetry } from "@/lib/role-redirect";
 
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { signIn } = useAuthActions();
+  const convex = useConvex();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -22,7 +25,19 @@ export default function LoginPage() {
 
     try {
       await signIn("password", { email, password, flow: "signIn" });
-      router.push(searchParams.get("next") ?? "/dashboard");
+      const next = searchParams.get("next");
+
+      // Explicit ?next= target always wins.
+      if (next) {
+        router.push(next);
+        router.refresh();
+        return;
+      }
+
+      // Role-aware routing: resolve the caller's role server-side via
+      // roles.me and send admins / super admins to the admin dashboard.
+      const identity = await fetchIdentityWithRetry(convex);
+      router.push(destinationForRole(identity?.role));
       router.refresh();
     } catch {
       setError("Invalid email or password");

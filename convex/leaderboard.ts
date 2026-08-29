@@ -1,6 +1,8 @@
-import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+﻿import { v } from "convex/values";
+import { query, mutation, type DatabaseReader } from "./_generated/server";
+import type { Doc, Id } from "./_generated/dataModel";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { resolveIdentity } from "./roles";
 
 /**
  * CodeRush Leaderboard & User Statistics
@@ -142,15 +144,15 @@ function compareEntries(
  * inside a time period.
  */
 async function aggregateWindow(
-  db: any,
-  userId: string,
+  db: DatabaseReader,
+  userId: Id<"users">,
   since: number
 ) {
   const executions = await db
     .query("executions")
     .withIndex(
       "by_user_startedAt",
-      (q: any) =>
+      (q) =>
         q
           .eq("userId", userId)
           .gte("startedAt", since)
@@ -201,7 +203,7 @@ async function aggregateWindow(
  * Build the complete leaderboard.
  */
 async function buildLeaderboard(
-  ctx: any,
+  ctx: { db: DatabaseReader },
   period: "all" | "week" | "month" | "day",
   viewerId: string | null
 ): Promise<{
@@ -227,15 +229,15 @@ async function buildLeaderboard(
     .query("userStats")
     .collect();
 
-  const profileByUser = new Map<string, any>(
-    profiles.map((profile: any) => [
+  const profileByUser = new Map<string, Doc<"profiles">>(
+    profiles.map((profile) => [
       profile.userId as string,
       profile,
     ])
   );
 
-  const statsByUser = new Map<string, any>(
-    allStats.map((stats: any) => [
+  const statsByUser = new Map<string, Doc<"userStats">>(
+    allStats.map((stats) => [
       stats.userId as string,
       stats,
     ])
@@ -297,7 +299,7 @@ async function buildLeaderboard(
        */
       statsData = await aggregateWindow(
         ctx.db,
-        userId,
+        userId as Id<"users">, // map keys are built from profiles.userId / userStats.userId
         since
       );
     }
@@ -468,7 +470,7 @@ export const getUserPublicStats = query({
         .query("profiles")
         .withIndex(
           "by_username",
-          (q: any) =>
+          (q) =>
             q.eq(
               "username",
               username
@@ -504,7 +506,7 @@ export const getUserPublicStats = query({
         .query("executions")
         .withIndex(
           "by_user_startedAt",
-          (q: any) =>
+          (q) =>
             q.eq(
               "userId",
               profile.userId
@@ -544,7 +546,7 @@ export const getUserPublicStats = query({
 
       recentActivity:
         recentExecutions.map(
-          (execution: any) => ({
+          (execution) => ({
             status:
               execution.status,
 
@@ -644,7 +646,7 @@ export const recordSubmission = mutation({
           .query("executions")
           .withIndex(
             "by_user_problem",
-            (q: any) =>
+            (q) =>
               q
                 .eq(
                   "userId",
@@ -656,7 +658,7 @@ export const recordSubmission = mutation({
                 )
           )
           .filter(
-            (q: any) =>
+            (q) =>
               q.eq(
                 q.field("status"),
                 "success"
@@ -737,7 +739,7 @@ export const recordSubmission = mutation({
         .query("userStats")
         .withIndex(
           "by_user",
-          (q: any) =>
+          (q) =>
             q.eq(
               "userId",
               userId
@@ -851,6 +853,90 @@ export const recordSubmission = mutation({
       totalPoints:
         stats.points +
         awarded,
+    };
+  },
+});
+
+/**
+ * ADMIN: paginated, searchable leaderboard across all users.
+ * Returns per-user display fields for the admin management page.
+ */
+export const getAdminLeaderboard = query({
+  args: {
+    search: v.optional(v.string()),
+    page: v.optional(v.number()),
+    pageSize: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const callerId = await getAuthUserId(ctx);
+    if (!callerId) throw new Error("Not authenticated");
+    const caller = await resolveIdentity(ctx, callerId);
+    if (!caller || (caller.role !== "ADMIN" && caller.role !== "SUPER_ADMIN")) {
+      throw new Error("Insufficient permissions");
+    }
+
+    const page = Math.max(args.page ?? 0, 0);
+    const pageSize = Math.min(args.pageSize ?? 20, 100);
+    const search = args.search?.trim().toLowerCase() ?? "";
+
+    const allUsers = await ctx.db.query("users").collect();
+    const allStats = await ctx.db.query("userStats").collect();
+    const statsByUser = new Map<string, Doc<"userStats">>(allStats.map((s) => [String(s.userId), s]));
+    const profiles = await ctx.db.query("profiles").collect();
+    const profileByUser = new Map<string, Doc<"profiles">>(profiles.map((p) => [String(p.userId), p]));
+    const allExecutions = await ctx.db.query("executions").collect();
+
+    // Track last-active timestamp and number of distinct active days per user.
+    const lastActiveByUser = new Map<string, number>();
+    const activeDaysByUser = new Map<string, Set<string>>();
+    for (const e of allExecutions) {
+      const uid = String(e.userId);
+      const startedAt = e.startedAt ?? 0;
+      lastActiveByUser.set(uid, Math.max(lastActiveByUser.get(uid) ?? 0, startedAt));
+      const day = new Date(startedAt).toISOString().slice(0, 10);
+      const days = activeDaysByUser.get(uid) ?? new Set<string>();
+      days.add(day);
+      activeDaysByUser.set(uid, days);
+    }
+
+    const rows = allUsers.map((u) => {
+      const stats = statsByUser.get(String(u._id));
+      const profile = profileByUser.get(String(u._id));
+      return {
+        _id: u._id,
+        userEmail: (u.email as string) ?? "",
+        username: profile?.username ?? "Unnamed",
+        xp: profile?.xp ?? 0,
+        points: stats?.points ?? 0,
+        problemsSolved: stats?.problemsSolved ?? 0,
+        streak: activeDaysByUser.get(String(u._id))?.size ?? 0,
+        lastActive: lastActiveByUser.get(String(u._id)) ?? u._creationTime,
+        joinedAt: u._creationTime,
+      };
+    });
+
+    let filtered = rows;
+    if (search) {
+      filtered = rows.filter((r) =>
+        (r.username ?? "").toLowerCase().includes(search) ||
+        (r.userEmail ?? "").toLowerCase().includes(search)
+      );
+    }
+    filtered.sort((a, b) =>
+      (b.points ?? 0) - (a.points ?? 0) ||
+      (b.problemsSolved ?? 0) - (a.problemsSolved ?? 0) ||
+      (a.joinedAt ?? 0) - (b.joinedAt ?? 0)
+    );
+
+    const start = page * pageSize;
+    const paged = filtered.slice(start, start + pageSize);
+
+    return {
+      entries: paged,
+      total: filtered.length,
+      page,
+      pageSize,
+      totalPages: Math.ceil(filtered.length / pageSize),
     };
   },
 });

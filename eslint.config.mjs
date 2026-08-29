@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Convex codegen output — never lint generated files:
+    "convex/_generated/**",
+    // Node scripts (CommonJS `require` is intentional):
+    "scripts/**",
+    "scriptsX/**",
   ]),
 ]);
 

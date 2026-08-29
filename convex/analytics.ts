@@ -1,25 +1,25 @@
-import { v } from "convex/values";
+﻿import { v } from "convex/values";
 import { query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import type { Id } from "./_generated/dataModel";
 
 /**
- * CodeRush — Premium Analytics
+ * CodeRush â€” Premium Analytics
  *
  * All analytics are aggregated HERE, server side, and are ALWAYS scoped
  * strictly to the authenticated user via getAuthUserId(). No username or
- * userId argument is accepted — the requesting principal is the only
+ * userId argument is accepted â€” the requesting principal is the only
  * identity ever queried, so a user can never view or alter another user's
  * statistics through these functions.
  *
  * Data sources (real backend tables, never hardcoded):
- *   - userStats   → authoritative all-time totals (points, submissions,
+ *   - userStats   â†’ authoritative all-time totals (points, submissions,
  *                   problemsSolved). Written only by secure server mutations.
- *   - executions  → every code run recorded through the editor (status,
+ *   - executions  â†’ every code run recorded through the editor (status,
  *                   language, executionTime, pointsAwarded, startedAt,
  *                   optional problemId). Powers trends, languages, heatmap,
  *                   difficulty, recent activity and streaks.
- *   - challenges  → optional problem metadata (difficulty, theme) used to
+ *   - challenges  â†’ optional problem metadata (difficulty, theme) used to
  *                   bucket problem-backed solves by difficulty / subject.
  *
  * Heavy time-series + heatmap aggregation happens here so the browser
@@ -430,36 +430,36 @@ export const getAnalytics = query({
     const insights: { icon: string; text: string }[] = [];
     if (solvesInRange - solvesPrev > 0) {
       insights.push({
-        icon: "🏆",
+        icon: "ðŸ†",
         text: `You solved ${solvesInRange - solvesPrev} more ${(solvesInRange - solvesPrev) === 1 ? "problem" : "problems"} than in the previous period.`,
       });
     }
     if (current > 0) {
       insights.push({
-        icon: "🔥",
+        icon: "ðŸ”¥",
         text: `Your current streak is ${current} day${current === 1 ? "" : "s"}. Keep going!`,
       });
     }
     if (acceptanceDelta > 0) {
       insights.push({
-        icon: "📈",
+        icon: "ðŸ“ˆ",
         text: `Your acceptance rate improved by ${Math.round(acceptanceDelta)} points`,
       });
     } else if (acceptanceDelta < 0) {
       insights.push({
-        icon: "📉",
+        icon: "ðŸ“‰",
         text: `Your acceptance rate dipped by ${Math.round(Math.abs(acceptanceDelta))} points this period.`,
       });
     }
     if (languages.length > 0) {
       insights.push({
-        icon: "💻",
+        icon: "ðŸ’»",
         text: `You code most in ${languages[0].language} (${languages[0].percent}% of submissions).`,
       });
     }
     if (skills.length > 0) {
       insights.push({
-        icon: "⚡",
+        icon: "âš¡",
         text: `You are strongest in ${skills[0].name} (${skills[0].percent}% mastery).`,
       });
     }
@@ -476,12 +476,12 @@ export const getAnalytics = query({
       ];
       const idx = stones.findIndex((t) => allTime.problemsSolved < t);
       if (idx === -1) {
-        insights.push({ icon: "🏅", text: "You have completed every coding milestone. Legendary!" });
+        insights.push({ icon: "ðŸ…", text: "You have completed every coding milestone. Legendary!" });
       } else {
         const remain = stones[idx] - allTime.problemsSolved;
         insights.push({
-          icon: "🎯",
-          text: `${remain < 50 ? "Almost there — " : ""}you are ${remain} from ${names[idx]}.`,
+          icon: "ðŸŽ¯",
+          text: `${remain < 50 ? "Almost there â€” " : ""}you are ${remain} from ${names[idx]}.`,
         });
       }
     }
@@ -540,6 +540,138 @@ export const getAnalytics = query({
         failed: allTime.failed,
         points: allTime.points,
         profileXp: profile?.xp ?? 0,
+      },
+    };
+  },
+});
+
+/** Admin analytics: platform-wide aggregated data for admin dashboard. */
+export const getAdminAnalytics = query({
+  args: {
+    range: v.optional(v.union(v.literal("7d"), v.literal("30d"), v.literal("3m"), v.literal("6m"), v.literal("1y"), v.literal("all"))),
+  },
+  handler: async (ctx, args) => {
+    const callerId = await getAuthUserId(ctx);
+    if (!callerId) throw new Error("Not authenticated");
+
+    // Verify admin role
+    const roleRow = await ctx.db
+      .query("roles")
+      .withIndex("by_userId", (q) => q.eq("userId", callerId))
+      .unique();
+
+    const caller = await ctx.db.get(callerId);
+    const superAdminEmails = (process.env.SUPER_ADMINS ?? "gb8585438@gmail.com")
+      .split(",")
+      .map((e: string) => e.trim().toLowerCase());
+
+    const isSuperAdmin = caller?.email && superAdminEmails.includes(caller.email.toLowerCase());
+    const isAdmin = roleRow && (roleRow.role === "ADMIN" || roleRow.role === "SUPER_ADMIN");
+
+    if (!isAdmin && !isSuperAdmin) {
+      throw new Error("Insufficient permissions");
+    }
+
+    const range = args.range ?? "30d";
+    const days = RANGE_DAYS[range];
+    const cutoff = range === "all" ? 0 : Date.now() - days * DAY;
+
+    // Gather all data
+    const allUsers = await ctx.db.query("users").collect();
+    const allExecutions = await ctx.db.query("executions").collect();
+    const allProblems = await ctx.db.query("problems").collect();
+    const allSubmissions = await ctx.db.query("judgeSubmissions").collect();
+
+    // Filter by date range
+    const recentExecutions = allExecutions.filter((e) => (e.startedAt ?? 0) >= cutoff);
+    const recentSubmissions = allSubmissions.filter((s) => (s.createdAt ?? 0) >= cutoff);
+
+    // User growth over time
+    const userGrowth: Record<string, number> = {};
+    allUsers.forEach((u) => {
+      const key = dayKey(u._creationTime);
+      userGrowth[key] = (userGrowth[key] ?? 0) + 1;
+    });
+
+    // Cumulative user growth
+    const sortedDays = Object.keys(userGrowth).sort();
+    let cumulative = 0;
+    const cumulativeGrowth = sortedDays.map((day) => {
+      cumulative += userGrowth[day];
+      return { date: day, count: cumulative };
+    });
+
+    // Daily submissions
+    const dailySubmissions: Record<string, number> = {};
+    recentSubmissions.forEach((s) => {
+      const key = dayKey(s.createdAt);
+      dailySubmissions[key] = (dailySubmissions[key] ?? 0) + 1;
+    });
+
+    // Language usage
+    const languageUsage: Record<string, number> = {};
+    recentExecutions.forEach((e) => {
+      languageUsage[e.language] = (languageUsage[e.language] ?? 0) + 1;
+    });
+
+    // Execution trends
+    const executionTrends: Record<string, { total: number; success: number; failed: number }> = {};
+    recentExecutions.forEach((e) => {
+      const key = dayKey(e.startedAt);
+      if (!executionTrends[key]) executionTrends[key] = { total: 0, success: 0, failed: 0 };
+      executionTrends[key].total += 1;
+      if (e.status === "success") executionTrends[key].success += 1;
+      else executionTrends[key].failed += 1;
+    });
+
+    // Problem popularity
+    const problemPopularity: Record<string, number> = {};
+    recentSubmissions.forEach((s) => {
+      const pid = s.problemId;
+      problemPopularity[pid] = (problemPopularity[pid] ?? 0) + 1;
+    });
+
+    // Retention (users active in last 7 days / total users)
+    const now = Date.now();
+    const activeUserIds = new Set(
+      allExecutions
+        .filter((e) => (e.startedAt ?? 0) >= now - 7 * DAY)
+        .map((e) => e.userId)
+    );
+    const retention = allUsers.length > 0 ? Math.round((activeUserIds.size / allUsers.length) * 100) : 0;
+
+    // Success rate
+    const totalCompleted = recentExecutions.filter((e) => TERMINAL_STATUSES.has(e.status)).length;
+    const successful = recentExecutions.filter((e) => e.status === "success").length;
+    const successRate = totalCompleted > 0 ? Math.round((successful / totalCompleted) * 100) : 0;
+
+    return {
+      range,
+      kpis: {
+        totalUsers: allUsers.length,
+        activeUsers: activeUserIds.size,
+        totalProblems: allProblems.length,
+        totalSubmissions: allSubmissions.length,
+        totalExecutions: allExecutions.length,
+        successRate,
+        retention,
+      },
+      charts: {
+        userGrowth: cumulativeGrowth.slice(-30),
+        dailySubmissions: Object.entries(dailySubmissions)
+          .map(([date, count]) => ({ date, count }))
+          .sort((a, b) => a.date.localeCompare(b.date)),
+        languageUsage: Object.entries(languageUsage)
+          .map(([language, count]) => ({ language, count }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 10),
+        executionTrends: Object.entries(executionTrends)
+          .map(([date, data]) => ({ date, ...data }))
+          .sort((a, b) => a.date.localeCompare(b.date)),
+        problemPopularity: Object.entries(problemPopularity)
+          .map(([problemId, count]) => ({ problemId, count }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 10),
       },
     };
   },

@@ -4,12 +4,14 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useMutation } from "convex/react";
+import { useMutation, useConvex } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
+import { destinationForRole, fetchIdentityWithRetry } from "@/lib/role-redirect";
 
 export default function SignupPage() {
   const router = useRouter();
   const { signIn } = useAuthActions();
+  const convex = useConvex();
   const createProfile = useMutation(api.users.createProfile);
 
   const [email, setEmail] = useState("");
@@ -37,7 +39,11 @@ export default function SignupPage() {
       await new Promise((resolve) => setTimeout(resolve, 300));
       await createProfile({ username });
 
-      router.push("/dashboard");
+      // Role-aware routing: an account created with a super-admin email
+      // (resolved server-side in convex/roles.ts) lands on the admin
+      // dashboard; everyone else goes to the normal user dashboard.
+      const identity = await fetchIdentityWithRetry(convex);
+      router.push(destinationForRole(identity?.role));
       router.refresh();
     } catch (err) {
       const message = err instanceof Error ? err.message : "Something went wrong";

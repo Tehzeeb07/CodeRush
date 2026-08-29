@@ -6,6 +6,7 @@ import {
 } from "@convex-dev/auth/nextjs/server";
 
 const isProtectedRoute = createRouteMatcher([
+  "/admin(.*)",
   "/dashboard(.*)",
   "/code(.*)",
   "/bookmarks(.*)",
