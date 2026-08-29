@@ -250,6 +250,7 @@ export default defineSchema({
     submissions: defineTable({
     challengeId: v.id("challenges"),
     userId: v.id("users"),
+    teamId: v.optional(v.id("teams")),
     repoUrl: v.string(),
     demoUrl: v.optional(v.string()),
     description: v.string(),
@@ -261,7 +262,11 @@ export default defineSchema({
   })
     .index("by_challenge", ["challengeId"])
     .index("by_user", ["userId"])
+<<<<<<< HEAD
     .index("by_featured", ["isFeatured"]),
+=======
+    .index("by_team", ["teamId"]),
+>>>>>>> 3e186c0bb9eb9d2e659e8042ee373ea884967540
 
   challenges: defineTable({
     title: v.string(),

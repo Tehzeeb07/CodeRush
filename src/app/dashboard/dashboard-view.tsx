@@ -363,6 +363,16 @@ export default function DashboardView() {
                             description="Quickly access your saved challenges and coding resources."
                             cta="Open Bookmarks"
                         />
+<<<<<<< HEAD
+                        <FeatureCard
+                            className="stagger-6"
+                            href="/teams"
+                            icon={<TeamsGlyph size={18} />}
+                            title="Teams"
+                            description="Create or join a team and build hackathon projects together."
+                            cta="View Teams"
+                        />
+=======
 
                         {/* ------------------------------------------------
                             Analytics
@@ -379,6 +389,7 @@ export default function DashboardView() {
                             cta="View Analytics"
                         />
 
+>>>>>>> development
                     </div>
                 </section>
 
@@ -391,6 +402,17 @@ export default function DashboardView() {
                     aria-label="Quick actions"
                 >
                     <div className="premium-card p-5 sm:p-6">
+<<<<<<< HEAD
+                        <p className="eyebrow mb-4">Quick Actions</p>
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                            <QuickAction href="/challenges" label="Challenges" icon={<BoltGlyph size={15} />} />
+                            <QuickAction href="/leaderboard" label="Leaderboard" icon={<TrophyGlyph size={15} />} />
+                            <QuickAction href="/bookmarks" label="Bookmarks" icon={<BookmarkGlyph size={15} />} />
+                            <QuickAction href="/showcase" label="Showcase" icon={<ShowcaseGlyph size={15} />} />
+                            <QuickAction href="/teams" label="Teams" icon={<TeamsGlyph size={15} />} />
+                            <QuickAction href={profileHref} label="View Profile" icon={<UserGlyph size={15} />} />
+                            <QuickAction href="/profile" label="Edit Profile" icon={<EditGlyph size={15} />} />
+=======
 
                         <p className="eyebrow mb-4">
                             Quick Actions
@@ -456,6 +478,7 @@ export default function DashboardView() {
                                 }
                             />
 
+>>>>>>> development
                         </div>
                     </div>
                 </section>
@@ -908,6 +931,20 @@ function BookmarkGlyph({
     );
 }
 
+<<<<<<< HEAD
+function TeamsGlyph({ size = 18 }: { size?: number }) {
+    return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        </svg>
+    );
+}
+
+function UserGlyph({ size = 16 }: { size?: number }) {
+=======
 /* ================================================================
    Analytics Icon
 ================================================================ */
@@ -917,6 +954,7 @@ function AnalyticsGlyph({
 }: {
     size?: number;
 }) {
+>>>>>>> development
     return (
         <svg
             width={size}

@@ -7,12 +7,14 @@ import { Id } from "../../../../convex/_generated/dataModel";
 
 export default function SubmitForm({ challengeId }: { challengeId: Id<"challenges"> }) {
   const myExisting = useQuery(api.submissions.myForChallenge, { challengeId });
+    const myTeams = useQuery(api.teams.myTeams);
   const createSubmission = useMutation(api.submissions.create);
   const updateSubmission = useMutation(api.submissions.update);
 
   const existing = myExisting?.[0]; // most recent submission, if any
 
   const [editing, setEditing] = useState(false);
+    const [teamId, setTeamId] = useState<string>("");
   const [repoUrl, setRepoUrl] = useState("");
   const [demoUrl, setDemoUrl] = useState("");
   const [description, setDescription] = useState("");
@@ -39,6 +41,7 @@ export default function SubmitForm({ challengeId }: { challengeId: Id<"challenge
       if (existing) {
         await updateSubmission({
           submissionId: existing._id,
+          teamId: teamId ? (teamId as any) : undefined,
           repoUrl,
           demoUrl: demoUrl || undefined,
           description,
@@ -46,6 +49,7 @@ export default function SubmitForm({ challengeId }: { challengeId: Id<"challenge
       } else {
         await createSubmission({
           challengeId,
+          teamId: teamId ? (teamId as any) : undefined,
           repoUrl,
           demoUrl: demoUrl || undefined,
           description,
@@ -124,6 +128,27 @@ export default function SubmitForm({ challengeId }: { challengeId: Id<"challenge
         />
       </div>
 
+      {myTeams && myTeams.length > 0 && (
+        <div>
+          <label className="block text-sm text-neutral-300 mb-1">
+            Submit as team (optional)
+          </label>
+          <select
+            value={teamId}
+            onChange={(e) => setTeamId(e.target.value)}
+            className="w-full rounded-md bg-neutral-950 border border-neutral-800 px-3 py-2 text-white text-sm outline-none focus:border-neutral-500"
+          >
+            <option value="">Just me (solo submission)</option>
+            {myTeams.map((team) =>
+              team ? (
+                <option key={team._id} value={team._id}>
+                  {team.name}
+                </option>
+              ) : null
+            )}
+          </select>
+        </div>
+      )}
       <div>
         <label className="block text-sm text-neutral-300 mb-1">Description</label>
         <textarea
