@@ -4,11 +4,12 @@
  * CodeRush — Global Premium Navbar
  *
  * Rendered once at the app root. Handles:
- *  - primary navigation (Dashboard / Challenges / Showcase / Leaderboard)
+ *  - primary navigation (Dashboard / Challenges / Showcase / Leaderboard / Analytics)
  *  - active-route highlighting via usePathname
- *  - a glass user dropdown (profile, bookmarks, logout) with
- *    click-outside + Escape-key closing and keyboard accessibility
- *  - a responsive hamburger menu on small screens
+ *  - a glass user dropdown (profile, bookmarks, logout)
+ *  - click-outside + Escape-key closing
+ *  - keyboard accessibility
+ *  - responsive hamburger menu on small screens
  *
  * Reuses the existing auth/user queries only. No backend logic here.
  */
@@ -30,6 +31,7 @@ const NAV_LINKS: NavEntry[] = [
     { href: "/challenges", label: "Challenges" },
     { href: "/showcase", label: "Showcase" },
     { href: "/leaderboard", label: "Leaderboard" },
+    { href: "/analytics", label: "Analytics" },
 ];
 
 /** Routes that keep their own dedicated chrome (auth + editor workspace). */
@@ -37,6 +39,7 @@ const HIDDEN_ROUTES = new Set(["/", "/login", "/signup", "/code"]);
 
 function isActive(pathname: string, href: string): boolean {
     if (pathname === href) return true;
+
     // Highlight parent nav for nested routes, e.g. /challenges/<id>.
     return href !== "/dashboard" && pathname.startsWith(`${href}/`);
 }
@@ -64,6 +67,7 @@ function Logo() {
                     <polyline points="8 6 2 12 8 18" />
                 </svg>
             </span>
+
             <span className="text-[17px] font-bold tracking-tight text-white">
                 Code<span className="text-[#818cf8]">Rush</span>
             </span>
@@ -80,7 +84,11 @@ function Avatar({
     username: string | null;
     size?: number;
 }) {
-    const style = { width: size, height: size };
+    const style = {
+        width: size,
+        height: size,
+    };
+
     if (avatarUrl) {
         return (
             // eslint-disable-next-line @next/next/no-img-element
@@ -95,6 +103,7 @@ function Avatar({
             />
         );
     }
+
     return (
         <span
             className="flex items-center justify-center rounded-full bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] text-sm font-semibold text-white"
@@ -124,21 +133,29 @@ export default function SiteNavbar() {
     useEffect(() => {
         function onPointerDown(event: PointerEvent) {
             const target = event.target as Node;
+
             if (menuRef.current && !menuRef.current.contains(target)) {
                 setMenuOpen(false);
             }
-            if (mobilePanelRef.current && !mobilePanelRef.current.contains(target)) {
+
+            if (
+                mobilePanelRef.current &&
+                !mobilePanelRef.current.contains(target)
+            ) {
                 setMobileOpen(false);
             }
         }
+
         function onKeyDown(event: KeyboardEvent) {
             if (event.key === "Escape") {
                 setMenuOpen(false);
                 setMobileOpen(false);
             }
         }
+
         document.addEventListener("pointerdown", onPointerDown);
         document.addEventListener("keydown", onKeyDown);
+
         return () => {
             document.removeEventListener("pointerdown", onPointerDown);
             document.removeEventListener("keydown", onKeyDown);
@@ -152,6 +169,7 @@ export default function SiteNavbar() {
         setLoggingOut(true);
         setMenuOpen(false);
         setMobileOpen(false);
+
         try {
             await signOut();
             router.push("/login");
@@ -163,10 +181,17 @@ export default function SiteNavbar() {
 
     function handleSearch(event: React.FormEvent) {
         event.preventDefault();
+
         setMenuOpen(false);
         setMobileOpen(false);
+
         const q = search.trim();
-        router.push(q ? `/challenges?theme=${encodeURIComponent(q)}` : "/challenges");
+
+        router.push(
+            q
+                ? `/challenges?theme=${encodeURIComponent(q)}`
+                : "/challenges"
+        );
     }
 
     const username = user?.username ?? null;
@@ -183,29 +208,50 @@ export default function SiteNavbar() {
             }}
         >
             <div className="mx-auto flex h-[60px] w-full max-w-7xl items-center justify-between gap-3 px-4 sm:px-6">
-                {/* Left: logo */}
+
+                {/* Left: Logo */}
                 <div className="flex shrink-0 items-center gap-3">
                     <Logo />
                 </div>
 
-                {/* Main navigation (desktop) */}
-                <nav className="hidden items-center gap-1 lg:flex" aria-label="Primary">
+                {/* Main Navigation - Desktop */}
+                <nav
+                    className="hidden items-center gap-1 lg:flex"
+                    aria-label="Primary"
+                >
                     {NAV_LINKS.map((link) => (
                         <Link
                             key={link.href}
                             href={link.href}
-                            aria-current={isActive(pathname, link.href) ? "page" : undefined}
-                            className={`nav-item ${isActive(pathname, link.href) ? "active" : ""}`}
+                            aria-current={
+                                isActive(pathname, link.href)
+                                    ? "page"
+                                    : undefined
+                            }
+                            className={`nav-item ${isActive(pathname, link.href)
+                                ? "active"
+                                : ""
+                                }`}
                         >
                             {link.label}
-                            <span className="nav-indicator" aria-hidden="true" />
+
+                            <span
+                                className="nav-indicator"
+                                aria-hidden="true"
+                            />
                         </Link>
                     ))}
                 </nav>
 
-                {/* Right: search + editor + user menu + hamburger */}
+                {/* Right: Search + Editor + User Menu + Hamburger */}
                 <div className="flex items-center gap-2">
-                    <form onSubmit={handleSearch} className="hidden md:block" role="search">
+
+                    {/* Search */}
+                    <form
+                        onSubmit={handleSearch}
+                        className="hidden md:block"
+                        role="search"
+                    >
                         <div className="relative">
                             <span
                                 className="pointer-events-none absolute left-2.5 top-1/2 flex -translate-y-1/2 text-[#71717a]"
@@ -213,6 +259,7 @@ export default function SiteNavbar() {
                             >
                                 <SearchGlyph />
                             </span>
+
                             <input
                                 type="search"
                                 value={search}
@@ -224,6 +271,7 @@ export default function SiteNavbar() {
                         </div>
                     </form>
 
+                    {/* Code Editor */}
                     <Link
                         href="/code"
                         aria-label="Open the code editor workspace"
@@ -233,20 +281,28 @@ export default function SiteNavbar() {
                         <CodeGlyph size={16} />
                     </Link>
 
-                    {/* User menu */}
+                    {/* User Menu */}
                     <div className="relative" ref={menuRef}>
                         <button
                             type="button"
-                            onClick={() => setMenuOpen((open) => !open)}
+                            onClick={() =>
+                                setMenuOpen((open) => !open)
+                            }
                             aria-haspopup="menu"
                             aria-expanded={menuOpen}
                             aria-label="Open user menu"
                             className="flex h-9 items-center gap-2 rounded-[10px] border border-[#ffffff14] bg-[#ffffff06] py-1 pl-1 pr-2.5 transition-colors hover:border-[#818cf8]/50 hover:bg-[#ffffff0d]"
                         >
-                            <Avatar avatarUrl={user?.avatarUrl ?? null} username={username} size={28} />
+                            <Avatar
+                                avatarUrl={user?.avatarUrl ?? null}
+                                username={username}
+                                size={28}
+                            />
+
                             <span className="hidden max-w-[110px] truncate text-sm font-medium text-[#e4e4e7] sm:block">
                                 {username ?? "…"}
                             </span>
+
                             <ChevronDownGlyph open={menuOpen} />
                         </button>
 
@@ -263,11 +319,19 @@ export default function SiteNavbar() {
                                     </div>
                                 ) : (
                                     <div className="mb-1 flex items-center gap-3 rounded-xl bg-[#ffffff08] px-3 py-2.5">
-                                        <Avatar avatarUrl={user?.avatarUrl ?? null} username={username} size={36} />
+                                        <Avatar
+                                            avatarUrl={
+                                                user?.avatarUrl ?? null
+                                            }
+                                            username={username}
+                                            size={36}
+                                        />
+
                                         <div className="min-w-0">
                                             <p className="truncate text-sm font-semibold text-white">
                                                 {username ?? "Your account"}
                                             </p>
+
                                             <p className="truncate text-xs text-[#71717a]">
                                                 {user?.email ?? "Signed in"}
                                             </p>
@@ -275,20 +339,67 @@ export default function SiteNavbar() {
                                     </div>
                                 )}
 
-                                <Link role="menuitem" href={profileHref} className="menu-item" onClick={() => setMenuOpen(false)}>
-                                    <UserGlyph /> View Profile
+                                <Link
+                                    role="menuitem"
+                                    href={profileHref}
+                                    className="menu-item"
+                                    onClick={() => setMenuOpen(false)}
+                                >
+                                    <UserGlyph />
+                                    View Profile
                                 </Link>
-                                <Link role="menuitem" href="/profile" className="menu-item" onClick={() => setMenuOpen(false)}>
-                                    <EditGlyph /> Edit Profile
+
+                                <Link
+                                    role="menuitem"
+                                    href="/profile"
+                                    className="menu-item"
+                                    onClick={() => setMenuOpen(false)}
+                                >
+                                    <EditGlyph />
+                                    Edit Profile
                                 </Link>
-                                <div className="menu-separator" role="separator" />
-                                <Link role="menuitem" href="/leaderboard" className="menu-item" onClick={() => setMenuOpen(false)}>
-                                    <TrophyGlyph /> Leaderboard
+
+                                <div
+                                    className="menu-separator"
+                                    role="separator"
+                                />
+
+                                <Link
+                                    role="menuitem"
+                                    href="/leaderboard"
+                                    className="menu-item"
+                                    onClick={() => setMenuOpen(false)}
+                                >
+                                    <TrophyGlyph />
+                                    Leaderboard
                                 </Link>
-                                <Link role="menuitem" href="/bookmarks" className="menu-item" onClick={() => setMenuOpen(false)}>
-                                    <BookmarkGlyph /> Bookmarks
+
+                                {/* Analytics */}
+                                <Link
+                                    role="menuitem"
+                                    href="/analytics"
+                                    className="menu-item"
+                                    onClick={() => setMenuOpen(false)}
+                                >
+                                    <AnalyticsGlyph />
+                                    Analytics
                                 </Link>
-                                <div className="menu-separator" role="separator" />
+
+                                <Link
+                                    role="menuitem"
+                                    href="/bookmarks"
+                                    className="menu-item"
+                                    onClick={() => setMenuOpen(false)}
+                                >
+                                    <BookmarkGlyph />
+                                    Bookmarks
+                                </Link>
+
+                                <div
+                                    className="menu-separator"
+                                    role="separator"
+                                />
+
                                 <button
                                     type="button"
                                     role="menuitem"
@@ -296,40 +407,63 @@ export default function SiteNavbar() {
                                     onClick={handleLogout}
                                     disabled={loggingOut}
                                 >
-                                    <LogoutGlyph /> {loggingOut ? "Logging out…" : "Logout"}
+                                    <LogoutGlyph />
+
+                                    {loggingOut
+                                        ? "Logging out…"
+                                        : "Logout"}
                                 </button>
                             </div>
                         )}
                     </div>
 
-                    {/* Mobile hamburger */}
+                    {/* Mobile Hamburger */}
                     <button
                         type="button"
                         className="hamburger lg:hidden"
-                        onClick={() => setMobileOpen((open) => !open)}
+                        onClick={() =>
+                            setMobileOpen((open) => !open)
+                        }
                         aria-expanded={mobileOpen}
                         aria-controls="mobile-nav"
-                        aria-label={mobileOpen ? "Close navigation menu" : "Open navigation menu"}
+                        aria-label={
+                            mobileOpen
+                                ? "Close navigation menu"
+                                : "Open navigation menu"
+                        }
                     >
-                        {mobileOpen ? <CloseGlyph /> : <HamburgerGlyph />}
+                        {mobileOpen ? (
+                            <CloseGlyph />
+                        ) : (
+                            <HamburgerGlyph />
+                        )}
                     </button>
                 </div>
             </div>
 
-            {/* Mobile navigation panel */}
+            {/* Mobile Navigation Panel */}
             {mobileOpen && (
                 <div
                     ref={mobilePanelRef}
                     id="mobile-nav"
                     className="cr-menu relative mx-3 mb-3 rounded-[14px] p-2 lg:hidden"
                 >
-                    <nav className="flex flex-col" aria-label="Primary mobile">
+                    <nav
+                        className="flex flex-col"
+                        aria-label="Primary mobile"
+                    >
                         {NAV_LINKS.map((link) => (
                             <Link
                                 key={link.href}
                                 href={link.href}
-                                onClick={() => setMobileOpen(false)}
-                                aria-current={isActive(pathname, link.href) ? "page" : undefined}
+                                onClick={() =>
+                                    setMobileOpen(false)
+                                }
+                                aria-current={
+                                    isActive(pathname, link.href)
+                                        ? "page"
+                                        : undefined
+                                }
                                 className={
                                     isActive(pathname, link.href)
                                         ? "nav-item active justify-between rounded-xl px-4 py-2.5 text-[15px]"
@@ -337,43 +471,112 @@ export default function SiteNavbar() {
                                 }
                             >
                                 {link.label}
+
                                 {isActive(pathname, link.href) && (
-                                    <span className="h-1.5 w-1.5 rounded-full bg-[#6366f1]" aria-hidden="true" />
+                                    <span
+                                        className="h-1.5 w-1.5 rounded-full bg-[#6366f1]"
+                                        aria-hidden="true"
+                                    />
                                 )}
                             </Link>
                         ))}
                     </nav>
+
                     <div className="menu-separator" />
-                    <Link href={profileHref} className="menu-item" onClick={() => setMobileOpen(false)}>
-                        <UserGlyph /> View Profile
+
+                    <Link
+                        href={profileHref}
+                        className="menu-item"
+                        onClick={() => setMobileOpen(false)}
+                    >
+                        <UserGlyph />
+                        View Profile
                     </Link>
-                    <Link href="/profile" className="menu-item" onClick={() => setMobileOpen(false)}>
-                        <EditGlyph /> Edit Profile
+
+                    <Link
+                        href="/profile"
+                        className="menu-item"
+                        onClick={() => setMobileOpen(false)}
+                    >
+                        <EditGlyph />
+                        Edit Profile
                     </Link>
-                    <Link href="/bookmarks" className="menu-item" onClick={() => setMobileOpen(false)}>
-                        <BookmarkGlyph /> Bookmarks
+
+                    <Link
+                        href="/bookmarks"
+                        className="menu-item"
+                        onClick={() => setMobileOpen(false)}
+                    >
+                        <BookmarkGlyph />
+                        Bookmarks
                     </Link>
                 </div>
             )}
         </header>
     );
 }
-/* ---- Inline icons (kept local so the navbar stays self-contained) ---- */
+
+/* -------------------------------------------------------
+   Inline Icons
+------------------------------------------------------- */
 
 function SearchGlyph() {
     return (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        >
             <circle cx="11" cy="11" r="8" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            <line
+                x1="21"
+                y1="21"
+                x2="16.65"
+                y2="16.65"
+            />
         </svg>
     );
 }
 
 function CodeGlyph({ size = 16 }: { size?: number }) {
     return (
-        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+            width={size}
+            height={size}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        >
             <polyline points="16 18 22 12 16 6" />
             <polyline points="8 6 2 12 8 18" />
+        </svg>
+    );
+}
+
+function AnalyticsGlyph() {
+    return (
+        <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+        >
+            <line x1="18" y1="20" x2="18" y2="10" />
+            <line x1="12" y1="20" x2="12" y2="4" />
+            <line x1="6" y1="20" x2="6" y2="14" />
         </svg>
     );
 }
@@ -390,7 +593,8 @@ function ChevronDownGlyph({ open }: { open: boolean }) {
             strokeLinecap="round"
             strokeLinejoin="round"
             aria-hidden="true"
-            className={`text-[#71717a] transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+            className={`text-[#71717a] transition-transform duration-200 ${open ? "rotate-180" : ""
+                }`}
         >
             <polyline points="6 9 12 15 18 9" />
         </svg>
@@ -399,7 +603,16 @@ function ChevronDownGlyph({ open }: { open: boolean }) {
 
 function HamburgerGlyph() {
     return (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+        <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            aria-hidden="true"
+        >
             <line x1="3" y1="6" x2="21" y2="6" />
             <line x1="3" y1="12" x2="21" y2="12" />
             <line x1="3" y1="18" x2="21" y2="18" />
@@ -409,7 +622,16 @@ function HamburgerGlyph() {
 
 function CloseGlyph() {
     return (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+        <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            aria-hidden="true"
+        >
             <line x1="18" y1="6" x2="6" y2="18" />
             <line x1="6" y1="6" x2="18" y2="18" />
         </svg>
@@ -418,7 +640,17 @@ function CloseGlyph() {
 
 function UserGlyph() {
     return (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+        >
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
             <circle cx="12" cy="7" r="4" />
         </svg>
@@ -427,7 +659,17 @@ function UserGlyph() {
 
 function EditGlyph() {
     return (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+        >
             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
         </svg>
@@ -436,7 +678,17 @@ function EditGlyph() {
 
 function TrophyGlyph() {
     return (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+        >
             <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
             <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
             <path d="M4 22h16" />
@@ -449,15 +701,35 @@ function TrophyGlyph() {
 
 function BookmarkGlyph() {
     return (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
+        <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+        >
+            <path d="m19 21-7-4-7 4V5a2 2 0 0 0-2-2h10a2 2 0 0 0 2 2v16z" />
         </svg>
     );
 }
 
 function LogoutGlyph() {
     return (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+        >
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
             <polyline points="16 17 21 12 16 7" />
             <line x1="21" y1="12" x2="9" y2="12" />

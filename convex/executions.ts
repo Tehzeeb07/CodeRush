@@ -1,26 +1,45 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { getAuthUserId } from "@convex-dev/auth/server";
 
 /**
- * Create a new code execution.
+ * Create a new code execution for the currently authenticated user.
+ *
+ * The client-facing executionId is the same ID used by the
+ * interactive execution session.
  */
 export const createExecution = mutation({
   args: {
-    userId: v.id("users"),
-    language: v.string(),
     executionId: v.string(),
+    language: v.string(),
   },
 
   handler: async (ctx, args) => {
-    const executionId = await ctx.db.insert("executions", {
-      userId: args.userId,
-      language: args.language,
-      status: "queued",
+    const userId = await getAuthUserId(ctx);
+
+    if (!userId) {
+      throw new Error("Not authenticated");
+    }
+
+    // Prevent accidental duplicate execution records.
+    const existing = await ctx.db
+      .query("executions")
+      .withIndex("by_executionId", (q) =>
+        q.eq("executionId", args.executionId),
+      )
+      .unique();
+
+    if (existing) {
+      return existing._id;
+    }
+
+    return await ctx.db.insert("executions", {
+      userId,
       executionId: args.executionId,
+      language: args.language,
+      status: "running",
       startedAt: Date.now(),
     });
-
-    return executionId;
   },
 });
 
@@ -39,15 +58,13 @@ export const updateExecution = mutation({
       v.literal("compilation_error"),
       v.literal("timeout"),
       v.literal("failed"),
-      v.literal("internal_error")
+      v.literal("internal_error"),
+      v.literal("stopped"),
     ),
 
     completedAt: v.optional(v.number()),
-
     exitCode: v.optional(v.number()),
-
     executionTime: v.optional(v.number()),
-
     errorMessage: v.optional(v.string()),
   },
 
@@ -55,13 +72,13 @@ export const updateExecution = mutation({
     const execution = await ctx.db
       .query("executions")
       .withIndex("by_executionId", (q) =>
-        q.eq("executionId", args.executionId)
+        q.eq("executionId", args.executionId),
       )
       .unique();
 
     if (!execution) {
       throw new Error(
-        `Execution not found: ${args.executionId}`
+        `Execution not found: ${args.executionId}`,
       );
     }
 
@@ -101,7 +118,7 @@ export const getExecution = query({
     return await ctx.db
       .query("executions")
       .withIndex("by_executionId", (q) =>
-        q.eq("executionId", args.executionId)
+        q.eq("executionId", args.executionId),
       )
       .unique();
   },
@@ -118,8 +135,8 @@ export const getUserExecutions = query({
   handler: async (ctx, args) => {
     return await ctx.db
       .query("executions")
-      .withIndex("by_user", (q) =>
-        q.eq("userId", args.userId)
+      .withIndex("by_user_startedAt", (q) =>
+        q.eq("userId", args.userId),
       )
       .order("desc")
       .collect();

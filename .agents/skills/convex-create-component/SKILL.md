@@ -221,7 +221,7 @@ Note the reference path shape: a function in
 ```ts
 // Bad: component code cannot rely on app auth or env
 const identity = await ctx.auth.getUserIdentity();
-const apiKey = process.env.OPENAI_API_KEY;
+const apiKey = process.env.GEMINI_API_KEY;
 ```
 
 ```ts
@@ -231,7 +231,7 @@ if (!userId) throw new Error("Not authenticated");
 
 await ctx.runAction(components.translator.translate, {
   userId,
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.GEMINI_API_KEY,
   text: args.text,
 });
 ```

@@ -86,7 +86,8 @@ export class HttpBackend implements ExecutionBackend {
         return this.baseUrl.replace(/\/+$/, "").replace(/\/execute$/, "");
     }
 
-    async isAvailable(_job?: ExecutionJob): Promise<boolean> {
+    async isAvailable(job?: ExecutionJob): Promise<boolean> {
+        void job;
         return Boolean(this.baseUrl);
     }
 

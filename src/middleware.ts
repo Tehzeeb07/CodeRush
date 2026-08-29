@@ -12,7 +12,7 @@ const isProtectedRoute = createRouteMatcher([
 ]);
 const isAuthPage = createRouteMatcher(["/login", "/signup"]);
 
-export default convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
+export default convexAuthNextjsMiddleware(async (request) => {
   const authed = await isAuthenticatedNextjs();
 
   if (isProtectedRoute(request) && !authed) {

@@ -35,3 +35,7 @@
  GET / 200 in 73ms
  GET /challenges 200 in 341ms
  GET /login 200 in 306ms
+   Reload env: .env.local
+ ✓ Compiled in 2.3s (526 modules)
+   Reload env: .env.local
+   Reload env: .env.local

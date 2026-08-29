@@ -3,36 +3,20 @@ import { query, mutation } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 
 /**
- * Leaderboards & user statistics.
+ * CodeRush Leaderboard & User Statistics
  *
- * Security model:
- *  - Statistics are ONLY written by `recordSubmission`, which always
- *    resolves the user from the authenticated Convex context. Clients
- *    cannot pass a userId, points value, or rank anywhere.
- *  - Leaderboard queries expose public data only (username, avatar,
- *    aggregate stats). Emails are never returned.
+ * Points:
+ * - Every successful code execution = +10 points
+ * - Failed / runtime / compilation / timeout = +0 points
  *
- * Points system:
- *  - Successful execution:            +10
- *  - Compilation error / runtime / failed / timeout: +0
- *  - Problem bonus (future problems): easy +10, medium +25, hard +50
+ * Statistics are stored in userStats and executions.
  *
- * problemsSolved counts distinct problems solved once a problem entity
- * exists (deduped per problemId). In today's free-practice mode (no
- * problemId) each successful run counts as one solved exercise.
- *
- * Ranking is deterministic:
- *   points DESC -> problemsSolved DESC -> successfulSubmissions DESC
- *   -> profile joinedAt ASC
+ * IMPORTANT:
+ * The leaderboard reads points from userStats.points.
+ * It does NOT use profiles.xp.
  */
 
 export const POINTS_PER_SUCCESSFUL_EXECUTION = 10;
-
-export const PROBLEM_DIFFICULTY_POINTS = {
-  easy: 10,
-  medium: 25,
-  hard: 50,
-} as const;
 
 const EXECUTION_STATUS = [
   v.literal("success"),
@@ -64,18 +48,35 @@ interface LeaderboardEntry {
   joinedAt: number;
 }
 
-/** UTC start of the current day / ISO week (Monday) / month. */
-function periodStart(period: "week" | "month" | "day", now: number): number {
+/**
+ * Get the beginning of the requested period.
+ */
+function periodStart(
+  period: "week" | "month" | "day",
+  now: number
+): number {
   const d = new Date(now);
+
   if (period === "day") {
-    return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+    return Date.UTC(
+      d.getUTCFullYear(),
+      d.getUTCMonth(),
+      d.getUTCDate()
+    );
   }
+
   if (period === "month") {
-    return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1);
+    return Date.UTC(
+      d.getUTCFullYear(),
+      d.getUTCMonth(),
+      1
+    );
   }
-  // Week starts Monday 00:00 UTC.
-  const day = d.getUTCDay(); // 0 = Sunday
+
+  // Monday 00:00 UTC
+  const day = d.getUTCDay();
   const daysSinceMonday = (day + 6) % 7;
+
   return Date.UTC(
     d.getUTCFullYear(),
     d.getUTCMonth(),
@@ -83,140 +84,203 @@ function periodStart(period: "week" | "month" | "day", now: number): number {
   );
 }
 
-function successRate(successful: number, total: number): number {
-  if (total <= 0) return 0; // avoid division by zero
+/**
+ * Calculate success percentage.
+ */
+function successRate(
+  successful: number,
+  total: number
+): number {
+  if (total <= 0) return 0;
+
   return Math.round((successful / total) * 1000) / 10;
 }
 
 /**
- * Display name for a user that has statistics but no profile row yet
- * (e.g. accounts created before profile creation was wired into the
- * signup flow). Deterministic and stable across queries.
+ * Fallback username if a user has statistics
+ * but does not yet have a profile.
  */
 function fallbackUsername(userId: string): string {
   return `coder-${userId.slice(-6).toLowerCase()}`;
 }
 
-/** Deterministic sort: points -> problemsSolved -> successes -> tenure. */
-function compareEntries(a: LeaderboardEntry, b: LeaderboardEntry): number {
-  if (b.points !== a.points) return b.points - a.points;
+/**
+ * Deterministic leaderboard sorting:
+ *
+ * 1. Points DESC
+ * 2. Problems solved DESC
+ * 3. Successful submissions DESC
+ * 4. Joined date ASC
+ */
+function compareEntries(
+  a: LeaderboardEntry,
+  b: LeaderboardEntry
+): number {
+  if (b.points !== a.points) {
+    return b.points - a.points;
+  }
+
   if (b.problemsSolved !== a.problemsSolved) {
     return b.problemsSolved - a.problemsSolved;
   }
-  if (b.successfulSubmissions !== a.successfulSubmissions) {
-    return b.successfulSubmissions - a.successfulSubmissions;
+
+  if (
+    b.successfulSubmissions !==
+    a.successfulSubmissions
+  ) {
+    return (
+      b.successfulSubmissions -
+      a.successfulSubmissions
+    );
   }
+
   return a.joinedAt - b.joinedAt;
 }
 
-/** Aggregate a user's activity inside a time window from raw executions. */
+/**
+ * Aggregate executions for a specific user
+ * inside a time period.
+ */
 async function aggregateWindow(
   db: any,
   userId: string,
   since: number
 ) {
-  const execs = await db
+  const executions = await db
     .query("executions")
-    .withIndex("by_user_startedAt", (iq: any) =>
-      iq.eq("userId", userId).gte("startedAt", since)
+    .withIndex(
+      "by_user_startedAt",
+      (q: any) =>
+        q
+          .eq("userId", userId)
+          .gte("startedAt", since)
     )
     .collect();
 
-  let total = 0;
-  let successful = 0;
-  let failed = 0;
+  let totalSubmissions = 0;
+  let successfulSubmissions = 0;
+  let failedSubmissions = 0;
   let points = 0;
+
   const solvedProblems = new Set<string>();
   let practiceSolves = 0;
 
-  for (const e of execs) {
-    total += 1;
-    if (e.status === "success") {
-      successful += 1;
-      // Only count points that the authoritative recordSubmission
-      // mutation actually awarded. Rows with no pointsAwarded field are
-      // legacy executions recorded before the points system existed;
-      // retro-awarding them here would make time-windowed totals
-      // disagree with the denormalized all-time stats in userStats.
-      points += e.pointsAwarded ?? 0;
-      if (e.problemId) solvedProblems.add(e.problemId);
-      else practiceSolves += 1;
+  for (const execution of executions) {
+    totalSubmissions += 1;
+
+    if (execution.status === "success") {
+      successfulSubmissions += 1;
+
+      /**
+       * Use the points that were actually awarded
+       * by recordSubmission.
+       */
+      points += execution.pointsAwarded ?? 0;
+
+      if (execution.problemId) {
+        solvedProblems.add(execution.problemId);
+      } else {
+        practiceSolves += 1;
+      }
     } else {
-      failed += 1;
+      failedSubmissions += 1;
     }
   }
 
   return {
-    totalSubmissions: total,
-    successfulSubmissions: successful,
-    failedSubmissions: failed,
+    totalSubmissions,
+    successfulSubmissions,
+    failedSubmissions,
     points,
-    problemsSolved: solvedProblems.size + practiceSolves,
+    problemsSolved:
+      solvedProblems.size + practiceSolves,
   };
 }
 
 /**
- * Build ranked entries for a period.
- *
- * ROOT-CAUSE FIX: the roster is now the UNION of `profiles` and
- * `userStats`. The previous implementation iterated `profiles` only,
- * which made any account without a profile row invisible on the
- * leaderboard even though its points were recorded correctly in
- * `userStats` by `recordSubmission`. Since points live in `userStats`,
- * both tables must be considered:
- *   - user has profile + stats  -> normal entry (username, avatar)
- *   - user has stats, no profile -> entry with fallback username
- *   - user has profile, no stats -> entry with zeroed stats
- *
- * All-time ranking still reads the denormalized `userStats` document;
- * time-windowed periods aggregate raw `executions` via the
- * `by_user_startedAt` index.
+ * Build the complete leaderboard.
  */
 async function buildLeaderboard(
   ctx: any,
   period: "all" | "week" | "month" | "day",
   viewerId: string | null
-): Promise<{ entries: LeaderboardEntry[]; me: LeaderboardEntry | null }> {
+): Promise<{
+  entries: LeaderboardEntry[];
+  me: LeaderboardEntry | null;
+}> {
   const since =
-    period === "all" ? undefined : periodStart(period, Date.now());
+    period === "all"
+      ? undefined
+      : periodStart(period, Date.now());
 
-  // Load both rosters once. For the all-time period this also replaces
-  // the previous per-profile `userStats` lookup with a single scan.
-  const profiles = await ctx.db.query("profiles").collect();
-  const allStats = await ctx.db.query("userStats").collect();
-  const allSubmissions = await ctx.db.query("submissions").collect();
-  const submissionCountByUser = new Map<string, number>();
-  for (const s of allSubmissions) {
-    submissionCountByUser.set(
-      s.userId,
-      (submissionCountByUser.get(s.userId) ?? 0) + 1
-    );
-  }
+  /**
+   * Load profiles and statistics.
+   *
+   * We use the UNION of both tables because a user can
+   * have statistics even if the profile record is missing.
+   */
+  const profiles = await ctx.db
+    .query("profiles")
+    .collect();
+
+  const allStats = await ctx.db
+    .query("userStats")
+    .collect();
 
   const profileByUser = new Map<string, any>(
-    profiles.map((p: any) => [p.userId as string, p])
-  );
-  const statsByUser = new Map<string, any>(
-    allStats.map((s: any) => [s.userId as string, s])
+    profiles.map((profile: any) => [
+      profile.userId as string,
+      profile,
+    ])
   );
 
+  const statsByUser = new Map<string, any>(
+    allStats.map((stats: any) => [
+      stats.userId as string,
+      stats,
+    ])
+  );
+
+  /**
+   * Combine all users from profiles + userStats.
+   */
   const userIds = new Set<string>([
     ...profileByUser.keys(),
     ...statsByUser.keys(),
   ]);
 
   const entries: LeaderboardEntry[] = [];
+
   for (const userId of userIds) {
-    let agg;
+    let statsData;
+
+    /**
+     * ALL TIME
+     *
+     * Read directly from userStats.
+     */
     if (since === undefined) {
       const stats = statsByUser.get(userId);
-      agg = stats
+
+      statsData = stats
         ? {
-            totalSubmissions: stats.totalSubmissions,
-            successfulSubmissions: stats.successfulSubmissions,
-            failedSubmissions: stats.failedSubmissions,
-            points: stats.points,
-            problemsSolved: stats.problemsSolved,
+            totalSubmissions:
+              stats.totalSubmissions ?? 0,
+
+            successfulSubmissions:
+              stats.successfulSubmissions ?? 0,
+
+            failedSubmissions:
+              stats.failedSubmissions ?? 0,
+
+            /**
+             * IMPORTANT:
+             * Points come from userStats.points.
+             */
+            points: stats.points ?? 0,
+
+            problemsSolved:
+              stats.problemsSolved ?? 0,
           }
         : {
             totalSubmissions: 0,
@@ -226,220 +290,567 @@ async function buildLeaderboard(
             problemsSolved: 0,
           };
     } else {
-      agg = await aggregateWindow(ctx.db, userId, since);
+      /**
+       * WEEK / MONTH / DAY
+       *
+       * Aggregate executions for the requested window.
+       */
+      statsData = await aggregateWindow(
+        ctx.db,
+        userId,
+        since
+      );
     }
 
     const profile = profileByUser.get(userId);
     const stats = statsByUser.get(userId);
-    const projectSubmissions = submissionCountByUser.get(userId) ?? 0;
 
     entries.push({
       rank: 0,
+
       userId,
-      username: profile?.username ?? fallbackUsername(userId),
-      avatarUrl: profile?.avatarUrl ?? null,
-      joinedAt: profile?._creationTime ?? stats?._creationTime ?? 0,
-      successRate: successRate(agg.successfulSubmissions, agg.totalSubmissions),
-      ...agg,
-      points: profile?.xp ?? 0,
-      totalSubmissions: projectSubmissions,
-      successfulSubmissions: projectSubmissions, // every project submission counts as "successful"
+
+      username:
+        profile?.username ??
+        fallbackUsername(userId),
+
+      avatarUrl:
+        profile?.avatarUrl ?? null,
+
+      joinedAt:
+        profile?._creationTime ??
+        stats?._creationTime ??
+        0,
+
+      points: statsData.points,
+
+      totalSubmissions:
+        statsData.totalSubmissions,
+
+      successfulSubmissions:
+        statsData.successfulSubmissions,
+
+      failedSubmissions:
+        statsData.failedSubmissions,
+
+      problemsSolved:
+        statsData.problemsSolved,
+
+      successRate: successRate(
+        statsData.successfulSubmissions,
+        statsData.totalSubmissions
+      ),
     });
   }
 
+  /**
+   * Sort users.
+   */
+  entries.sort(compareEntries);
+
+  /**
+   * Assign ranks.
+   */
+  entries.forEach((entry, index) => {
+    entry.rank = index + 1;
+  });
+
+  /**
+   * Find current viewer.
+   */
+  const me = viewerId
+    ? entries.find(
+        (entry) => entry.userId === viewerId
+      ) ?? null
+    : null;
+
+  /**
+   * Debug information.
+   */
   if (entries.length > 0) {
     console.log(
       `[leaderboard] period=${period} users=${entries.length} topPoints=${Math.max(
-        ...entries.map((e) => e.points)
+        ...entries.map(
+          (entry) => entry.points
+        )
       )}`
     );
   }
 
-  entries.sort(compareEntries);
-  entries.forEach((entry, i) => {
-    entry.rank = i + 1;
-  });
-
-  const me = viewerId
-    ? entries.find((entry) => entry.userId === viewerId) ?? null
-    : null;
-
-  return { entries, me };
+  return {
+    entries,
+    me,
+  };
 }
 
-export type Period = "all" | "week" | "month" | "day";
+export type Period =
+  | "all"
+  | "week"
+  | "month"
+  | "day";
 
 /**
- * Public leaderboard query. Backend-computed ranking; supports time
- * filters (all-time / this week / this month / today). Returns the top
- * `limit` entries plus the current viewer's own entry/rank even when
- * they fall outside the visible window.
+ * PUBLIC LEADERBOARD
  */
 export const getLeaderboard = query({
   args: {
     period: v.union(...PERIOD),
     limit: v.optional(v.number()),
   },
+
   handler: async (ctx, args) => {
-    const viewerId = await getAuthUserId(ctx); // nullable — leaderboard is public
-    const limit = Math.min(Math.max(args.limit ?? 50, 1), 100);
+    const viewerId =
+      await getAuthUserId(ctx);
 
-    const { entries, me } = await buildLeaderboard(ctx, args.period, viewerId);
+    const limit = Math.min(
+      Math.max(args.limit ?? 50, 1),
+      100
+    );
 
-    const top = entries.slice(0, limit);
-    const meInTop = me ? top.some((entry) => entry.rank === me.rank) : false;
+    const {
+      entries,
+      me,
+    } = await buildLeaderboard(
+      ctx,
+      args.period,
+      viewerId
+    );
+
+    const top = entries.slice(
+      0,
+      limit
+    );
+
+    const meInTop =
+      me !== null &&
+      top.some(
+        (entry) =>
+          entry.rank === me.rank
+      );
 
     return {
       period: args.period,
+
       entries: top,
-      totalUsers: entries.length,
-      // The viewer's full entry when not visible in the top list.
-      me: me && !meInTop ? me : null,
+
+      totalUsers:
+        entries.length,
+
+      /**
+       * Return the current user separately
+       * if they are outside the visible top list.
+       */
+      me:
+        me && !meInTop
+          ? me
+          : null,
     };
   },
 });
 
 /**
- * Public coding statistics for a user profile page (no private data —
- * email is never exposed). Includes all-time rank + recent activity.
+ * PUBLIC USER STATISTICS
  */
 export const getUserPublicStats = query({
-  args: { username: v.string() },
-  handler: async (ctx, { username }) => {
-    const viewerId = await getAuthUserId(ctx);
+  args: {
+    username: v.string(),
+  },
 
-    const profile = await ctx.db
-      .query("profiles")
-      .withIndex("by_username", (q) => q.eq("username", username))
-      .unique();
-    if (!profile) return null;
+  handler: async (
+    ctx,
+    { username }
+  ) => {
+    const viewerId =
+      await getAuthUserId(ctx);
 
-    const { entries } = await buildLeaderboard(ctx, "all", viewerId);
-    const entry = entries.find((e) => e.userId === profile.userId);
-    if (!entry) return null;
+    const profile =
+      await ctx.db
+        .query("profiles")
+        .withIndex(
+          "by_username",
+          (q: any) =>
+            q.eq(
+              "username",
+              username
+            )
+        )
+        .unique();
 
-    const recentExecutions = await ctx.db
-      .query("executions")
-      .withIndex("by_user_startedAt", (q) => q.eq("userId", profile.userId))
-      .order("desc")
-      .take(10);
+    if (!profile) {
+      return null;
+    }
+
+    const {
+      entries,
+    } = await buildLeaderboard(
+      ctx,
+      "all",
+      viewerId
+    );
+
+    const entry =
+      entries.find(
+        (item) =>
+          item.userId ===
+          profile.userId
+      );
+
+    if (!entry) {
+      return null;
+    }
+
+    const recentExecutions =
+      await ctx.db
+        .query("executions")
+        .withIndex(
+          "by_user_startedAt",
+          (q: any) =>
+            q.eq(
+              "userId",
+              profile.userId
+            )
+        )
+        .order("desc")
+        .take(10);
 
     return {
-      username: profile.username,
-      avatarUrl: profile.avatarUrl ?? null,
-      rank: entry.rank,
-      points: entry.points,
-      totalSubmissions: entry.totalSubmissions,
-      successfulSubmissions: entry.successfulSubmissions,
-      failedSubmissions: entry.failedSubmissions,
-      problemsSolved: entry.problemsSolved,
-      successRate: entry.successRate,
-      recentActivity: recentExecutions.map((e) => ({
-        status: e.status,
-        language: e.language,
-        executionTime: e.executionTime ?? null,
-        createdAt: e.startedAt,
-      })),
+      username:
+        profile.username,
+
+      avatarUrl:
+        profile.avatarUrl ??
+        null,
+
+      rank:
+        entry.rank,
+
+      points:
+        entry.points,
+
+      totalSubmissions:
+        entry.totalSubmissions,
+
+      successfulSubmissions:
+        entry.successfulSubmissions,
+
+      failedSubmissions:
+        entry.failedSubmissions,
+
+      problemsSolved:
+        entry.problemsSolved,
+
+      successRate:
+        entry.successRate,
+
+      recentActivity:
+        recentExecutions.map(
+          (execution: any) => ({
+            status:
+              execution.status,
+
+            language:
+              execution.language,
+
+            executionTime:
+              execution.executionTime ??
+              null,
+
+            createdAt:
+              execution.startedAt,
+          })
+        ),
     };
   },
 });
 
 /**
- * Record a submission from an actual code execution and atomically
- * update the user's statistics + points.
+ * RECORD CODE EXECUTION
  *
- * The user is taken from the authenticated context — NOT from arguments
- * — so no client can submit runs (or points) on someone else's behalf.
+ * This mutation:
+ *
+ * SUCCESS:
+ *     +10 points
+ *
+ * FAILURE:
+ *     +0 points
+ *
+ * It also records the execution and updates
+ * userStats.
  */
 export const recordSubmission = mutation({
   args: {
     language: v.string(),
-    status: v.union(...EXECUTION_STATUS),
-    executionTime: v.optional(v.number()),
-    exitCode: v.optional(v.number()),
-    errorMessage: v.optional(v.string()),
-    problemId: v.optional(v.string()),
-    problemDifficulty: v.optional(
-      v.union(v.literal("easy"), v.literal("medium"), v.literal("hard"))
-    ),
-  },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
 
-    const successful = args.status === "success";
-    const now = Date.now();
+    status:
+      v.union(...EXECUTION_STATUS),
 
-    // --- First-solve detection (before inserting this attempt) ----------
-    let firstSolveOfProblem = false;
-    if (successful && args.problemId) {
-      const priorSuccess = await ctx.db
-        .query("executions")
-        .withIndex("by_user_problem", (q) =>
-          q.eq("userId", userId).eq("problemId", args.problemId!)
+    executionTime:
+      v.optional(v.number()),
+
+    exitCode:
+      v.optional(v.number()),
+
+    errorMessage:
+      v.optional(v.string()),
+
+    problemId:
+      v.optional(v.string()),
+
+    problemDifficulty:
+      v.optional(
+        v.union(
+          v.literal("easy"),
+          v.literal("medium"),
+          v.literal("hard")
         )
-        .filter((q) => q.eq(q.field("status"), "success"))
-        .first();
-      firstSolveOfProblem = priorSuccess === null;
+      ),
+  },
+
+  handler: async (
+    ctx,
+    args
+  ) => {
+    /**
+     * Always get the authenticated user.
+     */
+    const userId =
+      await getAuthUserId(ctx);
+
+    if (!userId) {
+      throw new Error(
+        "Not authenticated"
+      );
     }
 
-    // --- Points -----------------------------------------------------------
-    let awarded = 0;
-    if (successful) {
-      awarded += POINTS_PER_SUCCESSFUL_EXECUTION;
-      if (args.problemDifficulty) {
-        awarded += PROBLEM_DIFFICULTY_POINTS[args.problemDifficulty];
-      }
+    const successful =
+      args.status === "success";
+
+    const now =
+      Date.now();
+
+    /**
+     * Determine whether this is the
+     * first successful solve of a problem.
+     */
+    let firstSolveOfProblem =
+      false;
+
+    if (
+      successful &&
+      args.problemId
+    ) {
+      const previousSuccess =
+        await ctx.db
+          .query("executions")
+          .withIndex(
+            "by_user_problem",
+            (q: any) =>
+              q
+                .eq(
+                  "userId",
+                  userId
+                )
+                .eq(
+                  "problemId",
+                  args.problemId!
+                )
+          )
+          .filter(
+            (q: any) =>
+              q.eq(
+                q.field("status"),
+                "success"
+              )
+          )
+          .first();
+
+      firstSolveOfProblem =
+        previousSuccess === null;
     }
 
-    // --- Execution record ---------------------------------------------------
-    const executionId = crypto.randomUUID();
-    await ctx.db.insert("executions", {
-      userId,
-      executionId,
-      language: args.language,
-      status: args.status,
-      startedAt: now - Math.max(0, args.executionTime ?? 0),
-      completedAt: now,
-      exitCode: args.exitCode,
-      executionTime: args.executionTime,
-      errorMessage: args.errorMessage,
-      problemId: args.problemId,
-      pointsAwarded: awarded,
-    });
+    /**
+     * POINTS
+     *
+     * Every successful execution
+     * receives exactly +10 points.
+     */
+    const awarded =
+      successful
+        ? POINTS_PER_SUCCESSFUL_EXECUTION
+        : 0;
 
-    // --- Denormalized statistics --------------------------------------------
-    let stats = await ctx.db
-      .query("userStats")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .unique();
-    if (!stats) {
-      const id = await ctx.db.insert("userStats", {
+    /**
+     * Create execution record.
+     */
+    const executionId =
+      crypto.randomUUID();
+
+    await ctx.db.insert(
+      "executions",
+      {
         userId,
-        points: 0,
-        totalSubmissions: 0,
-        successfulSubmissions: 0,
-        failedSubmissions: 0,
-        problemsSolved: 0,
-        updatedAt: now,
-      });
-      stats = await ctx.db.get(id);
+
+        executionId,
+
+        language:
+          args.language,
+
+        status:
+          args.status,
+
+        startedAt:
+          now -
+          Math.max(
+            0,
+            args.executionTime ?? 0
+          ),
+
+        completedAt:
+          now,
+
+        exitCode:
+          args.exitCode,
+
+        executionTime:
+          args.executionTime,
+
+        errorMessage:
+          args.errorMessage,
+
+        problemId:
+          args.problemId,
+
+        /**
+         * This is the authoritative
+         * points amount for this execution.
+         */
+        pointsAwarded:
+          awarded,
+      }
+    );
+
+    /**
+     * Find user's statistics record.
+     */
+    let stats =
+      await ctx.db
+        .query("userStats")
+        .withIndex(
+          "by_user",
+          (q: any) =>
+            q.eq(
+              "userId",
+              userId
+            )
+        )
+        .unique();
+
+    /**
+     * Create statistics if missing.
+     */
+    if (!stats) {
+      const statsId =
+        await ctx.db.insert(
+          "userStats",
+          {
+            userId,
+
+            points: 0,
+
+            totalSubmissions: 0,
+
+            successfulSubmissions: 0,
+
+            failedSubmissions: 0,
+
+            problemsSolved: 0,
+
+            updatedAt:
+              now,
+          }
+        );
+
+      stats =
+        await ctx.db.get(
+          statsId
+        );
     }
-    if (!stats) throw new Error("Failed to update statistics.");
 
-    await ctx.db.patch(stats._id, {
-      points: stats.points + awarded,
-      totalSubmissions: stats.totalSubmissions + 1,
-      successfulSubmissions:
-        stats.successfulSubmissions + (successful ? 1 : 0),
-      failedSubmissions: stats.failedSubmissions + (successful ? 0 : 1),
-      problemsSolved:
-        stats.problemsSolved +
-        (successful && (!args.problemId || firstSolveOfProblem) ? 1 : 0),
-      updatedAt: now,
-    });
+    if (!stats) {
+      throw new Error(
+        "Failed to create user statistics."
+      );
+    }
 
-    return { executionId, pointsAwarded: awarded };
+    /**
+     * Update statistics.
+     *
+     * SUCCESS:
+     * points + 10
+     *
+     * FAILURE:
+     * points + 0
+     */
+    await ctx.db.patch(
+      stats._id,
+      {
+        points:
+          stats.points +
+          awarded,
+
+        totalSubmissions:
+          stats.totalSubmissions +
+          1,
+
+        successfulSubmissions:
+          stats.successfulSubmissions +
+          (successful
+            ? 1
+            : 0),
+
+        failedSubmissions:
+          stats.failedSubmissions +
+          (successful
+            ? 0
+            : 1),
+
+        /**
+         * Practice execution without
+         * problemId counts as a solved exercise.
+         *
+         * Problem execution only counts
+         * the first successful solve.
+         */
+        problemsSolved:
+          stats.problemsSolved +
+          (
+            successful &&
+            (
+              !args.problemId ||
+              firstSolveOfProblem
+            )
+              ? 1
+              : 0
+          ),
+
+        updatedAt:
+          now,
+      }
+    );
+
+    console.log(
+      `[leaderboard] user=${userId} status=${args.status} pointsAwarded=${awarded}`
+    );
+
+    return {
+      executionId,
+
+      pointsAwarded:
+        awarded,
+
+      totalPoints:
+        stats.points +
+        awarded,
+    };
   },
 });
-

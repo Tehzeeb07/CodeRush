@@ -82,7 +82,7 @@ export default function TeamDetailPage() {
         )}
 
         {!team.isOwner && team.myStatus === "accepted" && (
-          <p className="text-sm text-emerald-400 mb-6">✓ You're a member of this team.</p>
+          <p className="text-sm text-emerald-400 mb-6">✓ You&apos;re a member of this team.</p>
         )}
 
         {/* Pending requests — owner only */}

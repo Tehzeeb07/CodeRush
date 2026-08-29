@@ -25,7 +25,12 @@ const DIFFICULTIES = [
 
 export default function ChallengesPage() {
   const [category, setCategory] = useState("");
-  const [difficulty, setDifficulty] = useState("");
+  const [difficulty, setDifficulty] = useState(
+    () =>
+      typeof window !== "undefined"
+        ? new URLSearchParams(window.location.search).get("difficulty") ?? ""
+        : ""
+  );
   const [themeSearch, setThemeSearch] = useState(
     () =>
       typeof window !== "undefined"
