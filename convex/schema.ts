@@ -262,11 +262,8 @@ export default defineSchema({
   })
     .index("by_challenge", ["challengeId"])
     .index("by_user", ["userId"])
-<<<<<<< HEAD
-    .index("by_featured", ["isFeatured"]),
-=======
-    .index("by_team", ["teamId"]),
->>>>>>> 3e186c0bb9eb9d2e659e8042ee373ea884967540
+    .index("by_featured", ["isFeatured"])
+    .index("by_team", ["teamId"]);
 
   challenges: defineTable({
     title: v.string(),

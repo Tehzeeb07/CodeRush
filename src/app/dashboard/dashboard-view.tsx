@@ -10,6 +10,7 @@
 import Link from "next/link";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import Premium3DBackground from "@/components/background/Premium3DBackground";
 
 interface Activity {
     status: string;
@@ -113,7 +114,9 @@ export default function DashboardView() {
         : "/profile";
 
     return (
-        <div className="cr-shell">
+        <>
+            <Premium3DBackground />
+            <div className="cr-shell cr-shell--transparent">
             <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:py-10">
 
                 {/* Page Header */}
@@ -436,6 +439,7 @@ export default function DashboardView() {
 
             </div>
         </div>
+        </>
     );
 }
 
