@@ -82,10 +82,22 @@ export default function Home() {
               textShadow: "0 20px 60px rgba(16, 185, 129, 0.4)",
             }}
           >
-            <span className="bg-gradient-to-b from-white to-neutral-400 bg-clip-text text-transparent">
+            <span
+              className="bg-clip-text text-transparent bg-[length:200%_auto] animate-[shimmer_3s_linear_infinite]"
+              style={{
+                backgroundImage:
+                  "linear-gradient(90deg, #ffffff, #d4d4d8, #ffffff, #d4d4d8)",
+              }}
+            >
               CODE
             </span>
-            <span className="bg-gradient-to-b from-emerald-300 to-emerald-600 bg-clip-text text-transparent">
+            <span
+              className="bg-clip-text text-transparent bg-[length:200%_auto] animate-[shimmer_3s_linear_infinite]"
+              style={{
+                backgroundImage:
+                  "linear-gradient(90deg, #6ee7b7, #10b981, #6ee7b7, #10b981)",
+              }}
+            >
               RUSH
             </span>
           </div>
@@ -205,6 +217,53 @@ export default function Home() {
        </Reveal>
       </section>
 
+      {/* What you get */}
+      <section className="relative z-10 max-w-4xl mx-auto px-6 pb-20">
+        <Reveal>
+          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-10">
+            What's on CodeRush
+          </h2>
+          <div className="grid sm:grid-cols-2 gap-4">
+            {[
+              {
+                title: "Profiles & XP",
+                desc: "Build a public profile, upload an avatar, and earn XP every time you ship a project.",
+              },
+              {
+                title: "Real submissions",
+                desc: "Submit your GitHub repo and live demo — not just code snippets. Edit and resubmit anytime.",
+              },
+              {
+                title: "Project Showcase",
+                desc: "Browse what the community has built and like the projects you find impressive.",
+              },
+              {
+                title: "Leaderboard",
+                desc: "See exactly where you rank against every other builder on the platform.",
+              },
+              {
+                title: "Teams",
+                desc: "Start a team, approve join requests, and submit hackathon-style projects together.",
+              },
+              {
+                title: "Bookmarks",
+                desc: "Save challenges you want to come back to later, all in one place.",
+              },
+            ].map((item) => (
+              <div
+                key={item.title}
+                className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-5 hover:border-emerald-500/40 transition-colors"
+              >
+                <h3 className="font-semibold mb-1">{item.title}</h3>
+                <p className="text-neutral-400 text-sm leading-relaxed">
+                  {item.desc}
+                </p>
+              </div>
+            ))}
+          </div>
+        </Reveal>
+      </section>
+
       {/* All challenge categories */}
       <section className="relative z-10 max-w-4xl mx-auto px-6 pb-20">
        <Reveal>
@@ -265,6 +324,11 @@ export default function Home() {
           50% {
             transform: rotateX(8deg) rotateY(4deg) translateY(-12px);
           }
+                @keyframes shimmer {
+          to {
+            background-position: 200% center;
+          }
+        }
         }
         @keyframes drift1 {
           0%, 100% { transform: translate(-50%, 0) scale(1); }
