@@ -81,7 +81,13 @@ export default function PublicProfilePage() {
             <h1 className="text-2xl font-bold">{profile.username}</h1>
             <p className="text-emerald-400 text-sm font-medium">{profile.xp} XP</p>
             <p className="text-neutral-500 text-xs mt-1">
-              {counts?.followers ?? 0} followers · {counts?.following ?? 0} following
+              <Link href={`/u/${profile.username}/followers`} className="hover:underline">
+                {counts?.followers ?? 0} followers
+              </Link>
+              {" · "}
+              <Link href={`/u/${profile.username}/following`} className="hover:underline">
+                {counts?.following ?? 0} following
+              </Link>
             </p>
           </div>
         </div>
