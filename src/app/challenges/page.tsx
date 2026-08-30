@@ -5,7 +5,17 @@ import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import Link from "next/link";
 
-const CATEGORIES = [
+type ChallengeCategory =
+  | "coding"
+  | "game"
+  | "web"
+  | "ai"
+  | "creative"
+  | "innovation"
+  | "speed"
+  | "hackathon";
+
+const CATEGORIES: Array<{ value: "" | ChallengeCategory; label: string }> = [
   { value: "", label: "All" },
   { value: "coding", label: "🧩 Coding" },
   { value: "game", label: "🎮 Game" },
@@ -24,7 +34,7 @@ const DIFFICULTIES = [
 ];
 
 export default function ChallengesPage() {
-  const [category, setCategory] = useState("");
+  const [category, setCategory] = useState<"" | ChallengeCategory>("");
   const [difficulty, setDifficulty] = useState(
     () =>
       typeof window !== "undefined"

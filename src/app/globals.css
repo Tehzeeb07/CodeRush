@@ -83,6 +83,11 @@ body {
         var(--bg-primary);
 }
 
+/* Used when a premium animated background sits behind the shell. */
+.cr-shell--transparent {
+    background: transparent;
+}
+
 /* ---------- Focus states (accessibility) ---------- */
 :focus-visible {
     outline: 2px solid var(--accent);

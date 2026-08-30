@@ -1,22 +1,16 @@
+
 "use client";
 
 /**
  * CodeRush — Premium Dashboard
  *
- * Connects to the existing CodeRush pages. All statistics come from
- * the real backend:
- *   - api.users.currentUser                       → profile (name/bio/avatar)
- *   - api.leaderboard.getUserPublicStats          → rank, points, problems
- *                                                   solved, success rate,
- *                                                   recent activity (real)
- *
- * The streak is derived from the user's own successful submissions in
- * recent activity — never hardcoded. No Convex logic is modified here.
+ * Connects to the existing CodeRush pages.
  */
 
 import Link from "next/link";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import Premium3DBackground from "@/components/background/Premium3DBackground";
 
 interface Activity {
     status: string;
@@ -33,7 +27,7 @@ interface UserStats {
     recentActivity: Activity[];
 }
 
-/** Consecutive calendar days (ending today or yesterday) with a successful run. */
+/** Consecutive calendar days ending today or yesterday with a successful run. */
 function computeStreak(activity?: Activity[]): number {
     if (!activity || activity.length === 0) return 0;
 
@@ -63,13 +57,19 @@ function computeStreak(activity?: Activity[]): number {
         now.getUTCDate()
     );
 
-    const start = days.has(today) ? today : today - 86400000;
+    const start = days.has(today)
+        ? today
+        : today - 86400000;
 
     if (!days.has(start)) return 0;
 
     let streak = 0;
 
-    for (let d = start; days.has(d); d -= 86400000) {
+    for (
+        let d = start;
+        days.has(d);
+        d -= 86400000
+    ) {
         streak += 1;
     }
 
@@ -114,12 +114,12 @@ export default function DashboardView() {
         : "/profile";
 
     return (
-        <div className="cr-shell">
+        <>
+            <Premium3DBackground />
+            <div className="cr-shell cr-shell--transparent">
             <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:py-10">
 
-                {/* -------------------------------------------------------
-                    Page Header
-                ------------------------------------------------------- */}
+                {/* Page Header */}
 
                 <header className="dashboard-card flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
 
@@ -129,7 +129,7 @@ export default function DashboardView() {
                         </p>
 
                         <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-                            Welcome back,{" "}
+                            Welcome back{" "}
                             <span className="text-gradient">
                                 {username}
                             </span>
@@ -152,9 +152,7 @@ export default function DashboardView() {
 
                 </header>
 
-                {/* -------------------------------------------------------
-                    Developer Overview
-                ------------------------------------------------------- */}
+                {/* Developer Overview */}
 
                 <section
                     className="dashboard-card stagger-1 mt-8"
@@ -215,9 +213,7 @@ export default function DashboardView() {
                     </div>
                 </section>
 
-                {/* -------------------------------------------------------
-                    Profile Summary
-                ------------------------------------------------------- */}
+                {/* Profile Summary */}
 
                 <section
                     className="dashboard-card stagger-2 mt-6"
@@ -310,9 +306,7 @@ export default function DashboardView() {
                     </div>
                 </section>
 
-                {/* -------------------------------------------------------
-                    Feature Destinations
-                ------------------------------------------------------- */}
+                {/* Feature Destinations */}
 
                 <section
                     className="mt-8"
@@ -323,9 +317,7 @@ export default function DashboardView() {
                         <FeatureCard
                             className="stagger-3"
                             href="/challenges"
-                            icon={
-                                <CodeGlyph size={18} />
-                            }
+                            icon={<CodeGlyph size={18} />}
                             title="Challenges"
                             description="Improve your coding skills with curated programming challenges."
                             cta="Explore Challenges"
@@ -334,9 +326,7 @@ export default function DashboardView() {
                         <FeatureCard
                             className="stagger-4"
                             href="/showcase"
-                            icon={
-                                <ShowcaseGlyph size={18} />
-                            }
+                            icon={<ShowcaseGlyph size={18} />}
                             title="Showcase"
                             description="Discover projects, solutions, and work from the CodeRush community."
                             cta="Explore Showcase"
@@ -345,9 +335,7 @@ export default function DashboardView() {
                         <FeatureCard
                             className="stagger-5"
                             href="/leaderboard"
-                            icon={
-                                <TrophyGlyph size={18} />
-                            }
+                            icon={<TrophyGlyph size={18} />}
                             title="Leaderboard"
                             description="See how you rank against the CodeRush community."
                             cta="View Leaderboard"
@@ -356,15 +344,17 @@ export default function DashboardView() {
                         <FeatureCard
                             className="stagger-6"
                             href="/bookmarks"
-                            icon={
-                                <BookmarkGlyph size={18} />
-                            }
+                            icon={<BookmarkGlyph size={18} />}
                             title="Bookmarks"
                             description="Quickly access your saved challenges and coding resources."
                             cta="Open Bookmarks"
                         />
+<<<<<<< HEAD
+=======
+
+>>>>>>> development
                         <FeatureCard
-                            className="stagger-6"
+                            className="stagger-7"
                             href="/teams"
                             icon={<TeamsGlyph size={18} />}
                             title="Teams"
@@ -373,7 +363,7 @@ export default function DashboardView() {
                         />
 
                         <FeatureCard
-                            className="stagger-6"
+                            className="stagger-8"
                             href="/analytics"
                             icon={<AnalyticsGlyph size={18} />}
                             title="Analytics"
@@ -384,15 +374,14 @@ export default function DashboardView() {
                     </div>
                 </section>
 
-                {/* -------------------------------------------------------
-                    Quick Actions
-                ------------------------------------------------------- */}
+                {/* Quick Actions */}
 
                 <section
                     className="dashboard-card stagger-6 mt-8"
                     aria-label="Quick actions"
                 >
                     <div className="premium-card p-5 sm:p-6">
+<<<<<<< HEAD
                         <p className="eyebrow mb-4">Quick Actions</p>
                         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
                             <QuickAction href="/challenges" label="Challenges" icon={<BoltGlyph size={15} />} />
@@ -403,12 +392,70 @@ export default function DashboardView() {
                             <QuickAction href="/analytics" label="Analytics" icon={<AnalyticsGlyph size={15} />} />
                             <QuickAction href={profileHref} label="View Profile" icon={<UserGlyph size={15} />} />
                             <QuickAction href="/profile" label="Edit Profile" icon={<EditGlyph size={15} />} />
+=======
+
+                        <p className="eyebrow mb-4">
+                            Quick Actions
+                        </p>
+
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-8">
+
+                            <QuickAction
+                                href="/challenges"
+                                label="Challenges"
+                                icon={<BoltGlyph size={15} />}
+                            />
+
+                            <QuickAction
+                                href="/leaderboard"
+                                label="Leaderboard"
+                                icon={<TrophyGlyph size={15} />}
+                            />
+
+                            <QuickAction
+                                href="/bookmarks"
+                                label="Bookmarks"
+                                icon={<BookmarkGlyph size={15} />}
+                            />
+
+                            <QuickAction
+                                href="/showcase"
+                                label="Showcase"
+                                icon={<ShowcaseGlyph size={15} />}
+                            />
+
+                            <QuickAction
+                                href="/teams"
+                                label="Teams"
+                                icon={<TeamsGlyph size={15} />}
+                            />
+
+                            <QuickAction
+                                href="/analytics"
+                                label="Analytics"
+                                icon={<AnalyticsGlyph size={15} />}
+                            />
+
+                            <QuickAction
+                                href={profileHref}
+                                label="View Profile"
+                                icon={<UserGlyph size={15} />}
+                            />
+
+                            <QuickAction
+                                href="/profile"
+                                label="Edit Profile"
+                                icon={<EditGlyph size={15} />}
+                            />
+
+>>>>>>> development
                         </div>
                     </div>
                 </section>
 
             </div>
         </div>
+        </>
     );
 }
 
@@ -569,10 +616,9 @@ function AvatarBadge({
                     width: size,
                     height: size,
                 }}
-                onError={(e) =>
-                (e.currentTarget.style.display =
-                    "none")
-                }
+                onError={(e) => {
+                    e.currentTarget.style.display = "none";
+                }}
             />
         );
     }
@@ -630,11 +676,8 @@ function FeatureCard({
             </p>
 
             <span className="hover-arrow mt-4 text-sm font-medium text-[#818cf8]">
-
                 {cta}
-
                 <ArrowGlyph />
-
             </span>
 
         </Link>
@@ -855,6 +898,7 @@ function BookmarkGlyph({
     );
 }
 
+<<<<<<< HEAD
 function TeamsGlyph({ size = 18 }: { size?: number }) {
     return (
         <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -867,6 +911,15 @@ function TeamsGlyph({ size = 18 }: { size?: number }) {
 }
 
 function AnalyticsGlyph({ size = 18 }: { size?: number }) {
+=======
+/* Teams */
+
+function TeamsGlyph({
+    size = 18,
+}: {
+    size?: number;
+}) {
+>>>>>>> development
     return (
         <svg
             width={size}
@@ -879,9 +932,55 @@ function AnalyticsGlyph({ size = 18 }: { size?: number }) {
             strokeLinejoin="round"
             aria-hidden="true"
         >
-            <line x1="18" y1="20" x2="18" y2="10" />
-            <line x1="12" y1="20" x2="12" y2="4" />
-            <line x1="6" y1="20" x2="6" y2="14" />
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle
+                cx="9"
+                cy="7"
+                r="4"
+            />
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        </svg>
+    );
+}
+
+/* Analytics */
+
+function AnalyticsGlyph({
+    size = 18,
+}: {
+    size?: number;
+}) {
+    return (
+        <svg
+            width={size}
+            height={size}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+        >
+            <line
+                x1="18"
+                y1="20"
+                x2="18"
+                y2="10"
+            />
+            <line
+                x1="12"
+                y1="20"
+                x2="12"
+                y2="4"
+            />
+            <line
+                x1="6"
+                y1="20"
+                x2="6"
+                y2="14"
+            />
         </svg>
     );
 }

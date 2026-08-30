@@ -20,6 +20,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { api } from "../../convex/_generated/api";
+import NotificationBell from "./notifications/NotificationBell";
 
 interface NavEntry {
     href: string;
@@ -128,6 +129,12 @@ export default function SiteNavbar() {
     const mobilePanelRef = useRef<HTMLDivElement>(null);
 
     const user = useQuery(api.users.currentUser);
+
+    // Server-resolved role (convex/roles.ts). The SUPER_ADMIN decision is
+    // made on the backend via the SUPER_ADMINS email list — the client only
+    // reads the verdict, it never decides by email matching itself.
+    const identity = useQuery(api.roles.me);
+    const isSuperAdmin = identity?.role === "SUPER_ADMIN";
 
     // Click-outside + Escape-key closing for both menus.
     useEffect(() => {
@@ -281,6 +288,10 @@ export default function SiteNavbar() {
                         <CodeGlyph size={16} />
                     </Link>
 
+                    {/* Notification Bell - authenticated users only. Reactive
+                        Convex queries keep the unread badge in real time. */}
+                    {user ? <NotificationBell /> : null}
+
                     {/* User Menu */}
                     <div className="relative" ref={menuRef}>
                         <button
@@ -358,6 +369,20 @@ export default function SiteNavbar() {
                                     <EditGlyph />
                                     Edit Profile
                                 </Link>
+
+                                {/* Super Admin control panel — rendered only
+                                    for the server-verified SUPER_ADMIN role. */}
+                                {isSuperAdmin && (
+                                    <Link
+                                        role="menuitem"
+                                        href="/admin"
+                                        className="menu-item"
+                                        onClick={() => setMenuOpen(false)}
+                                    >
+                                        <ShieldGlyph />
+                                        Super Admin Dashboard
+                                    </Link>
+                                )}
 
                                 <div
                                     className="menu-separator"
@@ -501,6 +526,18 @@ export default function SiteNavbar() {
                         <EditGlyph />
                         Edit Profile
                     </Link>
+
+                    {/* Super Admin control panel — mobile panel mirror. */}
+                    {isSuperAdmin && (
+                        <Link
+                            href="/admin"
+                            className="menu-item"
+                            onClick={() => setMobileOpen(false)}
+                        >
+                            <ShieldGlyph />
+                            Super Admin Dashboard
+                        </Link>
+                    )}
 
                     <Link
                         href="/bookmarks"
@@ -713,6 +750,25 @@ function BookmarkGlyph() {
             aria-hidden="true"
         >
             <path d="m19 21-7-4-7 4V5a2 2 0 0 0-2-2h10a2 2 0 0 0 2 2v16z" />
+        </svg>
+    );
+}
+
+function ShieldGlyph() {
+    return (
+        <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+        >
+            <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
+            <path d="m9 12 2 2 4-4" />
         </svg>
     );
 }

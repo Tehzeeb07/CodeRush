@@ -5,6 +5,200 @@ import { authTables } from "@convex-dev/auth/server";
 export default defineSchema({
   ...authTables,
 
+  /**
+   * RBAC role assignments.
+   *
+   * Roles are resolved with this priority:
+   *   1. SUPER_ADMIN if the user's email is in the SUPER_ADMINS env list
+   *   2. Otherwise the role stored in this table
+   *   3. Fallback USER
+   *
+   * role is never writable from the client — mutations live in roles.ts
+   * and are gated server-side.
+   */
+  roles: defineTable({
+    userId: v.id("users"),
+    role: v.union(
+      v.literal("USER"),
+      v.literal("ADMIN"),
+      v.literal("SUPER_ADMIN")
+    ),
+    /** Who granted this role (null = automatic / bootstrap). */
+    assignedBy: v.optional(v.id("users")),
+    /** Human-readable reason for auditability. */
+    assignedAt: v.number(),
+  })
+    .index("by_userId", ["userId"]),
+
+  /**
+   * Append-only audit trail. Every privileged admin action writes a row.
+   */
+  auditLogs: defineTable({
+    adminId: v.id("users"),
+    adminEmail: v.string(),
+    action: v.string(),
+    target: v.optional(v.string()),
+    targetId: v.optional(v.string()),
+    details: v.optional(v.string()),
+    ip: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_createdAt", ["createdAt"])
+    .index("by_admin", ["adminId"]),
+
+  /**
+   * Content reports submitted by users (users, showcase posts, comments,
+   * judge submissions).
+   */
+  reports: defineTable({
+    reporterId: v.id("users"),
+    targetType: v.union(
+      v.literal("user"),
+      v.literal("showcase"),
+      v.literal("comment"),
+      v.literal("submission")
+    ),
+    targetId: v.string(),
+    reason: v.string(),
+    description: v.optional(v.string()),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("reviewed"),
+      v.literal("dismissed"),
+      v.literal("resolved")
+    ),
+    resolvedBy: v.optional(v.id("users")),
+    resolvedAt: v.optional(v.number()),
+    createdAt: v.number(),
+  })
+    .index("by_status", ["status"])
+    .index("by_targetType", ["targetType"])
+    .index("by_createdAt", ["createdAt"]),
+
+  /**
+   * Platform-wide announcements authored by admins.
+   */
+  announcements: defineTable({
+    title: v.string(),
+    message: v.string(),
+    type: v.union(
+      v.literal("info"),
+      v.literal("warning"),
+      v.literal("maintenance"),
+      v.literal("update"),
+      v.literal("contest")
+    ),
+    priority: v.union(
+      v.literal("low"),
+      v.literal("medium"),
+      v.literal("high")
+    ),
+    /**
+     * Canonical publish flag. `isActive` is kept for backwards compatibility
+     * and is always mirrored: published === isActive === live announcement.
+     * Draft announcements have published === false.
+     */
+    published: v.optional(v.boolean()),
+    publishedAt: v.number(),
+    expiresAt: v.optional(v.number()),
+    isActive: v.boolean(),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_isActive", ["isActive"])
+    .index("by_published", ["published"])
+    .index("by_publishedAt", ["publishedAt"]),
+
+  /**
+   * User-scoped notifications (announcements, achievements, system).
+   */
+  notifications: defineTable({
+    userId: v.id("users"),
+    type: v.union(
+      v.literal("announcement"),
+      v.literal("achievement"),
+      v.literal("system")
+    ),
+    title: v.string(),
+    message: v.string(),
+    /**
+     * Set when the notification was generated from an announcement.
+     * Used both for the details-page link and to guarantee that publishing
+     * the same announcement twice never creates duplicate notifications.
+     */
+    announcementId: v.optional(v.id("announcements")),
+    /** The originating announcement's type (info/warning/...), for icons. */
+    announcementType: v.optional(
+      v.union(
+        v.literal("info"),
+        v.literal("warning"),
+        v.literal("maintenance"),
+        v.literal("update"),
+        v.literal("contest")
+      )
+    ),
+    read: v.boolean(),
+    link: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_user_createdAt", ["userId", "createdAt"])
+    .index("by_user_read", ["userId", "read"])
+    .index("by_user_type", ["userId", "type"])
+    .index("by_announcement", ["announcementId"]),
+
+  /**
+   * Achievement definitions — the "badge catalogue".
+   */
+  achievements: defineTable({
+    code: v.string(),
+    name: v.string(),
+    description: v.string(),
+    icon: v.string(),
+    category: v.string(),
+    criteriaType: v.union(
+      v.literal("submissions"),
+      v.literal("problems_solved"),
+      v.literal("executions"),
+      v.literal("leaderboard_rank"),
+      v.literal("points")
+    ),
+    criteriaValue: v.number(),
+    xpReward: v.number(),
+    isActive: v.boolean(),
+  })
+    .index("by_code", ["code"]),
+
+  /**
+   * Tracks which user has earned which achievement and when.
+   */
+  userAchievements: defineTable({
+    userId: v.id("users"),
+    achievementId: v.id("achievements"),
+    earnedAt: v.number(),
+    progress: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_achievement", ["userId", "achievementId"]),
+
+  /**
+   * Key-value platform settings — only SUPER_ADMIN may write.
+   */
+  settings: defineTable({
+    key: v.string(),
+    value: v.any(),
+    type: v.union(
+      v.literal("string"),
+      v.literal("number"),
+      v.literal("boolean"),
+      v.literal("json")
+    ),
+    description: v.optional(v.string()),
+    updatedBy: v.optional(v.id("users")),
+    updatedAt: v.number(),
+  })
+    .index("by_key", ["key"]),
+
   likes: defineTable({
     submissionId: v.id("submissions"),
     userId: v.id("users"),
@@ -13,15 +207,26 @@ export default defineSchema({
     .index("by_submission", ["submissionId"])
     .index("by_user_and_submission", ["userId", "submissionId"]),
 
-  profiles: defineTable({
+    profiles: defineTable({
     userId: v.id("users"),
     username: v.string(),
     bio: v.optional(v.string()),
     avatarUrl: v.optional(v.string()),
     xp: v.number(),
+    /** Admin-managed account status flags. */
+    isSuspended: v.optional(v.boolean()),
+    isBanned: v.optional(v.boolean()),
+    suspendedAt: v.optional(v.number()),
+    bannedAt: v.optional(v.number()),
+    suspendedReason: v.optional(v.string()),
+    bannedReason: v.optional(v.string()),
+    suspendedBy: v.optional(v.id("users")),
+    bannedBy: v.optional(v.id("users")),
   })
     .index("by_userId", ["userId"])
-    .index("by_username", ["username"]),
+    .index("by_username", ["username"])
+    .index("by_isBanned", ["isBanned"])
+    .index("by_isSuspended", ["isSuspended"]),
 
   teams: defineTable({
     name: v.string(),
@@ -50,7 +255,7 @@ export default defineSchema({
     .index("by_following", ["followingId"])
     .index("by_follower_and_following", ["followerId", "followingId"]),
     
-  submissions: defineTable({
+    submissions: defineTable({
     challengeId: v.id("challenges"),
     userId: v.id("users"),
     teamId: v.optional(v.id("teams")),
@@ -58,10 +263,15 @@ export default defineSchema({
     demoUrl: v.optional(v.string()),
     description: v.string(),
     createdAt: v.number(),
+    /** Showcase moderation flags (admin-managed). */
+    isFeatured: v.optional(v.boolean()),
+    isHidden: v.optional(v.boolean()),
+    featuredAt: v.optional(v.number()),
   })
     .index("by_challenge", ["challengeId"])
     .index("by_user", ["userId"])
-    .index("by_team", ["teamId"]),
+    .index("by_featured", ["isFeatured"])
+    .index("by_team", ["teamId"]);
 
   challenges: defineTable({
     title: v.string(),
@@ -126,7 +336,9 @@ export default defineSchema({
     .index("by_executionId", ["executionId"])
     .index("by_user", ["userId"])
     .index("by_user_startedAt", ["userId", "startedAt"])
-    .index("by_user_problem", ["userId", "problemId"]),
+        .index("by_user_problem", ["userId", "problemId"])
+    .index("by_status", ["status"])
+    .index("by_startedAt", ["startedAt"]),
 
   /**
    * Terminal logs captured during an execution (stdout/stderr/stdin/system).
@@ -188,7 +400,7 @@ export default defineSchema({
    * see convex/problems.ts where only sanitized projections are public
    * and full data is gated behind the judge internal secret.
    */
-  problems: defineTable({
+    problems: defineTable({
     slug: v.string(),
     title: v.string(),
     difficulty: v.union(
@@ -212,8 +424,22 @@ export default defineSchema({
         expectedOutput: v.string(),
         isSample: v.boolean(),
       })),
+    /** Admin-managed lifecycle fields. */
+    published: v.optional(v.boolean()),
+    archived: v.optional(v.boolean()),
+    category: v.optional(v.string()),
+    /** Per-language starter code templates, e.g. { cpp: "...", python: "..." }. */
+    starterCode: v.optional(v.any()),
+    inputFormat: v.optional(v.string()),
+    outputFormat: v.optional(v.string()),
+    hints: v.optional(v.array(v.string())),
+    editorial: v.optional(v.string()),
+    supportedLanguages: v.optional(v.array(v.string())),
     createdAt: v.number(),
-  }).index("by_slug", ["slug"]),
+    updatedAt: v.optional(v.number()),
+    }).index("by_slug", ["slug"])
+    .index("by_published", ["published"])
+    .index("by_createdAt", ["createdAt"]),
 
   /**
    * Judge submissions created server-side through /api/judge with the
@@ -244,5 +470,7 @@ export default defineSchema({
   })
     .index("by_user_problem_created", ["userId", "problemId", "createdAt"])
     .index("by_user_created", ["userId", "createdAt"])
-    .index("by_problem", ["problemId"]),
+        .index("by_problem", ["problemId"])
+    .index("by_outcome", ["outcome"])
+    .index("by_createdAt", ["createdAt"]),
 });

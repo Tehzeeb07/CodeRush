@@ -1,10 +1,20 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { getAuthUserId } from "@convex-dev/auth/server";
 
 export const list = query({
   args: {
-    category: v.optional(v.string()),
+    category: v.optional(
+      v.union(
+        v.literal("coding"),
+        v.literal("game"),
+        v.literal("web"),
+        v.literal("ai"),
+        v.literal("creative"),
+        v.literal("innovation"),
+        v.literal("speed"),
+        v.literal("hackathon")
+      )
+    ),
     difficulty: v.optional(v.string()),
   },
   handler: async (ctx, { category, difficulty }) => {
@@ -13,7 +23,7 @@ export const list = query({
     if (category) {
       challenges = await ctx.db
         .query("challenges")
-        .withIndex("by_category", (q) => q.eq("category", category as any))
+        .withIndex("by_category", (q) => q.eq("category", category))
         .collect();
     } else {
       challenges = await ctx.db.query("challenges").collect();
