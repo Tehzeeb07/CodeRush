@@ -48,7 +48,7 @@ function isActive(pathname: string, href: string): boolean {
 function Logo() {
     return (
         <Link
-            href="/dashboard"
+            href="/"
             className="no-focus-ring flex items-center gap-2.5 rounded-lg"
             aria-label="CodeRush home"
         >
