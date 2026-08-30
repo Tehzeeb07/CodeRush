@@ -363,7 +363,6 @@ export default function DashboardView() {
                             description="Quickly access your saved challenges and coding resources."
                             cta="Open Bookmarks"
                         />
-<<<<<<< HEAD
                         <FeatureCard
                             className="stagger-6"
                             href="/teams"
@@ -372,24 +371,16 @@ export default function DashboardView() {
                             description="Create or join a team and build hackathon projects together."
                             cta="View Teams"
                         />
-=======
-
-                        {/* ------------------------------------------------
-                            Analytics
-                        ------------------------------------------------ */}
 
                         <FeatureCard
                             className="stagger-6"
                             href="/analytics"
-                            icon={
-                                <AnalyticsGlyph size={18} />
-                            }
+                            icon={<AnalyticsGlyph size={18} />}
                             title="Analytics"
                             description="Track your coding performance, submissions, success rate, and progress."
                             cta="View Analytics"
                         />
 
->>>>>>> development
                     </div>
                 </section>
 
@@ -402,83 +393,16 @@ export default function DashboardView() {
                     aria-label="Quick actions"
                 >
                     <div className="premium-card p-5 sm:p-6">
-<<<<<<< HEAD
                         <p className="eyebrow mb-4">Quick Actions</p>
-                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
                             <QuickAction href="/challenges" label="Challenges" icon={<BoltGlyph size={15} />} />
                             <QuickAction href="/leaderboard" label="Leaderboard" icon={<TrophyGlyph size={15} />} />
                             <QuickAction href="/bookmarks" label="Bookmarks" icon={<BookmarkGlyph size={15} />} />
                             <QuickAction href="/showcase" label="Showcase" icon={<ShowcaseGlyph size={15} />} />
                             <QuickAction href="/teams" label="Teams" icon={<TeamsGlyph size={15} />} />
+                            <QuickAction href="/analytics" label="Analytics" icon={<AnalyticsGlyph size={15} />} />
                             <QuickAction href={profileHref} label="View Profile" icon={<UserGlyph size={15} />} />
                             <QuickAction href="/profile" label="Edit Profile" icon={<EditGlyph size={15} />} />
-=======
-
-                        <p className="eyebrow mb-4">
-                            Quick Actions
-                        </p>
-
-                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
-
-                            <QuickAction
-                                href="/challenges"
-                                label="Challenges"
-                                icon={
-                                    <BoltGlyph size={15} />
-                                }
-                            />
-
-                            <QuickAction
-                                href="/leaderboard"
-                                label="Leaderboard"
-                                icon={
-                                    <TrophyGlyph size={15} />
-                                }
-                            />
-
-                            <QuickAction
-                                href="/bookmarks"
-                                label="Bookmarks"
-                                icon={
-                                    <BookmarkGlyph size={15} />
-                                }
-                            />
-
-                            <QuickAction
-                                href="/showcase"
-                                label="Showcase"
-                                icon={
-                                    <ShowcaseGlyph size={15} />
-                                }
-                            />
-
-                            {/* Analytics Quick Action */}
-
-                            <QuickAction
-                                href="/analytics"
-                                label="Analytics"
-                                icon={
-                                    <AnalyticsGlyph size={15} />
-                                }
-                            />
-
-                            <QuickAction
-                                href={profileHref}
-                                label="View Profile"
-                                icon={
-                                    <UserGlyph size={15} />
-                                }
-                            />
-
-                            <QuickAction
-                                href="/profile"
-                                label="Edit Profile"
-                                icon={
-                                    <EditGlyph size={15} />
-                                }
-                            />
-
->>>>>>> development
                         </div>
                     </div>
                 </section>
@@ -931,7 +855,6 @@ function BookmarkGlyph({
     );
 }
 
-<<<<<<< HEAD
 function TeamsGlyph({ size = 18 }: { size?: number }) {
     return (
         <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -943,18 +866,7 @@ function TeamsGlyph({ size = 18 }: { size?: number }) {
     );
 }
 
-function UserGlyph({ size = 16 }: { size?: number }) {
-=======
-/* ================================================================
-   Analytics Icon
-================================================================ */
-
-function AnalyticsGlyph({
-    size = 18,
-}: {
-    size?: number;
-}) {
->>>>>>> development
+function AnalyticsGlyph({ size = 18 }: { size?: number }) {
     return (
         <svg
             width={size}

@@ -322,7 +322,7 @@ async function buildLeaderboard(
         stats?._creationTime ??
         0,
 
-      points: statsData.points,
+            points: profile?.xp ?? 0,
 
       totalSubmissions:
         statsData.totalSubmissions,
