@@ -121,6 +121,7 @@ export const getByUsername = query({
     if (!authUser) return null;
 
     return {
+      userId: profile.userId,
       username: profile.username,
       bio: profile.bio ?? null,
       avatarUrl: profile.avatarUrl ?? null,
