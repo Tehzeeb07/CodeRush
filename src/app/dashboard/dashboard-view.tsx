@@ -349,10 +349,6 @@ export default function DashboardView() {
                             description="Quickly access your saved challenges and coding resources."
                             cta="Open Bookmarks"
                         />
-<<<<<<< HEAD
-=======
-
->>>>>>> development
                         <FeatureCard
                             className="stagger-7"
                             href="/teams"
@@ -374,87 +370,29 @@ export default function DashboardView() {
                     </div>
                 </section>
 
-                {/* Quick Actions */}
+                    {/* Quick Actions */}
 
-                <section
-                    className="dashboard-card stagger-6 mt-8"
-                    aria-label="Quick actions"
-                >
-                    <div className="premium-card p-5 sm:p-6">
-<<<<<<< HEAD
-                        <p className="eyebrow mb-4">Quick Actions</p>
-                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
-                            <QuickAction href="/challenges" label="Challenges" icon={<BoltGlyph size={15} />} />
-                            <QuickAction href="/leaderboard" label="Leaderboard" icon={<TrophyGlyph size={15} />} />
-                            <QuickAction href="/bookmarks" label="Bookmarks" icon={<BookmarkGlyph size={15} />} />
-                            <QuickAction href="/showcase" label="Showcase" icon={<ShowcaseGlyph size={15} />} />
-                            <QuickAction href="/teams" label="Teams" icon={<TeamsGlyph size={15} />} />
-                            <QuickAction href="/analytics" label="Analytics" icon={<AnalyticsGlyph size={15} />} />
-                            <QuickAction href={profileHref} label="View Profile" icon={<UserGlyph size={15} />} />
-                            <QuickAction href="/profile" label="Edit Profile" icon={<EditGlyph size={15} />} />
-=======
-
-                        <p className="eyebrow mb-4">
-                            Quick Actions
-                        </p>
-
-                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-8">
-
-                            <QuickAction
-                                href="/challenges"
-                                label="Challenges"
-                                icon={<BoltGlyph size={15} />}
-                            />
-
-                            <QuickAction
-                                href="/leaderboard"
-                                label="Leaderboard"
-                                icon={<TrophyGlyph size={15} />}
-                            />
-
-                            <QuickAction
-                                href="/bookmarks"
-                                label="Bookmarks"
-                                icon={<BookmarkGlyph size={15} />}
-                            />
-
-                            <QuickAction
-                                href="/showcase"
-                                label="Showcase"
-                                icon={<ShowcaseGlyph size={15} />}
-                            />
-
-                            <QuickAction
-                                href="/teams"
-                                label="Teams"
-                                icon={<TeamsGlyph size={15} />}
-                            />
-
-                            <QuickAction
-                                href="/analytics"
-                                label="Analytics"
-                                icon={<AnalyticsGlyph size={15} />}
-                            />
-
-                            <QuickAction
-                                href={profileHref}
-                                label="View Profile"
-                                icon={<UserGlyph size={15} />}
-                            />
-
-                            <QuickAction
-                                href="/profile"
-                                label="Edit Profile"
-                                icon={<EditGlyph size={15} />}
-                            />
-
->>>>>>> development
+                    <section
+                        className="dashboard-card stagger-6 mt-8"
+                        aria-label="Quick actions"
+                    >
+                        <div className="premium-card p-5 sm:p-6">
+                            <p className="eyebrow mb-4">Quick Actions</p>
+                            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-8">
+                                <QuickAction href="/challenges" label="Challenges" icon={<BoltGlyph size={15} />} />
+                                <QuickAction href="/leaderboard" label="Leaderboard" icon={<TrophyGlyph size={15} />} />
+                                <QuickAction href="/bookmarks" label="Bookmarks" icon={<BookmarkGlyph size={15} />} />
+                                <QuickAction href="/showcase" label="Showcase" icon={<ShowcaseGlyph size={15} />} />
+                                <QuickAction href="/teams" label="Teams" icon={<TeamsGlyph size={15} />} />
+                                <QuickAction href="/analytics" label="Analytics" icon={<AnalyticsGlyph size={15} />} />
+                                <QuickAction href={profileHref} label="View Profile" icon={<UserGlyph size={15} />} />
+                                <QuickAction href="/profile" label="Edit Profile" icon={<EditGlyph size={15} />} />
+                            </div>
                         </div>
-                    </div>
-                </section>
+                    </section>
 
+                </div>
             </div>
-        </div>
         </>
     );
 }
@@ -898,20 +836,6 @@ function BookmarkGlyph({
     );
 }
 
-<<<<<<< HEAD
-function TeamsGlyph({ size = 18 }: { size?: number }) {
-    return (
-        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-            <circle cx="9" cy="7" r="4" />
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-        </svg>
-    );
-}
-
-function AnalyticsGlyph({ size = 18 }: { size?: number }) {
-=======
 /* Teams */
 
 function TeamsGlyph({
@@ -919,7 +843,6 @@ function TeamsGlyph({
 }: {
     size?: number;
 }) {
->>>>>>> development
     return (
         <svg
             width={size}
