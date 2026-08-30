@@ -80,15 +80,16 @@ export default function PublicProfilePage() {
           <div>
             <h1 className="text-2xl font-bold">{profile.username}</h1>
             <p className="text-emerald-400 text-sm font-medium">{profile.xp} XP</p>
-            <p className="text-neutral-500 text-xs mt-1">
-              <Link href={`/u/${profile.username}/followers`} className="hover:underline">
-                {counts?.followers ?? 0} followers
+            <div className="flex gap-6 mt-2">
+              <Link href={`/u/${profile.username}/followers`} className="text-center hover:opacity-80 transition-opacity">
+                <p className="text-lg font-bold text-white">{counts?.followers ?? 0}</p>
+                <p className="text-xs text-neutral-400">Followers</p>
               </Link>
-              {" · "}
-              <Link href={`/u/${profile.username}/following`} className="hover:underline">
-                {counts?.following ?? 0} following
+              <Link href={`/u/${profile.username}/following`} className="text-center hover:opacity-80 transition-opacity">
+                <p className="text-lg font-bold text-white">{counts?.following ?? 0}</p>
+                <p className="text-xs text-neutral-400">Following</p>
               </Link>
-            </p>
+            </div>
           </div>
         </div>
 
