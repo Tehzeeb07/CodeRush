@@ -16,6 +16,7 @@ export type ResultTab = "tests" | "output" | "errors" | "submission";
 const STATUS_ICON: Record<string, string> = {
     accepted: "✓",
     wrong_answer: "✕",
+    compilation_error: "❌",
     runtime_error: "✕",
     timeout: "⏱",
     memory_limit: "⚠️",
@@ -24,6 +25,7 @@ const STATUS_ICON: Record<string, string> = {
 const STATUS_COLOR: Record<string, string> = {
     accepted: "text-emerald-400",
     wrong_answer: "text-red-400",
+    compilation_error: "text-red-400",
     runtime_error: "text-red-400",
     timeout: "text-amber-300",
     memory_limit: "text-amber-300",
@@ -294,13 +296,15 @@ function TestResultsTab({
                                                 {icon}{" "}
                                                 {tc.status === "accepted"
                                                     ? "Passed"
-                                                    : tc.status === "timeout"
-                                                      ? "Exceeded time limit"
-                                                      : tc.status === "runtime_error"
-                                                        ? "Crashed"
-                                                        : tc.status === "memory_limit"
-                                                          ? "Memory limit exceeded"
-                                                          : "Wrong Answer"}
+                                                    : tc.status === "compilation_error"
+                                                      ? "Compilation error"
+                                                      : tc.status === "timeout"
+                                                        ? "Exceeded time limit"
+                                                        : tc.status === "runtime_error"
+                                                          ? "Crashed"
+                                                          : tc.status === "memory_limit"
+                                                            ? "Memory limit exceeded"
+                                                            : "Wrong Answer"}
                                             </p>
                                         </>
                                     )}

@@ -11,10 +11,14 @@
  */
 
 import { executeCode } from "@/lib/code-execution/executor";
-import type { LanguageId } from "@/lib/code-execution/types";
+import type {
+    ExecutionResult,
+    LanguageId,
+} from "@/lib/code-execution/types";
 import { ExecutionTimeoutError } from "@/lib/code-execution/types";
 
 import {
+    makeCompilationError,
     makeInternalError,
     makeTimeLimitError,
     parseError,
@@ -51,7 +55,8 @@ export interface JudgeParams {
 
 function normalizeOutput(s: string): string {
     return s
-        .replace(/\r\n/g, "\n")
+        // Normalize Windows (CRLF) and legacy Mac (lone CR) line endings.
+        .replace(/\r\n?/g, "\n")
         .split("\n")
         .map((l) => l.replace(/[ \t]+$/g, ""))
         .join("\n")
@@ -59,6 +64,13 @@ function normalizeOutput(s: string): string {
 }
 
 interface SingleExec {
+    /**
+     * Status reported by the execution backend. Preserved verbatim so the
+     * judge maps verdicts (compilation_error / runtime_error / timeout /
+     * success) from the ACTUAL backend status instead of re-inferring them
+     * from `exitCode` or output heuristics.
+     */
+    status: ExecutionResult["status"];
     stdout: string;
     stderr: string;
     exitCode: number | null;
@@ -79,6 +91,7 @@ async function executeOnce(
             result.status === "timeout" ||
             /timed?\s*out/i.test(result.error ?? "");
         return {
+            status: result.status,
             stdout: result.output ?? "",
             stderr: result.error ?? "",
             exitCode: result.success ? 0 : 1,
@@ -92,6 +105,7 @@ async function executeOnce(
             (err instanceof Error && err.name === "ExecutionTimeoutError")
         ) {
             return {
+                status: "timeout",
                 stdout: "",
                 stderr: "",
                 exitCode: null,
@@ -112,6 +126,31 @@ async function judgeTests(
     const selected = params.tests
         .filter((t) => mode === "submit" || !t.hidden)
         .slice(0, MAX_TESTS_PER_JUDGE_RUN);
+
+    // Strictness guard: the judge must NEVER mark a problem Accepted when
+    // there is nothing to compare against. A compile that succeeds (or a
+    // program that merely runs) is not proof of correctness. Without at
+    // least one admin-defined test case there is no input → output
+    // contract, so the result is an internal error, not Accepted.
+    if (selected.length === 0) {
+        const error = makeInternalError(
+            "This problem has no test cases configured, so it cannot be judged. Please contact the problem author.",
+        );
+        return {
+            ok: false,
+            outcome: "internal_error",
+            mode,
+            problemSlug: "",
+            language,
+            error,
+            testResults: [],
+            passedCount: 0,
+            totalCount: 0,
+            totalRuntimeMs: 0,
+            maxMemoryKb: null,
+            custom: null,
+        };
+    }
 
     const testResults: JudgeTestCase[] = [];
     let passedCount = 0;
@@ -143,14 +182,30 @@ async function judgeTests(
                     : Math.max(maxMemoryKb, exec.memoryUsageKb);
         }
 
-        const caseStatus: JudgeTestCase["status"] = exec.timedOut
-            ? "timeout"
-            : exec.exitCode !== 0
-              ? "runtime_error"
-              : normalizeOutput(exec.stdout) ===
-                  normalizeOutput(tc.expectedOutput)
-                ? "accepted"
-                : "wrong_answer";
+        const caseStatus: JudgeTestCase["status"] =
+            exec.status === "compilation_error"
+                ? "compilation_error"
+                : exec.timedOut || exec.status === "timeout"
+                  ? "timeout"
+                  : exec.exitCode !== 0
+                    ? "runtime_error"
+                    : normalizeOutput(exec.stdout) ===
+                        normalizeOutput(tc.expectedOutput)
+                      ? "accepted"
+                      : "wrong_answer";
+
+        // Server-side diagnostics (see the problem-runner trace). Only the
+        // Next.js terminal sees this — never the browser.
+        console.log(
+            `[problem-runner] language: ${language}`,
+            `| problem: judging`,
+            `| test input: ${tc.hidden ? "(hidden)" : JSON.stringify(tc.input)}`,
+            `| expected output: ${tc.hidden ? "(hidden)" : JSON.stringify(tc.expectedOutput)}`,
+            `| execution status: ${exec.status}`,
+            `| execution output: ${JSON.stringify(exec.stdout)}`,
+            `| execution error: ${JSON.stringify(exec.stderr)}`,
+            `| final test status: ${caseStatus}`,
+        );
 
         if (caseStatus === "accepted") {
             passedCount += 1;
@@ -158,9 +213,11 @@ async function judgeTests(
             outcome =
                 caseStatus === "timeout"
                     ? "time_limit_exceeded"
-                    : caseStatus === "runtime_error"
-                      ? "runtime_error"
-                      : "wrong_answer";
+                    : caseStatus === "compilation_error"
+                      ? "compilation_error"
+                      : caseStatus === "runtime_error"
+                        ? "runtime_error"
+                        : "wrong_answer";
         } else if (
             caseStatus === "runtime_error" &&
             outcome === "wrong_answer"
@@ -175,13 +232,19 @@ async function judgeTests(
                 actualMs: exec.executionTimeMs,
             });
         } else {
+            // When the backend reported a compilation failure, feed the
+            // compiler diagnostics through the compile path so the parser
+            // yields a REAL `compilation_error` (with line/column when
+            // available) — never a guessed runtime_error.
             parsedError = parseError({
                 language,
                 compileOutput:
-                    exec.exitCode !== 0 &&
-                    /(?:fatal\s+error|:\s*\d+:\s*(?:\d+:)?\s*error:)/i.test(exec.stderr)
-                        ? exec.stderr
-                        : null,
+                    exec.status === "compilation_error"
+                        ? exec.stderr || null
+                        : exec.exitCode !== 0 &&
+                            /(?:fatal\s+error|:\s*\d+:\s*(?:\d+:)?\s*error:)/i.test(exec.stderr)
+                          ? exec.stderr
+                          : null,
                 stderr: exec.stderr || null,
                 stdout: exec.stdout,
                 exitCode: exec.exitCode,
@@ -190,11 +253,19 @@ async function judgeTests(
                 outcome = "memory_limit_exceeded";
             }
             if (exec.exitCode !== 0 && parsedError === null) {
-                // Non-zero exit without a recognizable message is still a
-                // genuine runtime failure.
-                parsedError = makeInternalError(
-                    `Program exited with code ${exec.exitCode}.`,
-                );
+                if (exec.status === "compilation_error") {
+                    // Backend said "compilation failed" but produced no
+                    // diagnostics — still a compilation error, not runtime.
+                    parsedError = makeCompilationError(
+                        exec.stderr || "Compilation failed.",
+                    );
+                } else {
+                    // Non-zero exit without a recognizable message is still
+                    // a genuine runtime failure.
+                    parsedError = makeInternalError(
+                        `Program exited with code ${exec.exitCode}.`,
+                    );
+                }
             }
         }
         if (topError === null && outcome !== "accepted") {
@@ -217,9 +288,11 @@ async function judgeTests(
             memoryUsageKb: exec.memoryUsageKb,
         });
 
-        // The FIRST failing case ends submission-style judging; running all
-        // cases would waste quota once the verdict is already decided.
-        if (outcome !== "accepted") break;
+        // Submit mode: the verdict is already decided once a case fails, so
+        // stop to conserve execution quota. Run mode: show EVERY visible
+        // test's result so the user sees each sample case's verdict (e.g.
+        // ✓ Test 1 / ✗ Test 2 / ✓ Test 3).
+        if (outcome !== "accepted" && mode === "submit") break;
     }
 
     return {

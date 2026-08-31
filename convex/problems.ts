@@ -548,8 +548,14 @@ export const createProblem = mutation({
  * Update problem.
  */
 export const updateProblem = mutation({
-  args: {
+    args: {
     id: v.id("problems"),
+
+    /**
+     * Allows the admin to change the problem's slug. A uniqueness
+     * check is performed server-side in the handler below.
+     */
+    slug: v.optional(v.string()),
 
     title: v.optional(v.string()),
 
@@ -636,6 +642,25 @@ export const updateProblem = mutation({
     }
 
     const { id, ...updates } = args;
+
+    /**
+     * If the slug is being changed, verify it is not already taken
+     * by another problem.
+     */
+    const newSlug = updates.slug;
+
+    if (newSlug !== undefined) {
+      const existingSlug = await ctx.db
+        .query("problems")
+        .withIndex("by_slug", (q) => q.eq("slug", newSlug))
+        .unique();
+
+      if (existingSlug && existingSlug._id !== id) {
+        throw new Error(
+          `A problem with the slug "${newSlug}" already exists.`
+        );
+      }
+    }
 
     await ctx.db.patch(id, {
       ...updates,
@@ -754,6 +779,12 @@ export const archiveProblem = mutation({
       throw new Error("Insufficient permissions");
     }
 
+    const existing = await ctx.db.get(args.id);
+
+    if (!existing) {
+      throw new Error("Problem not found");
+    }
+
     await ctx.db.patch(args.id, {
       archived: args.archived,
 
@@ -818,26 +849,84 @@ export const duplicateProblem = mutation({
       throw new Error("Problem not found");
     }
 
-    const now = Date.now();
+        const now = Date.now();
 
-    return await ctx.db.insert("problems", {
-      ...original,
+    /**
+     * Enforce slug uniqueness for the duplicate. If the proposed slug
+     * already exists, append a numeric suffix until it is unique.
+     */
+    const baseSlug =
+      args.newSlug ??
+      `${original.slug}-copy`;
 
-      slug:
-        args.newSlug ??
-        `${original.slug}-copy`,
+    let slug = baseSlug;
+    let counter = 1;
 
-      title:
-        `${original.title} (Copy)`,
+    while (
+      await ctx.db
+        .query("problems")
+        .withIndex("by_slug", (q) => q.eq("slug", slug))
+        .unique()
+    ) {
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+    }
 
-      published: false,
+    // Strip system fields before copying; Convex generates a new _id.
+    const {
+      _id: _originalId,
+      _creationTime: _originalCreationTime,
+      ...copyFields
+    } = original;
 
-      archived: false,
+    const duplicateId = await ctx.db.insert(
+      "problems",
+      {
+        ...copyFields,
+
+        slug,
+
+        title:
+          `${original.title} (Copy)`,
+
+        published: false,
+
+        archived: false,
+
+        createdAt: now,
+
+        updatedAt: now,
+      }
+    );
+
+    /**
+     * Audit log.
+     */
+    await ctx.db.insert("auditLogs", {
+      adminId: userId,
+
+      adminEmail:
+        caller.email ??
+        "[unknown]",
+
+      action:
+        "problem_duplicated",
+
+      target:
+        "problem",
+
+      targetId:
+        duplicateId,
+
+      details:
+        `Duplicated from ${original.title} (${original.slug})`,
+
+      ip: undefined,
 
       createdAt: now,
-
-      updatedAt: now,
     });
+
+    return duplicateId;
   },
 });
 
@@ -987,8 +1076,68 @@ export const deleteProblem = mutation({
       );
     }
 
+    /**
+     * Verify the problem exists before attempting deletion.
+     */
+    const problem = await ctx.db.get(args.id);
+
+    if (!problem) {
+      throw new Error(
+        "Problem not found"
+      );
+    }
+
+    /**
+     * Clean up related records to avoid dangling references.
+     *
+     * - judgeSubmissions: cascade-delete (submissions are meaningless
+     *   without the problem's test cases).
+     * - executions: null-out problemId to preserve the run history while
+     *   removing the now-dangling reference.
+     * - bookmarks: null-out problemId to preserve the user's saved code
+     *   snippet while removing the problem association.
+     */
+
+    // 1. Delete judge submissions tied to this problem
+    const relatedSubs = await ctx.db
+      .query("judgeSubmissions")
+      .withIndex("by_problem", (q) => q.eq("problemId", args.id))
+      .collect();
+
+    for (const sub of relatedSubs) {
+      await ctx.db.delete(sub._id);
+    }
+
+    // 2. Null-out problemId on execution records (preserve the run history)
+    const relatedExecutions = await ctx.db
+      .query("executions")
+      .filter((q) => q.eq(q.field("problemId"), args.id))
+      .collect();
+
+    for (const exec of relatedExecutions) {
+      await ctx.db.patch(exec._id, {
+        problemId: undefined,
+      });
+    }
+
+    // 3. Null-out problemId on bookmarks (preserve the user's saved code)
+    const relatedBookmarks = await ctx.db
+      .query("bookmarks")
+      .filter((q) => q.eq(q.field("problemId"), args.id))
+      .collect();
+
+    for (const bm of relatedBookmarks) {
+      await ctx.db.patch(bm._id, {
+        problemId: undefined,
+      });
+    }
+
+    // 4. Delete the problem document itself
     await ctx.db.delete(args.id);
 
+    /**
+     * Audit log.
+     */
     await ctx.db.insert(
       "auditLogs",
       {

@@ -483,6 +483,48 @@ body {
     transition: stroke-dashoffset 0.7s ease;
 }
 
+/* ---------- Infinite marquee ---------- */
+/* Edge fade so items slide in/out softly instead of clipping hard. */
+.cr-marquee {
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(
+        to right,
+        transparent,
+        black 8%,
+        black 92%,
+        transparent
+    );
+    mask-image: linear-gradient(
+        to right,
+        transparent,
+        black 8%,
+        black 92%,
+        transparent
+    );
+}
+
+.cr-marquee-track {
+    display: flex;
+    width: max-content;
+    animation: crMarquee var(--marquee-duration, 32s) linear infinite;
+    will-change: transform;
+}
+
+/* Pause on hover, resume on mouse leave. */
+.cr-marquee:hover .cr-marquee-track {
+    animation-play-state: paused;
+}
+
+@keyframes crMarquee {
+    from {
+        transform: translateX(0);
+    }
+    to {
+        /* Track holds two identical halves, so -50% loops seamlessly. */
+        transform: translateX(-50%);
+    }
+}
+
 /* ---------- Reduced motion ---------- */
 @media (prefers-reduced-motion: reduce) {
     *,

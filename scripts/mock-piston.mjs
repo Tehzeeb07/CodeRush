@@ -254,9 +254,11 @@ const server = http.createServer(async (req, res) => {
                 JSON.stringify(lastRequest, null, 2),
             );
 
-            const { language, files, stdin = "", run_timeout = 3 } = body;
+            const { language, files, stdin = "", run_timeout = 3000 } = body;
             const code = files?.[0]?.content ?? "";
-            const timeoutMs = Number(run_timeout) * 1000;
+            // Real Piston's compile_timeout/run_timeout are in MILLISECONDS
+            // (not seconds); mirror that so local testing matches production.
+            const timeoutMs = Number(run_timeout);
 
             if (!RUNTIMES.some((rt) => rt.language === language)) {
                 return sendJson(res, 400, {

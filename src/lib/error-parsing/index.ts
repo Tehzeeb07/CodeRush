@@ -124,3 +124,26 @@ export function makeInternalError(message: string): ParsedError {
         suggestedFix: ["Try again in a moment."],
     });
 }
+
+/**
+ * Compilation failure with no parseable compiler diagnostic (e.g. the
+ * sandbox reported a failing compile stage without emitting stderr).
+ * Always classified as `compilation_error` — never migrated into a
+ * runtime failure by downstream consumers.
+ */
+export function makeCompilationError(rawMessage: string): ParsedError {
+    return base({
+        type: "compilation_error",
+        source: "cpp/compile",
+        title: "Compilation failed",
+        rawMessage: rawMessage || "Compilation failed.",
+        severity: "error",
+        confidence: "certain",
+        explanation:
+            "The compiler rejected your program before it could run.",
+        possibleCauses: [],
+        suggestedFix: [
+            "Reproduce locally with the failing input and inspect the compiler diagnostics.",
+        ],
+    });
+}

@@ -3,6 +3,16 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
+/* Stats strip content. Repeated 3x per half so a single half is wider than
+   any viewport — the track renders two identical halves and loops at -50%. */
+const marqueeStats = [
+  { value: "8", label: "Challenge Types" },
+  { value: "XP", label: "Earn & Level Up" },
+  { value: "Solo/Team", label: "Build Your Way" },
+];
+
+const marqueeItems = [...marqueeStats, ...marqueeStats, ...marqueeStats];
+
 function useScrollReveal() {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
@@ -146,27 +156,35 @@ export default function Home() {
         </div>
       </main>
 
-      {/* Stats strip */}
+      {/* Stats strip — infinite marquee (pauses on hover) */}
       <section className="relative z-10 border-y border-neutral-800 bg-neutral-900/40 backdrop-blur">
        <Reveal>
-        <div className="max-w-4xl mx-auto px-6 py-8 grid grid-cols-3 gap-4 text-center">
-          <div>
-            <p className="text-3xl font-bold text-emerald-400">8</p>
-            <p className="text-xs text-neutral-500 uppercase tracking-wide mt-1">
-              Challenge Types
-            </p>
-          </div>
-          <div>
-            <p className="text-3xl font-bold text-emerald-400">XP</p>
-            <p className="text-xs text-neutral-500 uppercase tracking-wide mt-1">
-              Earn & Level Up
-            </p>
-          </div>
-          <div>
-            <p className="text-3xl font-bold text-emerald-400">Solo/Team</p>
-            <p className="text-xs text-neutral-500 uppercase tracking-wide mt-1">
-              Build Your Way
-            </p>
+        <div className="cr-marquee py-8" aria-label="CodeRush highlights">
+          <div className="cr-marquee-track">
+            {[0, 1].map((copy) => (
+              <div
+                key={copy}
+                aria-hidden={copy === 1}
+                className="flex shrink-0 items-center"
+              >
+                {marqueeItems.map((item, i) => (
+                  <div key={`${copy}-${i}`} className="flex shrink-0 items-center">
+                    <div className="px-10 text-center sm:px-14">
+                      <p className="whitespace-nowrap text-3xl font-bold text-emerald-400 drop-shadow-[0_0_14px_rgba(52,211,153,0.45)]">
+                        {item.value}
+                      </p>
+                      <p className="mt-1 whitespace-nowrap text-xs uppercase tracking-wide text-neutral-500">
+                        {item.label}
+                      </p>
+                    </div>
+                    <span
+                      aria-hidden="true"
+                      className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500/60 shadow-[0_0_10px_rgba(52,211,153,0.8)]"
+                    />
+                  </div>
+                ))}
+              </div>
+            ))}
           </div>
         </div>
        </Reveal>

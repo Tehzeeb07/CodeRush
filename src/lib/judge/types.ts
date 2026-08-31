@@ -36,7 +36,13 @@ export interface JudgeTestCase {
     /** Test cases, 1-based stable order. */
     index: number;
     hidden: boolean;
-    status: "accepted" | "wrong_answer" | "runtime_error" | "timeout" | "memory_limit";
+    status:
+        | "accepted"
+        | "wrong_answer"
+        | "compilation_error"
+        | "runtime_error"
+        | "timeout"
+        | "memory_limit";
     /**
      * Non-null ONLY for visible tests. Hidden tests reveal status/timing
      * exclusively.

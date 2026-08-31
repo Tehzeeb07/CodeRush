@@ -160,6 +160,13 @@ export async function POST(request: NextRequest) {
         return jsonError("Problem not found.", 404);
     }
 
+    // Server-side trace for the problem runner (visible in the Next.js
+    // terminal only — hidden test data never reaches the browser).
+    console.log(
+        `[problem-runner] problem: ${problemSlug} | mode: ${mode} | ` +
+            `language: ${language} | tests: ${problemData.tests.length}`,
+    );
+
     // -------------------------------------------------------------
     // Create the submission record before evaluating (submit mode)
     // -------------------------------------------------------------
