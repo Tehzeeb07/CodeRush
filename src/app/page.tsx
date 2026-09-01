@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 
 function useCountUp(target: number, decimals = 0, duration = 1500) {
   const [value, setValue] = useState(0);
+  const [menuOpen, setMenuOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const started = useRef(false);
 
@@ -68,6 +69,12 @@ export default function Home() {
 
   return (
     <div className="relative h-screen bg-black text-white overflow-hidden flex flex-col">
+      <Link
+        href="/login"
+        className="absolute top-6 right-6 z-10 rounded-full bg-[#28282a] text-[#c8c8c8] text-sm px-5 py-2.5 shadow-[0_4px_14px_rgba(0,0,0,0.4)] hover:bg-[#323234] hover:text-white transition-colors"
+      >
+        Log in
+      </Link>
       {/* Animated background — deep space/nebula feel, built from CSS only */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-[#0a0f0d] via-black to-black" />
@@ -84,47 +91,33 @@ export default function Home() {
         />
       </div>
 
-      {/* Header */}
-      <header className="relative z-10 flex justify-center pt-6 px-4 shrink-0">
-        <div className="flex items-center gap-4 sm:gap-6 max-w-[720px] w-full">
-          <div className="w-11 h-11 rounded-full bg-white flex items-center justify-center shrink-0 shadow-[0_4px_14px_rgba(0,0,0,0.4)] hover:scale-105 transition-transform">
-            <span className="text-black font-black text-sm">CR</span>
+      {/* Mobile menu */}
+      {menuOpen && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur flex items-start justify-center pt-24">
+          <div className="bg-white rounded-3xl p-6 w-[85%] max-w-xs text-center relative">
+            <button
+              onClick={() => setMenuOpen(false)}
+              className="absolute top-6 right-6 text-black text-xl"
+              aria-label="Close menu"
+            >
+              ✕
+            </button>
+            <div className="flex flex-col gap-4 text-[#2e2e2e] font-medium mt-4">
+              <Link href="/" onClick={() => setMenuOpen(false)}>Home</Link>
+              <Link href="/challenges" onClick={() => setMenuOpen(false)}>Challenges</Link>
+              <Link href="/showcase" onClick={() => setMenuOpen(false)}>Showcase</Link>
+              <Link href="/leaderboard" onClick={() => setMenuOpen(false)}>Ranks</Link>
+              <Link
+                href="/login"
+                onClick={() => setMenuOpen(false)}
+                className="mt-2 rounded-full bg-[#28282a] text-white py-3"
+              >
+                Log in
+              </Link>
+            </div>
           </div>
-
-          <nav className="hidden sm:flex items-center flex-1 bg-white rounded-full h-12 px-2 shadow-[0_4px_14px_rgba(0,0,0,0.4)] max-w-[430px]">
-            <Link href="/" className="flex-1 text-center text-[#2e2e2e] text-sm font-medium py-2 relative">
-              Home
-              <span className="absolute left-1/2 -translate-x-1/2 bottom-1 w-1 h-1 rounded-full bg-black" />
-            </Link>
-            <Link href="/challenges" className="flex-1 text-center text-[#2e2e2e] text-sm font-medium py-2 opacity-50 hover:opacity-75 transition-opacity">
-              Challenges
-            </Link>
-            <Link href="/showcase" className="flex-1 text-center text-[#2e2e2e] text-sm font-medium py-2 opacity-50 hover:opacity-75 transition-opacity">
-              Showcase
-            </Link>
-            <Link href="/leaderboard" className="flex-1 text-center text-[#2e2e2e] text-sm font-medium py-2 opacity-50 hover:opacity-75 transition-opacity">
-              Ranks
-            </Link>
-          </nav>
-
-          <Link
-            href="/login"
-            className="hidden sm:inline-block rounded-full bg-[#28282a] text-[#c8c8c8] text-sm px-5 py-3 shadow-[0_4px_14px_rgba(0,0,0,0.4)] hover:bg-[#323234] hover:text-white transition-colors"
-          >
-            Log in
-          </Link>
-
-          <button
-            onClick={() => setMenuOpen(true)}
-            className="sm:hidden ml-auto w-11 h-11 rounded-full bg-[#28282a] flex flex-col items-center justify-center gap-1"
-            aria-label="Open menu"
-          >
-            <span className="w-4 h-px bg-white" />
-            <span className="w-4 h-px bg-white" />
-            <span className="w-4 h-px bg-white" />
-          </button>
         </div>
-      </header>
+      )}
 
       {/* Mobile menu */}
       {menuOpen && (
