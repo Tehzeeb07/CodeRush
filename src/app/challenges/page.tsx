@@ -54,8 +54,15 @@ export default function ChallengesPage() {
   });
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-white px-4 py-10">
-      <div className="max-w-4xl mx-auto">
+    <div className="relative min-h-screen bg-black text-white px-4 py-10 overflow-hidden">
+      {/* Animated background glow */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0f0d] via-black to-black" />
+        <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[900px] h-[900px] bg-emerald-500/15 rounded-full blur-[150px] animate-[drift1_16s_ease-in-out_infinite]" />
+        <div className="absolute bottom-[-15%] right-[-10%] w-[600px] h-[600px] bg-emerald-400/10 rounded-full blur-[130px] animate-[drift2_20s_ease-in-out_infinite]" />
+      </div>
+
+      <div className="relative z-10 max-w-4xl mx-auto">
         <Link href="/dashboard" className="text-sm text-neutral-400 hover:underline">
           ← Back to dashboard
         </Link>
@@ -146,6 +153,48 @@ export default function ChallengesPage() {
           ))}
         </div>
       </div>
+
+      <style jsx>{`
+        @keyframes drift1 {
+          0%, 100% { transform: translate(-50%, 0) scale(1); }
+          50% { transform: translate(-42%, 50px) scale(1.1); }
+        }
+        @keyframes drift2 {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          50% { transform: translate(-30px, -30px) scale(1.08); }
+        }
+      `}</style>
+
+      <style jsx global>{`
+        .liquid-glass {
+          background: rgba(255, 255, 255, 0.02);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          border: none;
+          box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.08);
+          position: relative;
+          overflow: hidden;
+        }
+        .liquid-glass::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          border-radius: inherit;
+          padding: 1.2px;
+          background: linear-gradient(
+            180deg,
+            rgba(255, 255, 255, 0.35) 0%,
+            rgba(255, 255, 255, 0.1) 25%,
+            rgba(255, 255, 255, 0) 50%,
+            rgba(255, 255, 255, 0.1) 75%,
+            rgba(255, 255, 255, 0.35) 100%
+          );
+          -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+          -webkit-mask-composite: xor;
+          mask-composite: exclude;
+          pointer-events: none;
+        }
+      `}</style>
     </div>
   );
 }

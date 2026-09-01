@@ -71,7 +71,7 @@ export default function Home() {
     <div className="relative h-screen bg-black text-white overflow-hidden flex flex-col">
       <Link
         href="/login"
-        className="absolute top-6 right-6 z-10 rounded-full bg-[#28282a] text-[#c8c8c8] text-sm px-5 py-2.5 shadow-[0_4px_14px_rgba(0,0,0,0.4)] hover:bg-[#323234] hover:text-white transition-colors"
+        className="absolute top-6 right-6 z-50 rounded-full bg-[#28282a] text-[#c8c8c8] text-sm px-5 py-2.5 shadow-[0_4px_14px_rgba(0,0,0,0.4)] hover:bg-[#323234] hover:text-white transition-colors"
       >
         Log in
       </Link>
