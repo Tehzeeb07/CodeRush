@@ -130,6 +130,25 @@ export const getByUsername = query({
   },
 });
 
+export const searchByUsername = query({
+  args: { query: v.string() },
+  handler: async (ctx, { query }) => {
+    if (!query.trim()) return [];
+
+    const profiles = await ctx.db.query("profiles").collect();
+    const q = query.toLowerCase();
+
+    return profiles
+      .filter((p) => p.username.toLowerCase().includes(q))
+      .slice(0, 10)
+      .map((p) => ({
+        username: p.username,
+        avatarUrl: p.avatarUrl ?? null,
+        xp: p.xp,
+      }));
+  },
+});
+
 export const updateProfile = mutation({
   args: {
     bio: v.optional(v.string()),
