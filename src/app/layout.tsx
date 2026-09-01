@@ -4,6 +4,7 @@ import "./globals.css";
 import ConvexClientProvider from "./ConvexClientProvider";
 import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server";
 import SiteNavbar from "@/components/site-navbar";
+import { BanGate } from "@/components/admin/BanGate";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,7 +31,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <body className="min-h-full flex flex-col">
           <ConvexClientProvider>
             <SiteNavbar />
-            <main className="flex-1">{children}</main>
+            <main className="flex-1">
+              <BanGate>{children}</BanGate>
+            </main>
           </ConvexClientProvider>
         </body>
       </html>

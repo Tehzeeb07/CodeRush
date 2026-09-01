@@ -1,5 +1,10 @@
 ﻿import { v } from "convex/values";
-import { query, mutation, type DatabaseReader } from "./_generated/server";
+import {
+  query,
+  mutation,
+  internalMutation,
+  type DatabaseReader,
+} from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { resolveIdentity } from "./roles";
@@ -221,6 +226,23 @@ async function buildLeaderboard(
    * We use the UNION of both tables because a user can
    * have statistics even if the profile record is missing.
    */
+  /**
+   * SOURCE OF TRUTH: the Convex registered-users table.
+   *
+   * A leaderboard record (profile/userStats) may reference a user that no
+   * longer exists (e.g. a stale record left behind after deletion). Such
+   * orphans must NEVER appear on the leaderboard. We therefore load the
+   * currently registered users first and keep only statistics whose
+   * userId still resolves to a real user below.
+   */
+  const registeredUsers = await ctx.db
+    .query("users")
+    .collect();
+
+  const existingUserIds = new Set<string>(
+    registeredUsers.map((user) => String(user._id))
+  );
+
   const profiles = await ctx.db
     .query("profiles")
     .collect();
@@ -244,16 +266,27 @@ async function buildLeaderboard(
   );
 
   /**
-   * Combine all users from profiles + userStats.
+   * The candidate list IS the registered-users table itself.
+   * Every user that currently exists in Convex is a leaderboard candidate;
+   * nothing outside this table can ever produce an entry.
    */
-  const userIds = new Set<string>([
-    ...profileByUser.keys(),
-    ...statsByUser.keys(),
-  ]);
-
   const entries: LeaderboardEntry[] = [];
 
-  for (const userId of userIds) {
+  for (const user of registeredUsers) {
+    const userId = String(user._id);
+
+    /**
+     * DEFENSIVE ORPHAN FILTER (belt-and-braces):
+     * statistics/profile records are only ever joined BY user id below —
+     * a stale record whose user no longer exists can never be reached,
+     * because this loop is driven by the live `users` table.
+     * Ranks are assigned AFTER the loop, so remaining users never
+     * inherit a rank gap from a deleted user.
+     */
+    if (!existingUserIds.has(userId)) {
+      continue;
+    }
+
     let statsData;
 
     /**
@@ -299,13 +332,12 @@ async function buildLeaderboard(
        */
       statsData = await aggregateWindow(
         ctx.db,
-        userId as Id<"users">, // map keys are built from profiles.userId / userStats.userId
+        userId as Id<"users">, // guaranteed live: it came from the users table
         since
       );
     }
 
     const profile = profileByUser.get(userId);
-    const stats = statsByUser.get(userId);
 
     entries.push({
       rank: 0,
@@ -319,10 +351,12 @@ async function buildLeaderboard(
       avatarUrl:
         profile?.avatarUrl ?? null,
 
+      /**
+       * Joined date comes straight from the registered
+       * user's creation time in the Convex users table.
+       */
       joinedAt:
-        profile?._creationTime ??
-        stats?._creationTime ??
-        0,
+        user._creationTime,
 
       points: statsData.points,
 
@@ -479,6 +513,16 @@ export const getUserPublicStats = query({
         .unique();
 
     if (!profile) {
+      return null;
+    }
+
+    /**
+     * DEFENSIVE: the profile might be a stale orphan whose backing
+     * registered user was deleted from the Convex users table. Never
+     * expose statistics for a user that does not exist.
+     */
+    const registeredUser = await ctx.db.get(profile.userId);
+    if (!registeredUser) {
       return null;
     }
 
@@ -938,5 +982,68 @@ export const getAdminLeaderboard = query({
       pageSize,
       totalPages: Math.ceil(filtered.length / pageSize),
     };
+  },
+});
+
+/**
+ * CLEANUP: remove stale leaderboard/statistics records that reference
+ * users which no longer exist in the Convex registered-users table.
+ *
+ * The leaderboard query already excludes such orphans defensively, so this
+ * mutation is pure hygiene: it guarantees the `userStats` table never keeps
+ * a permanently-stored record for a deleted user.
+ */
+export const cleanupOrphanedLeaderboardRecordsInternal = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const registeredUsers = await ctx.db.query("users").collect();
+    const existingUserIds = new Set<string>(
+      registeredUsers.map((user) => String(user._id))
+    );
+
+    let removedStats = 0;
+
+    const allStats = await ctx.db.query("userStats").collect();
+    for (const stats of allStats) {
+      if (!existingUserIds.has(String(stats.userId))) {
+        await ctx.db.delete(stats._id);
+        removedStats += 1;
+      }
+    }
+
+    return { removedStats };
+  },
+});
+
+/**
+ * ADMIN: run the orphaned-leaderboard cleanup on demand.
+ * SUPER_ADMIN only — same permission level as user deletion.
+ */
+export const cleanupOrphanedLeaderboardRecords = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const callerId = await getAuthUserId(ctx);
+    if (!callerId) throw new Error("Not authenticated");
+    const caller = await resolveIdentity(ctx, callerId);
+    if (!caller || caller.role !== "SUPER_ADMIN") {
+      throw new Error("Insufficient permissions");
+    }
+
+    const registeredUsers = await ctx.db.query("users").collect();
+    const existingUserIds = new Set<string>(
+      registeredUsers.map((user) => String(user._id))
+    );
+
+    let removedStats = 0;
+
+    const allStats = await ctx.db.query("userStats").collect();
+    for (const stats of allStats) {
+      if (!existingUserIds.has(String(stats.userId))) {
+        await ctx.db.delete(stats._id);
+        removedStats += 1;
+      }
+    }
+
+    return { removedStats };
   },
 });

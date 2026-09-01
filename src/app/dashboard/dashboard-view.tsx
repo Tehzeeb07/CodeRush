@@ -1,12 +1,6 @@
 
 "use client";
 
-/**
- * CodeRush — Premium Dashboard
- *
- * Connects to the existing CodeRush pages.
- */
-
 import Link from "next/link";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -27,7 +21,10 @@ interface UserStats {
     recentActivity: Activity[];
 }
 
-/** Consecutive calendar days ending today or yesterday with a successful run. */
+/* ================================================================
+   Helpers
+================================================================ */
+
 function computeStreak(activity?: Activity[]): number {
     if (!activity || activity.length === 0) return 0;
 
@@ -65,11 +62,7 @@ function computeStreak(activity?: Activity[]): number {
 
     let streak = 0;
 
-    for (
-        let d = start;
-        days.has(d);
-        d -= 86400000
-    ) {
+    for (let d = start; days.has(d); d -= 86400000) {
         streak += 1;
     }
 
@@ -78,9 +71,12 @@ function computeStreak(activity?: Activity[]): number {
 
 function formatNumber(n?: number | null): string {
     if (n === undefined || n === null) return "—";
-
     return n.toLocaleString("en-US");
 }
+
+/* ================================================================
+   Main Dashboard
+================================================================ */
 
 export default function DashboardView() {
     const user = useQuery(api.users.currentUser);
@@ -114,276 +110,437 @@ export default function DashboardView() {
         : "/profile";
 
     return (
-        <>
+        <div className="relative min-h-screen overflow-hidden bg-black text-white">
+            {/* =====================================================
+                3D BACKGROUND
+            ===================================================== */}
+
             <Premium3DBackground />
-            <div className="cr-shell cr-shell--transparent">
-            <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:py-10">
 
-                {/* Page Header */}
+            {/* Ambient overlays */}
 
-                <header className="dashboard-card flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+            <div className="pointer-events-none fixed inset-0 z-0">
+                <div className="absolute left-1/2 top-0 h-[600px] w-[900px] -translate-x-1/2 rounded-full bg-white/[0.025] blur-[140px]" />
 
-                    <div>
-                        <p className="eyebrow mb-2">
-                            CodeRush
-                        </p>
+                <div className="absolute bottom-0 left-0 h-[500px] w-[500px] rounded-full bg-indigo-500/[0.035] blur-[150px]" />
 
-                        <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-                            Welcome back{" "}
-                            <span className="text-gradient">
-                                {username}
+                <div className="absolute right-0 top-1/3 h-[500px] w-[500px] rounded-full bg-purple-500/[0.025] blur-[150px]" />
+            </div>
+
+            <main className="relative z-10 mx-auto w-full max-w-[1500px] px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
+
+                {/* =================================================
+                    TOP NAV / HEADER
+                ================================================= */}
+
+                <header className="mb-8">
+
+                    <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+
+                        <div>
+
+                            <div className="mb-4 flex items-center gap-3">
+
+                                <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/[0.06]">
+                                    <CodeGlyph size={15} />
+                                </span>
+
+                                <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/45">
+                                    CodeRush / Dashboard
+                                </span>
+
+                                <span className="hidden h-1 w-1 rounded-full bg-white/30 sm:block" />
+
+                                <span className="hidden text-[10px] uppercase tracking-[0.2em] text-emerald-400/70 sm:block">
+                                    Online
+                                </span>
+
+                            </div>
+
+                            <h1 className="max-w-4xl text-4xl font-black tracking-[-0.04em] text-white sm:text-5xl lg:text-6xl">
+
+                                Welcome back,
+
+                                <span className="ml-2 bg-gradient-to-r from-white via-white to-white/40 bg-clip-text text-transparent">
+                                    {username}
+                                </span>
+
+                                <span className="text-white/20">.</span>
+
+                            </h1>
+
+                            <p className="mt-4 max-w-2xl text-sm leading-6 text-white/45 sm:text-base">
+                                {user.bio ||
+                                    "Practice coding, build projects, sharpen your skills, and climb the CodeRush leaderboard."}
+                            </p>
+
+                        </div>
+
+                        <Link
+                            href="/code"
+                            className="group relative inline-flex h-12 shrink-0 items-center justify-center gap-3 overflow-hidden rounded-xl border border-white/15 bg-white px-6 text-sm font-bold text-black shadow-[0_0_40px_rgba(255,255,255,0.08)] transition-all duration-300 hover:-translate-y-1 hover:bg-white/90"
+                        >
+
+                            <span className="relative z-10">
+                                Open Code Editor
                             </span>
-                        </h1>
 
-                        <p className="mt-2 max-w-xl text-sm text-[#a1a1aa]">
-                            {user.bio
-                                ? user.bio
-                                : "Practice coding, ship projects, and climb the leaderboard."}
-                        </p>
+                            <span className="relative z-10 transition-transform duration-300 group-hover:translate-x-1">
+                                <ArrowGlyph size={16} />
+                            </span>
+
+                            <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-black/10 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+
+                        </Link>
+
                     </div>
-
-                    <Link
-                        href="/code"
-                        className="primary-button shrink-0"
-                    >
-                        <CodeGlyph size={15} />
-                        Open Code Editor
-                    </Link>
 
                 </header>
 
-                {/* Developer Overview */}
+                {/* =================================================
+                    STATISTICS
+                ================================================= */}
 
-                <section
-                    className="dashboard-card stagger-1 mt-8"
-                    aria-label="Developer overview"
-                >
-                    <div className="premium-card p-5 sm:p-6">
+                <section className="mb-6">
 
-                        <p className="eyebrow mb-4">
-                            Developer Overview
-                        </p>
+                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
 
-                        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+                        <PremiumStat
+                            number={
+                                loading
+                                    ? "..."
+                                    : formatNumber(stats?.problemsSolved)
+                            }
+                            label="Problems Solved"
+                            icon={<ProblemsGlyph size={20} />}
+                            index="01"
+                        />
 
-                            <StatCell
-                                icon={<ProblemsGlyph />}
-                                label="Problems Solved"
-                                loading={loading}
-                                value={formatNumber(
-                                    stats?.problemsSolved
-                                )}
-                            />
+                        <PremiumStat
+                            number={
+                                loading
+                                    ? "..."
+                                    : `${formatNumber(stats?.points)}`
+                            }
+                            label="XP Earned"
+                            suffix="XP"
+                            icon={<BoltGlyph size={20} />}
+                            index="02"
+                        />
 
-                            <StatCell
-                                icon={<BoltGlyph />}
-                                label="XP Earned"
-                                loading={loading}
-                                value={`${formatNumber(
-                                    stats?.points
-                                )} XP`}
-                            />
-
-                            <StatCell
-                                icon={<TrophyGlyph />}
-                                label="Global Rank"
-                                loading={loading}
-                                value={
-                                    stats
-                                        ? `#${formatNumber(
-                                            stats.rank
-                                        )}`
+                        <PremiumStat
+                            number={
+                                loading
+                                    ? "..."
+                                    : stats
+                                        ? `#${formatNumber(stats.rank)}`
                                         : "—"
-                                }
-                            />
+                            }
+                            label="Global Rank"
+                            icon={<TrophyGlyph size={20} />}
+                            index="03"
+                        />
 
-                            <StatCell
-                                icon={<FlameGlyph />}
-                                label="Day Streak"
-                                loading={loading}
-                                value={`${streak}${loading
+                        <PremiumStat
+                            number={
+                                loading
+                                    ? "..."
+                                    : `${streak}`
+                            }
+                            label={
+                                streak === 1
+                                    ? "Day Streak"
+                                    : "Day Streak"
+                            }
+                            suffix={
+                                loading
                                     ? ""
                                     : streak === 1
-                                        ? " day"
-                                        : " days"
-                                    }`}
-                            />
+                                        ? "DAY"
+                                        : "DAYS"
+                            }
+                            icon={<FlameGlyph size={20} />}
+                            index="04"
+                        />
 
-                        </div>
                     </div>
+
                 </section>
 
-                {/* Profile Summary */}
+                {/* =================================================
+                    PROFILE + PERFORMANCE
+                ================================================= */}
 
-                <section
-                    className="dashboard-card stagger-2 mt-6"
-                    aria-label="Your profile"
-                >
-                    <div className="premium-card flex flex-col gap-6 p-5 sm:p-6 lg:flex-row lg:items-center lg:justify-between">
+                <section className="mb-6 grid gap-4 lg:grid-cols-[1.4fr_0.6fr]">
 
-                        <div className="flex items-center gap-4">
+                    {/* Profile */}
 
-                            <AvatarBadge
-                                avatarUrl={user.avatarUrl}
-                                username={user.username}
-                                size={64}
-                            />
+                    <div className="premium-panel group relative overflow-hidden">
 
-                            <div>
+                        <div className="absolute right-0 top-0 h-48 w-48 rounded-full bg-white/[0.035] blur-[80px]" />
 
-                                <h2 className="text-lg font-semibold text-white">
-                                    {user.username ??
-                                        "Your account"}
-                                </h2>
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.035] via-transparent to-transparent opacity-70" />
 
-                                <p className="text-sm text-[#a1a1aa]">
-                                    {user.email}
-                                </p>
+                        <div className="relative p-6 sm:p-8">
 
-                                <p className="mt-1 text-xs text-[#71717a]">
-                                    Competitive Developer
-                                </p>
+                            <div className="mb-8 flex items-start justify-between">
+
+                                <div>
+
+                                    <p className="section-label">
+                                        Developer Profile
+                                    </p>
+
+                                    <p className="mt-2 text-xs text-white/30">
+                                        Your CodeRush identity
+                                    </p>
+
+                                </div>
+
+                                <span className="text-[10px] font-bold tracking-[0.25em] text-white/15">
+                                    PROFILE
+                                </span>
+
+                            </div>
+
+                            <div className="flex flex-col gap-7 sm:flex-row sm:items-center sm:justify-between">
+
+                                <div className="flex items-center gap-5">
+
+                                    <div className="relative">
+
+                                        <div className="absolute -inset-2 rounded-full bg-white/[0.06] blur-md" />
+
+                                        <AvatarBadge
+                                            avatarUrl={user.avatarUrl}
+                                            username={user.username}
+                                            size={76}
+                                        />
+
+                                        <span className="absolute bottom-0 right-0 h-4 w-4 rounded-full border-[3px] border-[#090909] bg-emerald-400" />
+
+                                    </div>
+
+                                    <div>
+
+                                        <h2 className="text-xl font-bold tracking-tight text-white">
+                                            {user.username ||
+                                                "Your account"}
+                                        </h2>
+
+                                        <p className="mt-1 text-sm text-white/40">
+                                            {user.email}
+                                        </p>
+
+                                        <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.035] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-white/45">
+                                            <span className="h-1.5 w-1.5 rounded-full bg-indigo-400" />
+                                            Competitive Developer
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                                <div className="flex gap-2">
+
+                                    <Link
+                                        href={profileHref}
+                                        className="premium-outline-button"
+                                    >
+                                        <UserGlyph size={15} />
+                                        Profile
+                                    </Link>
+
+                                    <Link
+                                        href="/profile"
+                                        className="premium-outline-button"
+                                    >
+                                        <EditGlyph size={15} />
+                                        Edit
+                                    </Link>
+
+                                </div>
 
                             </div>
 
                         </div>
 
-                        <div className="grid grid-cols-3 gap-3 text-center">
+                    </div>
 
-                            <MiniStat
-                                label="Solved"
-                                value={
-                                    loading
-                                        ? "…"
-                                        : formatNumber(
-                                            stats?.problemsSolved
-                                        )
-                                }
-                            />
+                    {/* Performance */}
 
-                            <MiniStat
-                                label="Submissions"
-                                value={
-                                    loading
-                                        ? "…"
-                                        : formatNumber(
-                                            stats?.totalSubmissions
-                                        )
-                                }
-                            />
+                    <div className="premium-panel relative overflow-hidden">
 
-                            <MiniStat
-                                label="Success"
-                                value={
-                                    loading
-                                        ? "…"
-                                        : `${stats?.successRate ?? 0}%`
-                                }
-                            />
+                        <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-indigo-500/[0.06] blur-3xl" />
 
-                        </div>
+                        <div className="relative p-6">
 
-                        <div className="flex flex-wrap gap-3">
+                            <div className="mb-6 flex items-center justify-between">
 
-                            <Link
-                                href={profileHref}
-                                className="secondary-button flex-1 lg:flex-none"
-                            >
-                                <UserGlyph size={15} />
-                                View Profile
-                            </Link>
+                                <div>
 
-                            <Link
-                                href="/profile"
-                                className="secondary-button flex-1 lg:flex-none"
-                            >
-                                <EditGlyph size={15} />
-                                Edit Profile
-                            </Link>
+                                    <p className="section-label">
+                                        Performance
+                                    </p>
+
+                                    <p className="mt-2 text-xs text-white/30">
+                                        Current statistics
+                                    </p>
+
+                                </div>
+
+                                <AnalyticsGlyph size={18} />
+
+                            </div>
+
+                            <div className="space-y-5">
+
+                                <PerformanceRow
+                                    label="Submissions"
+                                    value={
+                                        loading
+                                            ? "..."
+                                            : formatNumber(
+                                                stats?.totalSubmissions
+                                            )
+                                    }
+                                />
+
+                                <PerformanceRow
+                                    label="Successful"
+                                    value={
+                                        loading
+                                            ? "..."
+                                            : formatNumber(
+                                                stats?.successfulSubmissions
+                                            )
+                                    }
+                                />
+
+                                <PerformanceRow
+                                    label="Success Rate"
+                                    value={
+                                        loading
+                                            ? "..."
+                                            : `${stats?.successRate ?? 0}%`
+                                    }
+                                />
+
+                            </div>
 
                         </div>
 
                     </div>
+
                 </section>
 
-                {/* Feature Destinations */}
+                {/* =================================================
+                    EXPLORE
+                ================================================= */}
 
-                <section
-                    className="mt-8"
-                    aria-label="Explore CodeRush"
-                >
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <section className="mb-6">
+
+                    <div className="mb-5 flex items-end justify-between">
+
+                        <div>
+
+                            <p className="section-label">
+                                Explore CodeRush
+                            </p>
+
+                            <h2 className="mt-2 text-2xl font-bold tracking-tight text-white">
+                                Your workspace
+                            </h2>
+
+                        </div>
+
+                        <span className="hidden text-[10px] uppercase tracking-[0.2em] text-white/20 sm:block">
+                            06 destinations
+                        </span>
+
+                    </div>
+
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
 
                         <FeatureCard
-                            className="stagger-3"
                             href="/challenges"
-                            icon={<CodeGlyph size={18} />}
+                            number="01"
+                            icon={<CodeGlyph size={22} />}
                             title="Challenges"
-                            description="Improve your coding skills with curated programming challenges."
-                            cta="Explore Challenges"
+                            description="Solve curated programming problems and improve your competitive coding skills."
                         />
 
                         <FeatureCard
-                            className="stagger-4"
                             href="/showcase"
-                            icon={<ShowcaseGlyph size={18} />}
+                            number="02"
+                            icon={<ShowcaseGlyph size={22} />}
                             title="Showcase"
-                            description="Discover projects, solutions, and work from the CodeRush community."
-                            cta="Explore Showcase"
+                            description="Discover projects, solutions, and impressive work from the CodeRush community."
                         />
 
                         <FeatureCard
-                            className="stagger-5"
                             href="/leaderboard"
-                            icon={<TrophyGlyph size={18} />}
+                            number="03"
+                            icon={<TrophyGlyph size={22} />}
                             title="Leaderboard"
-                            description="See how you rank against the CodeRush community."
-                            cta="View Leaderboard"
+                            description="Track your global position and compete with developers across CodeRush."
                         />
 
                         <FeatureCard
-                            className="stagger-6"
                             href="/bookmarks"
-                            icon={<BookmarkGlyph size={18} />}
+                            number="04"
+                            icon={<BookmarkGlyph size={22} />}
                             title="Bookmarks"
-                            description="Quickly access your saved challenges and coding resources."
-                            cta="Open Bookmarks"
+                            description="Keep your favorite challenges and coding resources one click away."
                         />
 
                         <FeatureCard
-                            className="stagger-7"
                             href="/teams"
-                            icon={<TeamsGlyph size={18} />}
+                            number="05"
+                            icon={<TeamsGlyph size={22} />}
                             title="Teams"
-                            description="Create or join a team and build hackathon projects together."
-                            cta="View Teams"
+                            description="Collaborate with developers and build projects together."
                         />
 
                         <FeatureCard
-                            className="stagger-8"
                             href="/analytics"
-                            icon={<AnalyticsGlyph size={18} />}
+                            number="06"
+                            icon={<AnalyticsGlyph size={22} />}
                             title="Analytics"
-                            description="Track your coding performance, submissions, success rate, and progress."
-                            cta="View Analytics"
+                            description="Understand your coding performance and monitor your progress."
                         />
 
                     </div>
+
                 </section>
 
-                {/* Quick Actions */}
+                {/* =================================================
+                    QUICK ACTIONS
+                ================================================= */}
 
-                <section
-                    className="dashboard-card stagger-6 mt-8"
-                    aria-label="Quick actions"
-                >
-                    <div className="premium-card p-5 sm:p-6">
+                <section className="premium-panel overflow-hidden">
 
-                        <p className="eyebrow mb-4">
-                            Quick Actions
-                        </p>
+                    <div className="flex flex-col gap-5 p-5 sm:p-6 lg:flex-row lg:items-center lg:justify-between">
 
-                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-8">
+                        <div>
+
+                            <p className="section-label">
+                                Quick Actions
+                            </p>
+
+                            <p className="mt-2 text-sm text-white/35">
+                                Jump directly into your workspace.
+                            </p>
+
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+
+                            <QuickAction
+                                href="/code"
+                                label="Code Editor"
+                                icon={<CodeGlyph size={15} />}
+                            />
 
                             <QuickAction
                                 href="/challenges"
@@ -398,151 +555,132 @@ export default function DashboardView() {
                             />
 
                             <QuickAction
-                                href="/bookmarks"
-                                label="Bookmarks"
-                                icon={<BookmarkGlyph size={15} />}
-                            />
-
-                            <QuickAction
-                                href="/showcase"
-                                label="Showcase"
-                                icon={<ShowcaseGlyph size={15} />}
-                            />
-
-                            <QuickAction
-                                href="/teams"
-                                label="Teams"
-                                icon={<TeamsGlyph size={15} />}
-                            />
-
-                            <QuickAction
                                 href="/analytics"
                                 label="Analytics"
                                 icon={<AnalyticsGlyph size={15} />}
                             />
 
-                            <QuickAction
-                                href={profileHref}
-                                label="View Profile"
-                                icon={<UserGlyph size={15} />}
-                            />
-
-                            <QuickAction
-                                href="/profile"
-                                label="Edit Profile"
-                                icon={<EditGlyph size={15} />}
-                            />
-
                         </div>
+
                     </div>
+
                 </section>
 
-            </div>
+            </main>
+
+            {/* =====================================================
+                CUSTOM DASHBOARD STYLES
+            ===================================================== */}
+
+            <style jsx global>{`
+
+                .premium-panel {
+                    position: relative;
+                    border: 1px solid rgba(255,255,255,0.08);
+                    background:
+                        linear-gradient(
+                            135deg,
+                            rgba(255,255,255,0.055),
+                            rgba(255,255,255,0.018)
+                        );
+                    border-radius: 22px;
+                    box-shadow:
+                        0 20px 60px rgba(0,0,0,0.35),
+                        inset 0 1px 0 rgba(255,255,255,0.035);
+                    backdrop-filter: blur(22px);
+                    -webkit-backdrop-filter: blur(22px);
+                }
+
+                .section-label {
+                    color: rgba(255,255,255,0.45);
+                    font-size: 10px;
+                    font-weight: 800;
+                    letter-spacing: 0.24em;
+                    text-transform: uppercase;
+                }
+
+                .premium-outline-button {
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 8px;
+                    height: 38px;
+                    padding: 0 14px;
+                    border-radius: 10px;
+                    border: 1px solid rgba(255,255,255,0.1);
+                    background: rgba(255,255,255,0.035);
+                    color: rgba(255,255,255,0.65);
+                    font-size: 12px;
+                    font-weight: 600;
+                    transition:
+                        transform 200ms ease,
+                        background 200ms ease,
+                        border-color 200ms ease,
+                        color 200ms ease;
+                }
+
+                .premium-outline-button:hover {
+                    transform: translateY(-2px);
+                    border-color: rgba(255,255,255,0.22);
+                    background: rgba(255,255,255,0.08);
+                    color: white;
+                }
+
+                @media (prefers-reduced-motion: reduce) {
+                    .premium-outline-button {
+                        transition: none;
+                    }
+                }
+
+            `}</style>
+
         </div>
-        </>
     );
 }
 
 /* ================================================================
-   Loading State
+   Premium Stat
 ================================================================ */
 
-function LoadingState() {
-    return (
-        <div className="cr-shell flex items-center justify-center">
-
-            <div className="w-full max-w-7xl px-4 py-10 sm:px-6">
-
-                <div className="skeleton h-8 w-72" />
-
-                <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
-
-                    {[0, 1, 2, 3].map((i) => (
-                        <div
-                            key={i}
-                            className="premium-card p-5"
-                        >
-                            <div className="skeleton h-10 w-10" />
-
-                            <div className="skeleton mt-4 h-5 w-16" />
-                        </div>
-                    ))}
-
-                </div>
-
-            </div>
-        </div>
-    );
-}
-
-/* ================================================================
-   Signed Out State
-================================================================ */
-
-function SignedOutState() {
-    return (
-        <div className="cr-shell flex items-center justify-center px-4">
-
-            <div className="premium-card max-w-sm p-8 text-center">
-
-                <h1 className="text-xl font-semibold text-white">
-                    Not signed in
-                </h1>
-
-                <p className="mt-2 text-sm text-[#a1a1aa]">
-                    Sign in to access your CodeRush dashboard.
-                </p>
-
-                <Link
-                    href="/login"
-                    className="primary-button mt-6"
-                >
-                    Go to login
-                </Link>
-
-            </div>
-
-        </div>
-    );
-}
-
-/* ================================================================
-   Stat Cell
-================================================================ */
-
-interface StatCellProps {
-    icon: React.ReactNode;
-    label: string;
-    value: string;
-    loading: boolean;
-}
-
-function StatCell({
-    icon,
+function PremiumStat({
+    number,
     label,
-    value,
-    loading,
-}: StatCellProps) {
+    suffix,
+    icon,
+    index,
+}: {
+    number: string;
+    label: string;
+    suffix?: string;
+    icon: React.ReactNode;
+    index: string;
+}) {
     return (
-        <div className="rounded-xl border border-[#ffffff0d] bg-[#0d0f12]/60 p-4">
+        <div className="group relative overflow-hidden rounded-[20px] border border-white/[0.08] bg-white/[0.025] p-5 transition-all duration-300 hover:-translate-y-1 hover:border-white/[0.16] hover:bg-white/[0.045]">
 
-            <div className="flex items-center gap-3">
+            <div className="absolute right-4 top-4 text-[9px] font-bold tracking-[0.2em] text-white/10">
+                {index}
+            </div>
 
-                <span className="stat-icon">
-                    {icon}
+            <div className="mb-7 flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.09] bg-white/[0.045] text-white/65 transition-all duration-300 group-hover:scale-105 group-hover:bg-white/[0.08] group-hover:text-white">
+                {icon}
+            </div>
+
+            <div className="flex items-end gap-2">
+
+                <span className="text-3xl font-black tracking-[-0.04em] text-white">
+                    {number}
                 </span>
 
-                {loading ? (
-                    <div className="skeleton h-7 w-20" />
-                ) : (
-                    <p className="text-xl font-bold text-white sm:text-2xl">
-                        {value}
-                    </p>
+                {suffix && (
+                    <span className="mb-1 text-[9px] font-bold tracking-[0.15em] text-white/30">
+                        {suffix}
+                    </span>
                 )}
 
             </div>
 
-            <p className="mt-3 text-xs uppercase tracking-wide text-[#71717a]">
+            <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.18em] text-white/30">
                 {label}
             </p>
 
@@ -551,10 +689,10 @@ function StatCell({
 }
 
 /* ================================================================
-   Mini Stat
+   Performance Row
 ================================================================ */
 
-function MiniStat({
+function PerformanceRow({
     label,
     value,
 }: {
@@ -562,17 +700,111 @@ function MiniStat({
     value: string;
 }) {
     return (
-        <div className="rounded-xl border border-[#ffffff0d] bg-[#0d0f12]/60 px-3 py-2.5">
+        <div className="flex items-center justify-between border-b border-white/[0.06] pb-4 last:border-0 last:pb-0">
 
-            <p className="text-base font-bold text-white">
-                {value}
-            </p>
-
-            <p className="mt-0.5 text-[11px] uppercase tracking-wide text-[#71717a]">
+            <span className="text-xs text-white/35">
                 {label}
-            </p>
+            </span>
+
+            <span className="text-sm font-bold text-white">
+                {value}
+            </span>
 
         </div>
+    );
+}
+
+/* ================================================================
+   Feature Card
+================================================================ */
+
+function FeatureCard({
+    href,
+    number,
+    icon,
+    title,
+    description,
+}: {
+    href: string;
+    number: string;
+    icon: React.ReactNode;
+    title: string;
+    description: string;
+}) {
+    return (
+        <Link
+            href={href}
+            className="group relative min-h-[235px] overflow-hidden rounded-[22px] border border-white/[0.08] bg-white/[0.025] p-6 transition-all duration-500 hover:-translate-y-2 hover:border-white/[0.17] hover:bg-white/[0.045] hover:shadow-[0_25px_70px_rgba(0,0,0,0.4)]"
+        >
+
+            {/* Number */}
+
+            <span className="absolute right-5 top-5 text-[10px] font-bold tracking-[0.2em] text-white/10 transition-colors duration-300 group-hover:text-white/25">
+                {number}
+            </span>
+
+            {/* Glow */}
+
+            <span className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-white/[0.045] blur-3xl transition-all duration-500 group-hover:bg-white/[0.08]" />
+
+            {/* Icon */}
+
+            <span className="relative flex h-12 w-12 items-center justify-center rounded-xl border border-white/[0.09] bg-white/[0.045] text-white/60 transition-all duration-500 group-hover:scale-110 group-hover:border-white/[0.18] group-hover:bg-white/[0.08] group-hover:text-white">
+                {icon}
+            </span>
+
+            {/* Content */}
+
+            <div className="relative">
+
+                <h3 className="mt-7 text-lg font-bold tracking-tight text-white">
+                    {title}
+                </h3>
+
+                <p className="mt-2 max-w-sm text-sm leading-6 text-white/35">
+                    {description}
+                </p>
+
+            </div>
+
+            {/* CTA */}
+
+            <div className="absolute bottom-6 left-6 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-white/30 transition-all duration-300 group-hover:gap-3 group-hover:text-white/75">
+
+                Explore
+
+                <ArrowGlyph size={13} />
+
+            </div>
+
+        </Link>
+    );
+}
+
+/* ================================================================
+   Quick Action
+================================================================ */
+
+function QuickAction({
+    href,
+    label,
+    icon,
+}: {
+    href: string;
+    label: string;
+    icon: React.ReactNode;
+}) {
+    return (
+        <Link
+            href={href}
+            className="group flex h-10 items-center justify-center gap-2 rounded-lg border border-white/[0.07] bg-white/[0.025] px-3 text-[11px] font-semibold text-white/45 transition-all duration-300 hover:-translate-y-0.5 hover:border-white/[0.15] hover:bg-white/[0.07] hover:text-white"
+        >
+            <span className="text-white/35 transition-colors group-hover:text-white">
+                {icon}
+            </span>
+
+            {label}
+        </Link>
     );
 }
 
@@ -595,7 +827,7 @@ function AvatarBadge({
             <img
                 src={avatarUrl}
                 alt=""
-                className="rounded-full border border-[#ffffff14] object-cover"
+                className="relative rounded-full border border-white/15 object-cover"
                 style={{
                     width: size,
                     height: size,
@@ -609,7 +841,7 @@ function AvatarBadge({
 
     return (
         <span
-            className="flex items-center justify-center rounded-full bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] text-xl font-semibold text-white"
+            className="relative flex items-center justify-center rounded-full border border-white/15 bg-gradient-to-br from-white via-white/80 to-white/20 text-2xl font-black text-black shadow-[0_0_30px_rgba(255,255,255,0.08)]"
             style={{
                 width: size,
                 height: size,
@@ -621,93 +853,86 @@ function AvatarBadge({
 }
 
 /* ================================================================
-   Feature Card
+   Loading
 ================================================================ */
 
-interface FeatureCardProps {
-    href: string;
-    className?: string;
-    icon: React.ReactNode;
-    title: string;
-    description: string;
-    cta: string;
-}
-
-function FeatureCard({
-    href,
-    className = "",
-    icon,
-    title,
-    description,
-    cta,
-}: FeatureCardProps) {
+function LoadingState() {
     return (
-        <Link
-            href={href}
-            className={`card-link premium-card premium-card-hover dashboard-card group p-6 ${className}`}
-        >
+        <div className="min-h-screen bg-black px-4 py-10">
 
-            <span className="stat-icon">
-                {icon}
-            </span>
+            <div className="mx-auto max-w-7xl">
 
-            <h3 className="mt-4 text-lg font-semibold text-white">
-                {title}
-            </h3>
+                <div className="h-4 w-32 animate-pulse rounded bg-white/10" />
 
-            <p className="mt-1.5 text-sm leading-relaxed text-[#a1a1aa]">
-                {description}
-            </p>
+                <div className="mt-6 h-14 w-96 max-w-full animate-pulse rounded bg-white/10" />
 
-            <span className="hover-arrow mt-4 text-sm font-medium text-[#818cf8]">
-                {cta}
-                <ArrowGlyph />
-            </span>
+                <div className="mt-4 h-5 w-80 max-w-full animate-pulse rounded bg-white/5" />
 
-        </Link>
+                <div className="mt-10 grid grid-cols-2 gap-3 lg:grid-cols-4">
+
+                    {[1, 2, 3, 4].map((item) => (
+                        <div
+                            key={item}
+                            className="h-40 animate-pulse rounded-[20px] border border-white/[0.06] bg-white/[0.025]"
+                        />
+                    ))}
+
+                </div>
+
+                <div className="mt-4 grid gap-4 lg:grid-cols-2">
+
+                    <div className="h-64 animate-pulse rounded-[22px] bg-white/[0.025]" />
+
+                    <div className="h-64 animate-pulse rounded-[22px] bg-white/[0.025]" />
+
+                </div>
+
+            </div>
+
+        </div>
     );
 }
 
 /* ================================================================
-   Quick Action
+   Signed Out
 ================================================================ */
 
-function QuickAction({
-    href,
-    label,
-    icon,
-}: {
-    href: string;
-    label: string;
-    icon: React.ReactNode;
-}) {
+function SignedOutState() {
     return (
-        <Link
-            href={href}
-            className="flex items-center justify-center gap-2 rounded-xl border border-[#ffffff0d] bg-[#0d0f12]/50 px-3 py-3 text-sm font-medium text-[#d4d4d8] transition-colors hover:border-[#6366f1]/50 hover:bg-[#6366f1]/10 hover:text-white"
-        >
+        <div className="flex min-h-screen items-center justify-center bg-black px-4">
 
-            <span className="text-[#818cf8]">
-                {icon}
-            </span>
+            <div className="w-full max-w-md rounded-[24px] border border-white/10 bg-white/[0.03] p-10 text-center shadow-2xl">
 
-            {label}
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.05]">
+                    <UserGlyph size={22} />
+                </div>
 
-        </Link>
+                <h1 className="mt-6 text-2xl font-bold text-white">
+                    Not signed in
+                </h1>
+
+                <p className="mt-3 text-sm leading-6 text-white/40">
+                    Sign in to access your CodeRush dashboard.
+                </p>
+
+                <Link
+                    href="/login"
+                    className="mt-7 inline-flex h-11 items-center justify-center rounded-xl bg-white px-6 text-sm font-bold text-black transition hover:bg-white/90"
+                >
+                    Go to Login
+                </Link>
+
+            </div>
+
+        </div>
     );
 }
 
 /* ================================================================
-   Inline Icons
+   Icons
 ================================================================ */
 
-/* Code */
-
-function CodeGlyph({
-    size = 16,
-}: {
-    size?: number;
-}) {
+function CodeGlyph({ size = 18 }: { size?: number }) {
     return (
         <svg
             width={size}
@@ -715,10 +940,9 @@ function CodeGlyph({
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2"
+            strokeWidth="1.8"
             strokeLinecap="round"
             strokeLinejoin="round"
-            aria-hidden="true"
         >
             <polyline points="16 18 22 12 16 6" />
             <polyline points="8 6 2 12 8 18" />
@@ -726,13 +950,7 @@ function CodeGlyph({
     );
 }
 
-/* Problems */
-
-function ProblemsGlyph({
-    size = 18,
-}: {
-    size?: number;
-}) {
+function ProblemsGlyph({ size = 18 }: { size?: number }) {
     return (
         <svg
             width={size}
@@ -740,30 +958,18 @@ function ProblemsGlyph({
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2"
+            strokeWidth="1.8"
             strokeLinecap="round"
             strokeLinejoin="round"
-            aria-hidden="true"
         >
             <path d="m8 6-5 6 5 6" />
             <path d="m16 6 5 6-5 6" />
-            <line
-                x1="13"
-                y1="3"
-                x2="11"
-                y2="21"
-            />
+            <line x1="13" y1="3" x2="11" y2="21" />
         </svg>
     );
 }
 
-/* Bolt */
-
-function BoltGlyph({
-    size = 18,
-}: {
-    size?: number;
-}) {
+function BoltGlyph({ size = 18 }: { size?: number }) {
     return (
         <svg
             width={size}
@@ -771,23 +977,16 @@ function BoltGlyph({
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2"
+            strokeWidth="1.8"
             strokeLinecap="round"
             strokeLinejoin="round"
-            aria-hidden="true"
         >
             <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
         </svg>
     );
 }
 
-/* Trophy */
-
-function TrophyGlyph({
-    size = 18,
-}: {
-    size?: number;
-}) {
+function TrophyGlyph({ size = 18 }: { size?: number }) {
     return (
         <svg
             width={size}
@@ -795,10 +994,9 @@ function TrophyGlyph({
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2"
+            strokeWidth="1.8"
             strokeLinecap="round"
             strokeLinejoin="round"
-            aria-hidden="true"
         >
             <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
             <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
@@ -810,13 +1008,7 @@ function TrophyGlyph({
     );
 }
 
-/* Flame */
-
-function FlameGlyph({
-    size = 18,
-}: {
-    size?: number;
-}) {
+function FlameGlyph({ size = 18 }: { size?: number }) {
     return (
         <svg
             width={size}
@@ -824,23 +1016,16 @@ function FlameGlyph({
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2"
+            strokeWidth="1.8"
             strokeLinecap="round"
             strokeLinejoin="round"
-            aria-hidden="true"
         >
             <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
         </svg>
     );
 }
 
-/* Showcase */
-
-function ShowcaseGlyph({
-    size = 18,
-}: {
-    size?: number;
-}) {
+function ShowcaseGlyph({ size = 18 }: { size?: number }) {
     return (
         <svg
             width={size}
@@ -848,23 +1033,16 @@ function ShowcaseGlyph({
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2"
+            strokeWidth="1.8"
             strokeLinecap="round"
             strokeLinejoin="round"
-            aria-hidden="true"
         >
             <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />
         </svg>
     );
 }
 
-/* Bookmark */
-
-function BookmarkGlyph({
-    size = 18,
-}: {
-    size?: number;
-}) {
+function BookmarkGlyph({ size = 18 }: { size?: number }) {
     return (
         <svg
             width={size}
@@ -872,23 +1050,16 @@ function BookmarkGlyph({
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2"
+            strokeWidth="1.8"
             strokeLinecap="round"
             strokeLinejoin="round"
-            aria-hidden="true"
         >
             <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
         </svg>
     );
 }
 
-/* Teams */
-
-function TeamsGlyph({
-    size = 18,
-}: {
-    size?: number;
-}) {
+function TeamsGlyph({ size = 18 }: { size?: number }) {
     return (
         <svg
             width={size}
@@ -896,30 +1067,19 @@ function TeamsGlyph({
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2"
+            strokeWidth="1.8"
             strokeLinecap="round"
             strokeLinejoin="round"
-            aria-hidden="true"
         >
             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-            <circle
-                cx="9"
-                cy="7"
-                r="4"
-            />
+            <circle cx="9" cy="7" r="4" />
             <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
             <path d="M16 3.13a4 4 0 0 1 0 7.75" />
         </svg>
     );
 }
 
-/* Analytics */
-
-function AnalyticsGlyph({
-    size = 18,
-}: {
-    size?: number;
-}) {
+function AnalyticsGlyph({ size = 18 }: { size?: number }) {
     return (
         <svg
             width={size}
@@ -927,40 +1087,18 @@ function AnalyticsGlyph({
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2"
+            strokeWidth="1.8"
             strokeLinecap="round"
             strokeLinejoin="round"
-            aria-hidden="true"
         >
-            <line
-                x1="18"
-                y1="20"
-                x2="18"
-                y2="10"
-            />
-            <line
-                x1="12"
-                y1="20"
-                x2="12"
-                y2="4"
-            />
-            <line
-                x1="6"
-                y1="20"
-                x2="6"
-                y2="14"
-            />
+            <line x1="18" y1="20" x2="18" y2="10" />
+            <line x1="12" y1="20" x2="12" y2="4" />
+            <line x1="6" y1="20" x2="6" y2="14" />
         </svg>
     );
 }
 
-/* User */
-
-function UserGlyph({
-    size = 16,
-}: {
-    size?: number;
-}) {
+function UserGlyph({ size = 16 }: { size?: number }) {
     return (
         <svg
             width={size}
@@ -968,28 +1106,17 @@ function UserGlyph({
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2"
+            strokeWidth="1.8"
             strokeLinecap="round"
             strokeLinejoin="round"
-            aria-hidden="true"
         >
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-            <circle
-                cx="12"
-                cy="7"
-                r="4"
-            />
+            <circle cx="12" cy="7" r="4" />
         </svg>
     );
 }
 
-/* Edit */
-
-function EditGlyph({
-    size = 16,
-}: {
-    size?: number;
-}) {
+function EditGlyph({ size = 16 }: { size?: number }) {
     return (
         <svg
             width={size}
@@ -997,10 +1124,9 @@ function EditGlyph({
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2"
+            strokeWidth="1.8"
             strokeLinecap="round"
             strokeLinejoin="round"
-            aria-hidden="true"
         >
             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
@@ -1008,13 +1134,7 @@ function EditGlyph({
     );
 }
 
-/* Arrow */
-
-function ArrowGlyph({
-    size = 14,
-}: {
-    size?: number;
-}) {
+function ArrowGlyph({ size = 14 }: { size?: number }) {
     return (
         <svg
             width={size}
@@ -1022,18 +1142,11 @@ function ArrowGlyph({
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2.2"
+            strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
-            aria-hidden="true"
         >
-            <line
-                x1="5"
-                y1="12"
-                x2="19"
-                y2="12"
-            />
-
+            <line x1="5" y1="12" x2="19" y2="12" />
             <polyline points="12 5 19 12 12 19" />
         </svg>
     );
