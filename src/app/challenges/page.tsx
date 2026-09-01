@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import Link from "next/link";
+
 
 type ChallengeCategory =
   | "coding"
@@ -14,6 +15,7 @@ type ChallengeCategory =
   | "innovation"
   | "speed"
   | "hackathon";
+
 
 const CATEGORIES: Array<{ value: "" | ChallengeCategory; label: string }> = [
   { value: "", label: "All" },
@@ -47,6 +49,28 @@ export default function ChallengesPage() {
         ? new URLSearchParams(window.location.search).get("theme") ?? ""
         : ""
   );
+  const [mouse, setMouse] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    function handleMouseMove(e: MouseEvent) {
+      const x = (e.clientX / window.innerWidth - 0.5) * 30;
+      const y = (e.clientY / window.innerHeight - 0.5) * 30;
+      setMouse({ x, y });
+    }
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, []);
+    () =>
+      typeof window !== "undefined"
+        ? new URLSearchParams(window.location.search).get("difficulty") ?? ""
+        : ""
+  );
+  const [themeSearch, setThemeSearch] = useState(
+    () =>
+      typeof window !== "undefined"
+        ? new URLSearchParams(window.location.search).get("theme") ?? ""
+        : ""
+  );
 
   const challenges = useQuery(api.challenges.list, {
     category: category || undefined,
@@ -58,8 +82,14 @@ export default function ChallengesPage() {
       {/* Animated background glow */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-[#0a0f0d] via-black to-black" />
-        <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[900px] h-[900px] bg-emerald-500/15 rounded-full blur-[150px] animate-[drift1_16s_ease-in-out_infinite]" />
-        <div className="absolute bottom-[-15%] right-[-10%] w-[600px] h-[600px] bg-emerald-400/10 rounded-full blur-[130px] animate-[drift2_20s_ease-in-out_infinite]" />
+        <div
+          className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[900px] h-[900px] bg-emerald-500/15 rounded-full blur-[150px] animate-[drift1_16s_ease-in-out_infinite] transition-transform duration-300 ease-out"
+          style={{ transform: `translate(calc(-50% + ${mouse.x}px), ${mouse.y}px)` }}
+        />
+        <div
+          className="absolute bottom-[-15%] right-[-10%] w-[600px] h-[600px] bg-emerald-400/10 rounded-full blur-[130px] animate-[drift2_20s_ease-in-out_infinite] transition-transform duration-300 ease-out"
+          style={{ transform: `translate(${-mouse.x}px, ${-mouse.y}px)` }}
+        />
       </div>
 
       <div className="relative z-10 max-w-4xl mx-auto">
@@ -128,7 +158,7 @@ export default function ChallengesPage() {
             <Link
               key={challenge._id}
               href={`/challenges/${challenge._id}`}
-              className="block rounded-lg border border-neutral-800 bg-neutral-900 p-5 hover:border-neutral-600 transition-colors"
+              className="liquid-glass block rounded-lg p-5 hover:scale-[1.02] transition-transform"
             >
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs uppercase tracking-wide text-neutral-500">
