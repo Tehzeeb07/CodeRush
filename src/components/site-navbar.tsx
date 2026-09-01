@@ -27,6 +27,11 @@ interface NavEntry {
     label: string;
 }
 
+const [userSearch, setUserSearch] = useState("");
+const userResults = useQuery(
+    api.users.searchByUsername,
+    userSearch.trim() ? { query: userSearch.trim() } : "skip"
+);
 const NAV_LINKS: NavEntry[] = [
     { href: "/dashboard", label: "Dashboard" },
     { href: "/challenges", label: "Challenges" },
@@ -277,6 +282,31 @@ export default function SiteNavbar() {
                             />
                         </div>
                     </form>
+                                        {/* User search */}
+                    <div className="relative hidden md:block">
+                        <input
+                            type="text"
+                            value={userSearch}
+                            onChange={(e) => setUserSearch(e.target.value)}
+                            placeholder="Find users…"
+                            className="h-9 w-36 rounded-[10px] border border-[#ffffff14] bg-[#ffffff08] px-3 text-sm text-[#e4e4e7] placeholder:text-[#71717a] focus:border-[#6366f1] focus:outline-none lg:w-44"
+                        />
+                        {userSearch.trim() && userResults && userResults.length > 0 && (
+                            <div className="cr-menu absolute right-0 top-[calc(100%+8px)] w-56 p-2 z-50">
+                                {userResults.map((u) => (
+                                    <Link
+                                        key={u.username}
+                                        href={`/u/${u.username}`}
+                                        className="menu-item"
+                                        onClick={() => setUserSearch("")}
+                                    >
+                                        <Avatar avatarUrl={u.avatarUrl} username={u.username} size={22} />
+                                        {u.username}
+                                    </Link>
+                                ))}
+                            </div>
+                        )}
+                    </div>
 
                     {/* Code Editor */}
                     <Link
