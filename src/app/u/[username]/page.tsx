@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { useParams } from "next/navigation";
 import { api } from "../../../../convex/_generated/api";
 import Link from "next/link";
@@ -23,10 +23,19 @@ function formatStatus(status: string): string {
 export default function PublicProfilePage() {
   const params = useParams<{ username: string }>();
   const profile = useQuery(api.users.getByUsername, { username: params.username });
-  // Public coding statistics (rank, points, recent activity). No emails.
   const stats = useQuery(api.leaderboard.getUserPublicStats, {
     username: params.username,
   });
+
+  const counts = useQuery(
+    api.follows.counts,
+    profile ? { targetUserId: profile.userId } : "skip"
+  );
+  const isFollowing = useQuery(
+    api.follows.isFollowing,
+    profile ? { targetUserId: profile.userId } : "skip"
+  );
+  const toggleFollow = useMutation(api.follows.toggle);
 
   if (profile === undefined) {
     return (
@@ -54,7 +63,7 @@ export default function PublicProfilePage() {
           ← Back to dashboard
         </Link>
 
-        <div className="flex items-center gap-4 mt-6 mb-6">
+        <div className="flex items-center gap-4 mt-6 mb-2">
           {profile.avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -71,8 +80,29 @@ export default function PublicProfilePage() {
           <div>
             <h1 className="text-2xl font-bold">{profile.username}</h1>
             <p className="text-emerald-400 text-sm font-medium">{profile.xp} XP</p>
+            <div className="flex gap-6 mt-2">
+              <Link href={`/u/${profile.username}/followers`} className="text-center hover:opacity-80 transition-opacity">
+                <p className="text-lg font-bold text-white">{counts?.followers ?? 0}</p>
+                <p className="text-xs text-neutral-400">Followers</p>
+              </Link>
+              <Link href={`/u/${profile.username}/following`} className="text-center hover:opacity-80 transition-opacity">
+                <p className="text-lg font-bold text-white">{counts?.following ?? 0}</p>
+                <p className="text-xs text-neutral-400">Following</p>
+              </Link>
+            </div>
           </div>
         </div>
+
+        <button
+          onClick={() => toggleFollow({ targetUserId: profile.userId })}
+          className={`text-sm px-4 py-2 rounded-md font-semibold transition-colors mb-6 ${
+            isFollowing
+              ? "border border-neutral-700 hover:bg-neutral-800 text-white"
+              : "bg-emerald-500 hover:bg-emerald-400 text-black"
+          }`}
+        >
+          {isFollowing ? "Following" : "Follow"}
+        </button>
 
         {profile.bio ? (
           <p className="text-neutral-300 whitespace-pre-wrap">{profile.bio}</p>

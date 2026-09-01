@@ -246,6 +246,14 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_team_and_user", ["teamId", "userId"]),
     
+  follows: defineTable({
+    followerId: v.id("users"), // the person doing the following
+    followingId: v.id("users"), // the person being followed
+    createdAt: v.number(),
+  })
+    .index("by_follower", ["followerId"])
+    .index("by_following", ["followingId"])
+    .index("by_follower_and_following", ["followerId", "followingId"]),
     
     submissions: defineTable({
     challengeId: v.id("challenges"),

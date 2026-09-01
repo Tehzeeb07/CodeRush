@@ -121,11 +121,31 @@ export const getByUsername = query({
     if (!authUser) return null;
 
     return {
+      userId: profile.userId,
       username: profile.username,
       bio: profile.bio ?? null,
       avatarUrl: profile.avatarUrl ?? null,
       xp: profile.xp,
     };
+  },
+});
+
+export const searchByUsername = query({
+  args: { query: v.string() },
+  handler: async (ctx, { query }) => {
+    if (!query.trim()) return [];
+
+    const profiles = await ctx.db.query("profiles").collect();
+    const q = query.toLowerCase();
+
+    return profiles
+      .filter((p) => p.username.toLowerCase().includes(q))
+      .slice(0, 10)
+      .map((p) => ({
+        username: p.username,
+        avatarUrl: p.avatarUrl ?? null,
+        xp: p.xp,
+      }));
   },
 });
 

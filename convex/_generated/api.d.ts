@@ -18,6 +18,7 @@ import type * as bookmarks from "../bookmarks.js";
 import type * as challenges from "../challenges.js";
 import type * as executionLogs from "../executionLogs.js";
 import type * as executions from "../executions.js";
+import type * as follows from "../follows.js";
 import type * as http from "../http.js";
 import type * as judgeSubmissions from "../judgeSubmissions.js";
 import type * as leaderboard from "../leaderboard.js";
@@ -49,6 +50,7 @@ declare const fullApi: ApiFromModules<{
   challenges: typeof challenges;
   executionLogs: typeof executionLogs;
   executions: typeof executions;
+  follows: typeof follows;
   http: typeof http;
   judgeSubmissions: typeof judgeSubmissions;
   leaderboard: typeof leaderboard;
