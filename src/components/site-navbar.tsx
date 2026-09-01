@@ -27,11 +27,6 @@ interface NavEntry {
     label: string;
 }
 
-const [userSearch, setUserSearch] = useState("");
-const userResults = useQuery(
-    api.users.searchByUsername,
-    userSearch.trim() ? { query: userSearch.trim() } : "skip"
-);
 const NAV_LINKS: NavEntry[] = [
     { href: "/dashboard", label: "Dashboard" },
     { href: "/challenges", label: "Challenges" },
@@ -134,6 +129,11 @@ export default function SiteNavbar() {
     const mobilePanelRef = useRef<HTMLDivElement>(null);
 
     const user = useQuery(api.users.currentUser);
+    const [userSearch, setUserSearch] = useState("");
+    const userResults = useQuery(
+        api.users.searchByUsername,
+        userSearch.trim() ? { query: userSearch.trim() } : "skip"
+    );
 
     // Server-resolved role (convex/roles.ts). The SUPER_ADMIN decision is
     // made on the backend via the SUPER_ADMINS email list — the client only
