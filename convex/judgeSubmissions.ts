@@ -66,6 +66,8 @@ export const completeSubmission = mutation({
     totalCount: v.number(),
     runtimeMs: v.number(),
     memoryKb: v.optional(v.number()),
+    /** Server-side ids of the test cases that passed (for XP accounting). */
+    passedTestCaseIds: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -87,6 +89,9 @@ export const completeSubmission = mutation({
       totalCount: args.totalCount,
       runtimeMs: args.runtimeMs,
       ...(args.memoryKb !== undefined ? { memoryKb: args.memoryKb } : {}),
+      ...(args.passedTestCaseIds !== undefined
+        ? { passedTestCaseIds: args.passedTestCaseIds }
+        : {}),
       completedAt: Date.now(),
     });
 

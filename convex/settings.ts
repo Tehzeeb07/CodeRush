@@ -20,6 +20,7 @@ const DEFAULT_SETTINGS = [
   { key: "maxExecutionTimeMs", value: 10000, type: "number" as const, description: "Maximum execution time per code run" },
   { key: "maxExecutionMemoryMb", value: 256, type: "number" as const, description: "Maximum memory per code execution" },
   { key: "rateLimitPerMinute", value: 30, type: "number" as const, description: "Rate limit for code executions per client per minute" },
+  { key: "xpPerTestCase", value: 10, type: "number" as const, description: "XP awarded per newly passed test case on a judged submission" },
 ];
 
 export const getSettings = query({

@@ -14,17 +14,45 @@ const DIFFICULTY_STYLES: Record<SanitizedProblem["difficulty"], string> = {
     hard: "bg-red-500/15 text-red-300 border-red-500/30",
 };
 
+/** Backend-verified progress for the signed-in user (may be null). */
+export interface ProgressBadgeData {
+    status: "attempted" | "solved";
+    bestPassedCount: number;
+    totalTestCount: number;
+}
+
 export default function ProblemPanel({
     problem,
+    progress,
 }: {
     problem: SanitizedProblem;
+    progress?: ProgressBadgeData | null;
 }) {
     return (
         <div className="flex h-full flex-col">
             <header className="space-y-3 border-b border-neutral-800 px-5 py-4">
-                <h1 className="text-lg font-semibold text-white">
-                    {problem.title}
-                </h1>
+                <div className="flex flex-wrap items-center gap-2">
+                    <h1 className="text-lg font-semibold text-white">
+                        {problem.title}
+                    </h1>
+                    {progress?.status === "solved" && (
+                        <span
+                            className="rounded-full border border-emerald-500/30 bg-emerald-500/15 px-2.5 py-0.5 text-xs font-semibold text-emerald-300"
+                            title="All required test cases passed — verified by the judge"
+                        >
+                            ✓ Solved
+                        </span>
+                    )}
+                    {progress?.status === "attempted" && (
+                        <span
+                            className="rounded-full border border-neutral-700 px-2.5 py-0.5 text-xs text-neutral-400"
+                            title={`Best so far: ${progress.bestPassedCount}/${progress.totalTestCount} test cases`}
+                        >
+                            Attempted ({progress.bestPassedCount}/
+                            {progress.totalTestCount} tests)
+                        </span>
+                    )}
+                </div>
                 <div className="flex flex-wrap items-center gap-2 text-xs">
                     <span
                         className={`rounded-full border px-2.5 py-0.5 font-semibold capitalize ${DIFFICULTY_STYLES[problem.difficulty]}`}

@@ -70,7 +70,15 @@ export type JudgeMode =
     /** Execute once with arbitrary custom stdin; no verdict comparisons. */
     | "custom"
     /** Judge against ALL public + hidden tests and persist a submission. */
-    | "submit";
+    | "submit"
+    /**
+     * Run custom-input execution AND validate against ALL public + hidden
+     * tests. No submission is persisted and no XP is awarded. This powers
+     * the unified Test Results panel where users provide stdin and see
+     * both their output and the full test verdict without committing a
+     * submission.
+     */
+    | "test";
 
 export interface CustomRunResult {
     stdout: string;
@@ -100,6 +108,13 @@ export interface JudgeResponse {
     /** Only present for mode === "submit". */
     submissionId: string | null;
     createdAt: number | null;
+    /**
+     * XP granted by the backend for this submission (§12). Null when no XP
+     * accounting ran (run/custom modes, anonymous users, or XP already
+     * awarded earlier). Computed exclusively server-side — the client only
+     * displays this value, it can never influence it (§13).
+     */
+    xpAwarded: number | null;
 }
 
 /** Shape stored in/returned from Convex for submission history. */

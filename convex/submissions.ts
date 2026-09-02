@@ -53,14 +53,18 @@ export const create = mutation({
 });
 
 // All submissions across every challenge, newest first — powers the
-// Project Showcase page.
+// Project Showcase page. Web Development (in-browser) submissions are
+// excluded: they are reviewed by admins, not showcased as GitHub projects.
 export const listAll = query({
   args: {},
   handler: async (ctx) => {
     const submissions = await ctx.db.query("submissions").collect();
+    const projectSubmissions = submissions.filter(
+      (s) => s.submissionType !== "web"
+    );
 
     const enriched = await Promise.all(
-      submissions.map(async (s) => {
+      projectSubmissions.map(async (s) => {
         const profile = await ctx.db
           .query("profiles")
           .withIndex("by_userId", (q) => q.eq("userId", s.userId))
@@ -104,7 +108,8 @@ export const update = mutation({
 });
 
 // All submissions for one challenge, newest first — used on the challenge
-// details page to show "what people built".
+// details page to show "what people built". Web Development submissions are
+// only shown once approved, and their code is never exposed here.
 export const listForChallenge = query({
   args: { challengeId: v.id("challenges") },
   handler: async (ctx, { challengeId }) => {
@@ -113,14 +118,20 @@ export const listForChallenge = query({
       .withIndex("by_challenge", (q) => q.eq("challengeId", challengeId))
       .collect();
 
-    // Attach the submitter's username to each one
+    const visible = submissions.filter((s) => {
+      if (s.submissionType === "web") return s.status === "approved";
+      return true;
+    });
+
+    // Attach the submitter's username to each one (code never included).
     const withAuthors = await Promise.all(
-      submissions.map(async (s) => {
+      visible.map(async (s) => {
         const profile = await ctx.db
           .query("profiles")
           .withIndex("by_userId", (q) => q.eq("userId", s.userId))
           .unique();
-        return { ...s, username: profile?.username ?? "unknown" };
+        const { htmlCode, cssCode, javascriptCode, ...safe } = s;
+        return { ...safe, username: profile?.username ?? "unknown" };
       })
     );
 
@@ -128,8 +139,9 @@ export const listForChallenge = query({
   },
 });
 
-// The current user's own submissions, across all challenges — used later
-// for a "my submissions" view.
+// The current user's own project submissions, across all challenges — used
+// for the "my submissions" view on project challenges. Web Development
+// submissions are handled by the Web Editor, not the GitHub-link form.
 export const myForChallenge = query({
   args: { challengeId: v.id("challenges") },
   handler: async (ctx, { challengeId }) => {
@@ -142,7 +154,7 @@ export const myForChallenge = query({
       .collect();
 
     return submissions
-      .filter((s) => s.userId === userId)
+      .filter((s) => s.userId === userId && s.submissionType !== "web")
       .sort((a, b) => b.createdAt - a.createdAt);
   },
 });

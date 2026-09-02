@@ -35,7 +35,9 @@ export const getDashboardOverview = query({
     const executions = await ctx.db.query("executions").collect();
     const judgeSubs = await ctx.db.query("judgeSubmissions").collect();
     const bookmarks = await ctx.db.query("bookmarks").collect();
-    const submissions = await ctx.db.query("submissions").collect();
+    const submissions = (await ctx.db.query("submissions").collect()).filter(
+      (s) => s.submissionType !== "web"
+    );
 
     const now = Date.now();
     const sevenDays = 7 * 86400000;

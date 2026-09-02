@@ -36,6 +36,19 @@ import type {
 /** Hard cap so one submit cannot monopolize a worker for minutes. */
 const MAX_TESTS_PER_JUDGE_RUN = 60;
 
+/**
+ * Full judge output. `passedTestCaseIds` is server-only: it feeds the XP
+ * accounting in Convex and is stripped before the response reaches the
+ * browser (the browser only ever sees per-test statuses and aggregates).
+ */
+export type JudgeRunResult = Omit<
+    JudgeResponse,
+    "submissionId" | "createdAt" | "xpAwarded"
+> & {
+    /** Ids of the test cases that passed (hidden ones included). */
+    passedTestCaseIds: string[];
+};
+
 export interface JudgeTest {
     id: string;
     input: string;
@@ -120,11 +133,11 @@ async function executeOnce(
 
 async function judgeTests(
     params: JudgeParams,
-): Promise<Omit<JudgeResponse, "submissionId" | "createdAt">> {
+): Promise<JudgeRunResult> {
     const { mode, language } = params;
 
     const selected = params.tests
-        .filter((t) => mode === "submit" || !t.hidden)
+        .filter((t) => mode === "submit" || mode === "test" || !t.hidden)
         .slice(0, MAX_TESTS_PER_JUDGE_RUN);
 
     // Strictness guard: the judge must NEVER mark a problem Accepted when
@@ -149,10 +162,12 @@ async function judgeTests(
             totalRuntimeMs: 0,
             maxMemoryKb: null,
             custom: null,
+            passedTestCaseIds: [],
         };
     }
 
     const testResults: JudgeTestCase[] = [];
+    const passedTestCaseIds: string[] = [];
     let passedCount = 0;
     let maxRuntime = 0;
     let maxMemoryKb: number | null = null;
@@ -209,6 +224,7 @@ async function judgeTests(
 
         if (caseStatus === "accepted") {
             passedCount += 1;
+            passedTestCaseIds.push(tc.id);
         } else if (outcome === "accepted") {
             outcome =
                 caseStatus === "timeout"
@@ -288,11 +304,11 @@ async function judgeTests(
             memoryUsageKb: exec.memoryUsageKb,
         });
 
-        // Submit mode: the verdict is already decided once a case fails, so
-        // stop to conserve execution quota. Run mode: show EVERY visible
-        // test's result so the user sees each sample case's verdict (e.g.
-        // ✓ Test 1 / ✗ Test 2 / ✓ Test 3).
-        if (outcome !== "accepted" && mode === "submit") break;
+        // §10: every test case gets an independent result. Submit mode does
+        // NOT stop at the first failure — all configured tests are executed
+        // and compared so passed/failed counts and per-test XP (§12) reflect
+        // the complete judging result. Run mode shows every visible test's
+        // verdict as well (e.g. ✓ Test 1 / ✗ Test 2 / ✓ Test 3).
     }
 
     return {
@@ -308,6 +324,7 @@ async function judgeTests(
         totalRuntimeMs: maxRuntime,
         maxMemoryKb,
         custom: null,
+        passedTestCaseIds,
     };
 }
 
@@ -317,7 +334,7 @@ async function judgeTests(
  */
 export async function judge(
     params: JudgeParams,
-): Promise<Omit<JudgeResponse, "submissionId" | "createdAt">> {
+): Promise<JudgeRunResult> {
     const { mode, language, code } = params;
 
     // ------------------------------------------------------------------
@@ -342,11 +359,14 @@ export async function judge(
             executionTimeMs: exec.executionTimeMs,
             memoryUsageKb: exec.memoryUsageKb,
         };
+        // The outcome reflects the ACTUAL execution behaviour: a program
+        // that crashed or exited non-zero (e.g. it required input that was
+        // not supplied) is a runtime error — never a silent "accepted".
         const outcome: JudgeOutcome = exec.timedOut
             ? "time_limit_exceeded"
             : error?.type === "memory_limit"
               ? "memory_limit_exceeded"
-              : error !== null && exec.exitCode !== 0
+              : exec.exitCode !== 0
                 ? "runtime_error"
                 : "accepted";
         return {
@@ -362,6 +382,108 @@ export async function judge(
             totalRuntimeMs: exec.executionTimeMs,
             maxMemoryKb: exec.memoryUsageKb,
             custom,
+            // Custom runs are never judged — no XP, no test accounting.
+            passedTestCaseIds: [],
+        };
+    }
+
+    // ------------------------------------------------------------------
+    // Test mode: run with custom input, compare output against all tests.
+    // ------------------------------------------------------------------
+    if (mode === "test") {
+        // Execute the code once with the user's custom input.
+        const customExec = await executeOnce(language, code, params.customInput ?? "");
+
+        const custom: CustomRunResult = {
+            stdout: customExec.stdout,
+            stderr: customExec.stderr,
+            exitCode: customExec.exitCode,
+            executionTimeMs: customExec.executionTimeMs,
+            memoryUsageKb: customExec.memoryUsageKb,
+        };
+
+        // If the execution itself failed, return early with the error.
+        if (customExec.timedOut) {
+            const error = makeTimeLimitError({
+                timeLimitMs: params.timeLimitMs,
+                actualMs: customExec.executionTimeMs,
+            });
+            return {
+                ok: false,
+                outcome: "time_limit_exceeded",
+                mode,
+                problemSlug: "",
+                language,
+                error,
+                testResults: [],
+                passedCount: 0,
+                totalCount: 0,
+                totalRuntimeMs: customExec.executionTimeMs,
+                maxMemoryKb: customExec.memoryUsageKb,
+                custom,
+                passedTestCaseIds: [],
+            };
+        }
+
+        if (customExec.exitCode !== 0) {
+            const error = parseError({
+                language,
+                stderr: customExec.stderr || null,
+                exitCode: customExec.exitCode,
+            });
+            return {
+                ok: false,
+                outcome: "runtime_error",
+                mode,
+                problemSlug: "",
+                language,
+                error,
+                testResults: [],
+                passedCount: 0,
+                totalCount: 0,
+                totalRuntimeMs: customExec.executionTimeMs,
+                maxMemoryKb: customExec.memoryUsageKb,
+                custom,
+                passedTestCaseIds: [],
+            };
+        }
+
+        // Compare the custom output against ALL test cases (public + hidden).
+        const userOutput = normalizeOutput(customExec.stdout);
+        const testResults: JudgeTestCase[] = params.tests.map((test, idx) => {
+            const expectedOutput = normalizeOutput(test.expectedOutput);
+            const passed = userOutput === expectedOutput;
+            return {
+                id: test.id,
+                index: idx + 1,
+                hidden: test.hidden,
+                status: passed ? "accepted" : "wrong_answer",
+                input: test.hidden ? null : test.input,
+                expectedOutput: test.hidden ? null : test.expectedOutput,
+                actualOutput: test.hidden ? null : customExec.stdout,
+                executionTimeMs: customExec.executionTimeMs,
+                memoryUsageKb: customExec.memoryUsageKb,
+            };
+        });
+
+        const passedCount = testResults.filter((t) => t.status === "accepted").length;
+        const allPassed = passedCount === testResults.length;
+
+        return {
+            ok: allPassed,
+            outcome: allPassed ? "accepted" : "wrong_answer",
+            mode,
+            problemSlug: "",
+            language,
+            error: null,
+            testResults,
+            passedCount,
+            totalCount: testResults.length,
+            totalRuntimeMs: customExec.executionTimeMs,
+            maxMemoryKb: customExec.memoryUsageKb,
+            custom,
+            // Test mode never persists a submission or awards XP.
+            passedTestCaseIds: [],
         };
     }
 

@@ -2,363 +2,510 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
 
-/* Stats strip content. Repeated 3x per half so a single half is wider than
-   any viewport — the track renders two identical halves and loops at -50%. */
-const marqueeStats = [
-  { value: "8", label: "Challenge Types" },
-  { value: "XP", label: "Earn & Level Up" },
-  { value: "Solo/Team", label: "Build Your Way" },
-];
+/* =========================================
+   COUNT UP HOOK
+========================================= */
 
-const marqueeItems = [...marqueeStats, ...marqueeStats, ...marqueeStats];
-
-function useScrollReveal() {
+function useCountUp(
+  target: number,
+  decimals = 0,
+  duration = 1500
+) {
+  const [value, setValue] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
+  const started = useRef(false);
 
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
+    const element = ref.current;
+
+    if (!element) return;
+
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
-          setVisible(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.15 }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
+        if (!entry.isIntersecting || started.current) return;
 
-  return { ref, visible };
+        started.current = true;
+
+        const start = performance.now();
+
+        function tick(now: number) {
+          const progress = Math.min(
+            (now - start) / duration,
+            1
+          );
+
+          const eased = 1 - Math.pow(1 - progress, 3);
+
+          setValue(target * eased);
+
+          if (progress < 1) {
+            requestAnimationFrame(tick);
+          }
+        }
+
+        requestAnimationFrame(tick);
+        observer.disconnect();
+      },
+      {
+        threshold: 0.25,
+      }
+    );
+
+    observer.observe(element);
+
+    return () => observer.disconnect();
+  }, [target, duration]);
+
+  return {
+    ref,
+    display: value.toFixed(decimals),
+  };
 }
 
-function Reveal({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
-  const { ref, visible } = useScrollReveal();
+/* =========================================
+   STAT ITEM
+========================================= */
+
+interface StatItemProps {
+  glyph: string;
+  target: number;
+  suffix: string;
+  decimals: number;
+  label: string;
+}
+
+function StatItem({
+  glyph,
+  target,
+  suffix,
+  decimals,
+  label,
+}: StatItemProps) {
+  const { ref, display } = useCountUp(target, decimals);
+
   return (
     <div
       ref={ref}
-      style={{
-        transitionDelay: `${delay}ms`,
-        transform: visible ? "translateY(0) scale(1)" : "translateY(40px) scale(0.97)",
-        opacity: visible ? 1 : 0,
-        transition: "transform 0.7s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.7s ease",
-      }}
+      className="flex w-[180px] shrink-0 flex-col items-center justify-center text-center sm:w-[220px]"
     >
-      {children}
+      <div className="mb-2 text-3xl sm:text-4xl">
+        {glyph}
+      </div>
+
+      <div className="text-xl font-bold tabular-nums text-white sm:text-2xl">
+        {display}
+        {suffix}
+      </div>
+
+      <div className="mt-1 whitespace-nowrap text-[11px] uppercase tracking-wider text-neutral-500 sm:text-xs">
+        {label}
+      </div>
     </div>
   );
 }
 
-export default function Home() {
-  return (
-    <div className="min-h-screen bg-neutral-950 text-white overflow-hidden relative">
-      {/* Ambient glow background — now animated */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[900px] bg-emerald-500/40 rounded-full blur-[100px] animate-[drift1_12s_ease-in-out_infinite]" />
-        <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-purple-500/30 rounded-full blur-[90px] animate-[drift2_15s_ease-in-out_infinite]" />
-        <div className="absolute top-1/3 left-0 w-[500px] h-[500px] bg-emerald-400/25 rounded-full blur-[90px] animate-[drift3_18s_ease-in-out_infinite]" />
-      </div>
+/* =========================================
+   MOBILE MENU
+========================================= */
 
-      <nav className="relative z-10 max-w-6xl mx-auto flex items-center justify-between px-6 py-6">
-        <span className="text-lg font-bold">
-          Code<span className="text-emerald-400">Rush</span>
-        </span>
-        <div className="flex gap-3">
+interface MobileMenuProps {
+  onClose: () => void;
+}
+
+function MobileMenu({ onClose }: MobileMenuProps) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/80 pt-24 backdrop-blur-md">
+      <div className="relative w-[85%] max-w-xs rounded-3xl bg-white p-6 text-center shadow-2xl">
+        <button
+          onClick={onClose}
+          className="absolute right-6 top-6 text-xl text-black"
+          aria-label="Close menu"
+        >
+          ✕
+        </button>
+
+        <nav className="mt-4 flex flex-col gap-4 font-medium text-[#2e2e2e]">
+          <Link href="/" onClick={onClose}>
+            Home
+          </Link>
+
+          <Link href="/challenges" onClick={onClose}>
+            Challenges
+          </Link>
+
+          <Link href="/showcase" onClick={onClose}>
+            Showcase
+          </Link>
+
+          <Link href="/leaderboard" onClick={onClose}>
+            Ranks
+          </Link>
+
           <Link
             href="/login"
-            className="text-sm px-4 py-2 rounded-md border border-neutral-700 hover:bg-neutral-800 transition-colors"
+            onClick={onClose}
+            className="mt-2 rounded-full bg-[#28282a] py-3 text-white"
           >
             Log in
           </Link>
-          <Link
-            href="/signup"
-            className="text-sm px-4 py-2 rounded-md bg-emerald-500 hover:bg-emerald-400 text-black font-semibold transition-colors"
-          >
-            Sign up
-          </Link>
-        </div>
-      </nav>
+        </nav>
+      </div>
+    </div>
+  );
+}
 
-      <main className="relative z-10 max-w-4xl mx-auto px-6 pt-16 sm:pt-24 pb-20 text-center">
-        <div className="inline-block mb-8" style={{ perspective: "1000px" }}>
-          <div
-            className="text-6xl sm:text-8xl font-black tracking-tight animate-[float_4s_ease-in-out_infinite]"
-            style={{
-              transform: "rotateX(8deg) rotateY(-4deg)",
-              textShadow: "0 20px 60px rgba(16, 185, 129, 0.4)",
-            }}
-          >
-            <span
-              className="bg-clip-text text-transparent bg-[length:200%_auto] animate-[shimmer_3s_linear_infinite]"
-              style={{
-                backgroundImage:
-                  "linear-gradient(90deg, #ffffff, #d4d4d8, #ffffff, #d4d4d8)",
-              }}
-            >
-              CODE
-            </span>
-            <span
-              className="bg-clip-text text-transparent bg-[length:200%_auto] animate-[shimmer_3s_linear_infinite]"
-              style={{
-                backgroundImage:
-                  "linear-gradient(90deg, #6ee7b7, #10b981, #6ee7b7, #10b981)",
-              }}
-            >
-              RUSH
-            </span>
-          </div>
-        </div>
+/* =========================================
+   ANIMATED BACKGROUND
+========================================= */
 
-        <p className="text-neutral-400 uppercase tracking-[0.3em] text-xs sm:text-sm mb-6">
-          The Coding Challenge Platform
-        </p>
+function AnimatedBackground() {
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      {/* Base */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#0a0f0d] via-black to-black" />
 
-        <p className="text-neutral-300 max-w-xl mx-auto mb-10 text-base sm:text-lg leading-relaxed">
-          Build games, websites, AI tools, and full hackathon projects —
-          not just solve problems. Submit your work, earn XP, climb the
-          leaderboard, and team up with other builders.
-        </p>
+      {/* Main emerald glow */}
+      <div className="absolute left-1/2 top-[-15%] h-[1100px] w-[1100px] -translate-x-1/2 animate-[drift1_16s_ease-in-out_infinite] rounded-full bg-emerald-500/25 blur-[160px]" />
 
-        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-          <Link
-            href="/signup"
-            className="rounded-md bg-emerald-500 hover:bg-emerald-400 text-black font-semibold px-8 py-3 transition-transform hover:scale-105"
-          >
-            Get Started Free
-          </Link>
-          <Link
-            href="/login"
-            className="rounded-md border border-neutral-700 hover:bg-neutral-800 px-8 py-3 transition-colors"
-          >
-            I already have an account
-          </Link>
-        </div>
+      {/* Cyan glow */}
+      <div className="absolute bottom-[-20%] left-[-10%] h-[700px] w-[700px] animate-[drift2_20s_ease-in-out_infinite] rounded-full bg-cyan-500/10 blur-[140px]" />
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-left">
-          {[
-            { emoji: "🎮", label: "Game Challenges" },
-            { emoji: "🌐", label: "Web Challenges" },
-            { emoji: "🤖", label: "AI Challenges" },
-            { emoji: "🏆", label: "Hackathons" },
-          ].map((item) => (
-            <div
-              key={item.label}
-              className="rounded-lg border border-neutral-800 bg-neutral-900/60 backdrop-blur p-4 hover:border-emerald-500/50 transition-colors"
-            >
-              <div className="text-2xl mb-2">{item.emoji}</div>
-              <p className="text-sm text-neutral-300">{item.label}</p>
-            </div>
-          ))}
-        </div>
-      </main>
+      {/* Green glow */}
+      <div className="absolute bottom-[-10%] right-[-10%] h-[600px] w-[600px] animate-[drift3_22s_ease-in-out_infinite] rounded-full bg-emerald-400/15 blur-[130px]" />
 
-      {/* Stats strip — infinite marquee (pauses on hover) */}
-      <section className="relative z-10 border-y border-neutral-800 bg-neutral-900/40 backdrop-blur">
-       <Reveal>
-        <div className="cr-marquee py-8" aria-label="CodeRush highlights">
-          <div className="cr-marquee-track">
-            {[0, 1].map((copy) => (
-              <div
-                key={copy}
-                aria-hidden={copy === 1}
-                className="flex shrink-0 items-center"
-              >
-                {marqueeItems.map((item, i) => (
-                  <div key={`${copy}-${i}`} className="flex shrink-0 items-center">
-                    <div className="px-10 text-center sm:px-14">
-                      <p className="whitespace-nowrap text-3xl font-bold text-emerald-400 drop-shadow-[0_0_14px_rgba(52,211,153,0.45)]">
-                        {item.value}
-                      </p>
-                      <p className="mt-1 whitespace-nowrap text-xs uppercase tracking-wide text-neutral-500">
-                        {item.label}
-                      </p>
-                    </div>
-                    <span
-                      aria-hidden="true"
-                      className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500/60 shadow-[0_0_10px_rgba(52,211,153,0.8)]"
-                    />
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
-        </div>
-       </Reveal>
-      </section>
+      {/* Noise */}
+      <div
+        className="absolute inset-0 opacity-[0.03] mix-blend-overlay"
+        style={{
+          backgroundImage:
+            "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
+        }}
+      />
+    </div>
+  );
+}
 
-      {/* How it works */}
-      <section className="relative z-10 max-w-4xl mx-auto px-6 py-20">
-       <Reveal>
-        <h2 className="text-2xl sm:text-3xl font-bold text-center mb-3">
-          How CodeRush works
-        </h2>
-        <p className="text-neutral-400 text-center mb-12 max-w-xl mx-auto">
-          It's not just solving problems — it's shipping real, working things.
-        </p>
+/* =========================================
+   HERO SECTION
+========================================= */
 
-        <div className="grid sm:grid-cols-3 gap-6">
-          {[
-            {
-              step: "01",
-              title: "Choose a challenge",
-              desc: "Pick from game, web, AI, creative, and hackathon-style challenges with real themes.",
-            },
-            {
-              step: "02",
-              title: "Build & submit",
-              desc: "Write the code, ship your project, and submit your GitHub repo and live demo.",
-            },
-            {
-              step: "03",
-              title: "Earn XP & climb",
-              desc: "Get judged on creativity and execution, earn XP, and rise up the leaderboard.",
-            },
-          ].map((item) => (
-            <div
-              key={item.step}
-              className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-6"
-            >
-              <span className="text-emerald-400 text-sm font-mono">
-                {item.step}
-              </span>
-              <h3 className="font-semibold text-lg mt-2 mb-2">{item.title}</h3>
-              <p className="text-neutral-400 text-sm leading-relaxed">
-                {item.desc}
-              </p>
-            </div>
-          ))}
-        </div>
-       </Reveal>
-      </section>
+function HeroSection() {
+  return (
+    <main className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center px-4 text-center">
+      {/* Eyebrow */}
+      <motion.p
+        initial={{
+          opacity: 0,
+          y: 22,
+          filter: "blur(6px)",
+        }}
+        animate={{
+          opacity: 1,
+          y: 0,
+          filter: "blur(0px)",
+        }}
+        transition={{
+          duration: 0.8,
+          delay: 0.1,
+          ease: [0.22, 1, 0.36, 1],
+        }}
+        className="mb-4 text-[11px] uppercase tracking-[0.25em] text-emerald-400 sm:text-xs"
+      >
+        Build-First Coding Challenges
+      </motion.p>
 
-      {/* What you get */}
-      <section className="relative z-10 max-w-4xl mx-auto px-6 pb-20">
-        <Reveal>
-          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-10">
-            What's on CodeRush
-          </h2>
-          <div className="grid sm:grid-cols-2 gap-4">
-            {[
-              {
-                title: "Profiles & XP",
-                desc: "Build a public profile, upload an avatar, and earn XP every time you ship a project.",
-              },
-              {
-                title: "Real submissions",
-                desc: "Submit your GitHub repo and live demo — not just code snippets. Edit and resubmit anytime.",
-              },
-              {
-                title: "Project Showcase",
-                desc: "Browse what the community has built and like the projects you find impressive.",
-              },
-              {
-                title: "Leaderboard",
-                desc: "See exactly where you rank against every other builder on the platform.",
-              },
-              {
-                title: "Teams",
-                desc: "Start a team, approve join requests, and submit hackathon-style projects together.",
-              },
-              {
-                title: "Bookmarks",
-                desc: "Save challenges you want to come back to later, all in one place.",
-              },
-            ].map((item) => (
-              <div
-                key={item.title}
-                className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-5 hover:border-emerald-500/40 transition-colors"
-              >
-                <h3 className="font-semibold mb-1">{item.title}</h3>
-                <p className="text-neutral-400 text-sm leading-relaxed">
-                  {item.desc}
-                </p>
-              </div>
-            ))}
-          </div>
-        </Reveal>
-      </section>
+      {/* Logo */}
+      <motion.div
+        initial={{
+          opacity: 0,
+          y: 25,
+          scale: 0.96,
+        }}
+        animate={{
+          opacity: 1,
+          y: 0,
+          scale: 1,
+        }}
+        transition={{
+          duration: 0.9,
+          delay: 0.2,
+          ease: [0.22, 1, 0.36, 1],
+        }}
+        style={{
+          perspective: "1000px",
+        }}
+      >
+        <motion.h1
+          animate={{
+            y: [0, -10, 0],
+            rotateY: [-4, 4, -4],
+          }}
+          transition={{
+            duration: 4,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+          className="font-display text-white"
+          style={{
+            fontSize: "clamp(30px, 6.5vw, 80px)",
+            letterSpacing: "-0.02em",
+            lineHeight: 1.1,
+            textShadow:
+              "0 20px 60px rgba(16, 185, 129, 0.35)",
+          }}
+        >
+          <span className="block">CODE</span>
 
-      {/* All challenge categories */}
-      <section className="relative z-10 max-w-4xl mx-auto px-6 pb-20">
-       <Reveal>
-        <h2 className="text-2xl sm:text-3xl font-bold text-center mb-10">
-          Every kind of challenge
-        </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[
-            { emoji: "🧩", label: "Problem-Solving" },
-            { emoji: "🎮", label: "Game Challenge" },
-            { emoji: "🌐", label: "Web Challenge" },
-            { emoji: "🛠️", label: "Tool Challenge" },
-            { emoji: "🤖", label: "AI Challenge" },
-            { emoji: "🎨", label: "Creative Coding" },
-            { emoji: "💡", label: "Innovation" },
-            { emoji: "🏆", label: "Hackathon" },
-          ].map((item) => (
-            <div
-              key={item.label}
-              className="rounded-lg border border-neutral-800 bg-neutral-900/40 p-4 text-center hover:border-emerald-500/40 hover:bg-neutral-900 transition-colors"
-            >
-              <div className="text-xl mb-1">{item.emoji}</div>
-              <p className="text-xs text-neutral-400">{item.label}</p>
-            </div>
-          ))}
-        </div>
-       </Reveal>
-      </section>
+          <span className="block text-emerald-400">
+            RUSH
+          </span>
+        </motion.h1>
+      </motion.div>
 
-      {/* Final CTA */}
-      <section className="relative z-10 max-w-2xl mx-auto px-6 pb-24 text-center">
-       <Reveal>
-        <h2 className="text-2xl sm:text-3xl font-bold mb-4">
-          Ready to build something?
-        </h2>
-        <p className="text-neutral-400 mb-8">
-          Join CodeRush and turn your next challenge into a real project.
-        </p>
+      {/* Description */}
+      <motion.p
+        initial={{
+          opacity: 0,
+          y: 22,
+          filter: "blur(6px)",
+        }}
+        animate={{
+          opacity: 1,
+          y: 0,
+          filter: "blur(0px)",
+        }}
+        transition={{
+          duration: 0.85,
+          delay: 0.35,
+          ease: [0.22, 1, 0.36, 1],
+        }}
+        className="mt-6 max-w-md text-sm leading-relaxed text-neutral-300 sm:text-base"
+      >
+        Build games, websites, AI tools, and full hackathon
+        projects — not just solve problems. Submit your work,
+        earn XP, and climb the leaderboard.
+      </motion.p>
+
+      {/* Buttons */}
+      <motion.div
+        initial={{
+          opacity: 0,
+          y: 22,
+          filter: "blur(6px)",
+        }}
+        animate={{
+          opacity: 1,
+          y: 0,
+          filter: "blur(0px)",
+        }}
+        transition={{
+          duration: 0.85,
+          delay: 0.5,
+          ease: [0.22, 1, 0.36, 1],
+        }}
+        className="mt-8 flex items-center justify-center gap-3"
+      >
+        {/* Get Started */}
         <Link
           href="/signup"
-          className="inline-block rounded-md bg-emerald-500 hover:bg-emerald-400 text-black font-semibold px-8 py-3 transition-transform hover:scale-105"
+          className="rounded-full bg-white px-7 py-3 text-sm font-semibold text-black shadow-[0_0_22px_rgba(16,185,129,0.4),0_0_50px_rgba(16,185,129,0.18)] transition-all duration-200 hover:scale-105 hover:bg-neutral-100"
         >
-          Create your account
+          Get Started
         </Link>
-       </Reveal>
-      </section>
 
-      <footer className="relative z-10 border-t border-neutral-800 py-8 text-center text-neutral-500 text-xs">
-        © {new Date().getFullYear()} CodeRush. Build things, not just solve problems.
-      </footer>
+        {/* Login */}
+        <Link
+          href="/login"
+          className="rounded-full border border-white/10 bg-[#28282a]/90 px-7 py-3 text-sm font-semibold text-[#d4d4d8] shadow-[0_4px_14px_rgba(0,0,0,0.4)] backdrop-blur-sm transition-all duration-200 hover:scale-105 hover:border-white/20 hover:bg-[#323234] hover:text-white"
+        >
+          Log in
+        </Link>
+      </motion.div>
+    </main>
+  );
+}
 
+/* =========================================
+   STATS FOOTER
+   FRAMER MOTION LEFT → RIGHT
+========================================= */
+
+function StatsFooter() {
+  const stats = [
+    {
+      glyph: "🧩",
+      target: 8,
+      suffix: "",
+      label: "Challenge Types",
+    },
+    {
+      glyph: "⚡",
+      target: 100,
+      suffix: "+",
+      label: "XP Per Challenge",
+    },
+    {
+      glyph: "👥",
+      target: 1,
+      suffix: "",
+      label: "Solo or Team",
+    },
+    {
+      glyph: "🏆",
+      target: 24,
+      suffix: "/7",
+      label: "Always Open",
+    },
+  ];
+
+  return (
+    <footer className="relative z-10 w-full overflow-hidden border-t border-white/5 py-7 sm:py-8">
+      {/* Left fade */}
+      <div className="pointer-events-none absolute inset-y-0 left-0 z-20 w-20 bg-gradient-to-r from-black via-black/80 to-transparent sm:w-32" />
+
+      {/* Right fade */}
+      <div className="pointer-events-none absolute inset-y-0 right-0 z-20 w-20 bg-gradient-to-l from-black via-black/80 to-transparent sm:w-32" />
+
+      {/* Framer Motion viewport */}
+      <div className="relative w-full overflow-hidden">
+        <motion.div
+          className="flex w-max"
+          animate={{
+            x: ["-33.3333%", "0%"],
+          }}
+          transition={{
+            x: {
+              duration: 20,
+              ease: "linear",
+              repeat: Infinity,
+              repeatType: "loop",
+            },
+          }}
+          whileHover={{
+            animationPlayState: "paused",
+          }}
+        >
+          {/* SET 1 */}
+          <div className="flex shrink-0 items-center gap-8 px-4 sm:gap-16 sm:px-8">
+            {stats.map((stat, index) => (
+              <StatItem
+                key={`set1-${index}`}
+                glyph={stat.glyph}
+                target={stat.target}
+                suffix={stat.suffix}
+                decimals={0}
+                label={stat.label}
+              />
+            ))}
+          </div>
+
+          {/* SET 2 */}
+          <div
+            className="flex shrink-0 items-center gap-8 px-4 sm:gap-16 sm:px-8"
+            aria-hidden="true"
+          >
+            {stats.map((stat, index) => (
+              <StatItem
+                key={`set2-${index}`}
+                glyph={stat.glyph}
+                target={stat.target}
+                suffix={stat.suffix}
+                decimals={0}
+                label={stat.label}
+              />
+            ))}
+          </div>
+
+          {/* SET 3 */}
+          <div
+            className="flex shrink-0 items-center gap-8 px-4 sm:gap-16 sm:px-8"
+            aria-hidden="true"
+          >
+            {stats.map((stat, index) => (
+              <StatItem
+                key={`set3-${index}`}
+                glyph={stat.glyph}
+                target={stat.target}
+                suffix={stat.suffix}
+                decimals={0}
+                label={stat.label}
+              />
+            ))}
+          </div>
+        </motion.div>
+      </div>
+    </footer>
+  );
+}
+
+/* =========================================
+   HOME PAGE
+========================================= */
+
+export default function Home() {
+  return (
+    <div className="relative flex h-screen flex-col overflow-hidden bg-black text-white">
+      {/* Background */}
+      <AnimatedBackground />
+
+      {/* Hero */}
+      <HeroSection />
+
+      {/* Moving Stats */}
+      <StatsFooter />
+
+      {/* Font */}
+      <style jsx global>{`
+        @import url("https://fonts.googleapis.com/css2?family=DotGothic16&display=swap");
+
+        .font-display {
+          font-family: "DotGothic16", monospace;
+        }
+      `}</style>
+
+      {/* Background Animations */}
       <style jsx>{`
-        @keyframes float {
+        @keyframes drift1 {
           0%,
           100% {
-            transform: rotateX(8deg) rotateY(-4deg) translateY(0px);
+            transform: translate(-50%, 0) scale(1);
           }
+
           50% {
-            transform: rotateX(8deg) rotateY(4deg) translateY(-12px);
-          }
-                @keyframes shimmer {
-          to {
-            background-position: 200% center;
+            transform: translate(-42%, 50px) scale(1.12);
           }
         }
-        }
-        @keyframes drift1 {
-          0%, 100% { transform: translate(-50%, 0) scale(1); }
-          50% { transform: translate(-40%, 40px) scale(1.15); }
-        }
+
         @keyframes drift2 {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          50% { transform: translate(-30px, -50px) scale(1.2); }
+          0%,
+          100% {
+            transform: translate(0, 0) scale(1);
+          }
+
+          50% {
+            transform: translate(30px, -30px) scale(1.1);
+          }
         }
+
         @keyframes drift3 {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          50% { transform: translate(50px, 30px) scale(0.9); }
+          0%,
+          100% {
+            transform: translate(0, 0) scale(1);
+          }
+
+          50% {
+            transform: translate(-30px, 30px) scale(1.08);
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          * {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+          }
         }
       `}</style>
     </div>

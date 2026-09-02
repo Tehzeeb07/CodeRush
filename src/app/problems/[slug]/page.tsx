@@ -22,12 +22,19 @@ export default function ProblemPage({
     const { slug } = use(params);
     const problem = useQuery(api.problems.getProblemBySlug, { slug });
     const { isLoading, isAuthenticated } = useConvexAuth();
+    // Live subscription to the backend-verified progress for this user +
+    // problem (null while anonymous). The client never writes this — it is
+    // updated exclusively by the judge/XP pipeline (§13, §18).
+    const progress = useQuery(
+        api.xp.getMyProblemProgress,
+        isAuthenticated ? { slug } : "skip",
+    );
 
     if (!problem) {
         return (
             <div className="cr-shell mx-auto w-full max-w-2xl px-4 py-16">
                 <p className="mb-4 text-sm text-neutral-400">
-                  Loading problem…
+                    Loading problem…
                 </p>
                 <div className="skeleton h-8 w-56 rounded-lg" />
                 <div className="skeleton mt-3 h-8 w-full rounded-lg" />
@@ -50,6 +57,10 @@ export default function ProblemPage({
     const signedIn = !isLoading && isAuthenticated;
 
     return (
-        <ProblemWorkspace problem={problem} signedIn={signedIn} />
+        <ProblemWorkspace
+            problem={problem}
+            signedIn={signedIn}
+            progress={progress ?? null}
+        />
     );
 }

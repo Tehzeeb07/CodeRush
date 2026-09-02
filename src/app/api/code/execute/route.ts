@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { ConvexHttpClient } from "convex/browser";
+import { convexAuthNextjsToken } from "@convex-dev/auth/nextjs/server";
 
 import { api } from "@/../convex/_generated/api";
 
@@ -323,6 +324,50 @@ export async function POST(request: NextRequest) {
         );
 
         // ---------------------------------------------------------
+        // AWARD XP FOR SUCCESSFUL EXECUTION
+        // ---------------------------------------------------------
+        let xpAwarded = 0;
+        let totalXP = 0;
+
+        if (executionId) {
+            try {
+                const token = await convexAuthNextjsToken().catch(() => undefined);
+                let client = convex;
+                if (token) {
+                    const authedClient = new ConvexHttpClient(
+                        process.env.NEXT_PUBLIC_CONVEX_URL!
+                    );
+                    authedClient.setAuth(token);
+                    client = authedClient;
+                }
+
+                const xpResult = await client.mutation(
+                    api.leaderboard.recordCodeExecution,
+                    {
+                        executionId,
+                        status: result.status,
+                        executionTime: result.executionTime,
+                        exitCode: result.status === "success" ? 0 : 1,
+                        errorMessage: result.error ?? undefined,
+                    }
+                );
+
+                xpAwarded = xpResult.xpAwarded;
+                totalXP = xpResult.totalXP;
+
+                console.log(
+                    `[code-execution] XP awarded: ${xpAwarded}, total XP: ${totalXP}`
+                );
+            } catch (xpError) {
+                // XP award failure should NOT fail the execution request
+                console.error(
+                    `[code-execution] XP award failed:`,
+                    xpError
+                );
+            }
+        }
+
+        // ---------------------------------------------------------
         // Return response
         // ---------------------------------------------------------
         return NextResponse.json(
@@ -354,6 +399,10 @@ export async function POST(request: NextRequest) {
 
                 memoryUsageKb:
                     result.memoryUsageKb,
+
+                // XP information
+                xpAwarded,
+                totalXP,
             },
             { status: 200 }
         );

@@ -36,10 +36,16 @@ interface SpawnOutcome {
     exitCode: number | null;
 }
 
-function runDocker(args: string[], timeoutMs: number): Promise<SpawnOutcome> {
+function runDocker(
+    args: string[],
+    timeoutMs: number,
+    stdin?: string,
+): Promise<SpawnOutcome> {
     return new Promise((resolve, reject) => {
+        // stdin must be a live pipe: programs that read input receive the
+        // job's stdin through it. Output pipes capture stdout/stderr.
         const child = spawn("docker", args, {
-            stdio: ["ignore", "pipe", "pipe"],
+            stdio: ["pipe", "pipe", "pipe"],
             windowsHide: true,
         });
 
@@ -56,6 +62,16 @@ function runDocker(args: string[], timeoutMs: number): Promise<SpawnOutcome> {
 
         child.stdout.on("data", (chunk: Buffer) => stdoutChunks.push(chunk));
         child.stderr.on("data", (chunk: Buffer) => stderrChunks.push(chunk));
+
+        // The program may exit without reading all (or any) stdin — a
+        // failed write must never crash the process.
+        child.stdin.on("error", () => {
+            /* EPIPE — program did not consume stdin; ignore. */
+        });
+
+        // Feed the user's/test's input, then close the pipe so programs
+        // reading until EOF terminate normally instead of hanging.
+        child.stdin.end(stdin && stdin.length > 0 ? stdin : undefined);
 
         child.on("error", (err) => {
             clearTimeout(timer);
@@ -98,6 +114,9 @@ export class DockerBackend implements ExecutionBackend {
             const args = [
                 "run",
                 "--rm",
+                // Keep the container's stdin open and attached to the CLI's
+                // pipe so the job's stdin actually reaches the program.
+                "--interactive",
                 "--network", "none",
                 "--cpus", String(SANDBOX_LIMITS.cpus),
                 "--memory", `${SANDBOX_LIMITS.memoryMb}m`,
@@ -117,6 +136,7 @@ export class DockerBackend implements ExecutionBackend {
                 outcome = await runDocker(
                     args,
                     SANDBOX_LIMITS.timeoutMs + 2_000,
+                    job.input,
                 );
             } catch {
                 throw new Error(

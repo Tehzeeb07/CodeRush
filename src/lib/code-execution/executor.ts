@@ -105,7 +105,14 @@ export async function executeCode(params: {
     const job: ExecutionJob = {
         language: getLanguage(params.language),
         code: params.code,
-        input: params.input ?? "",
+        /**
+         * Preserve the caller's input exactly, EXCEPT line endings: every
+         * backend/runtime reads lines from stdin, and CRLF (e.g. from
+         * Windows browsers) would leak a literal \r into programs that
+         * read whole lines. Normalizing to \n keeps the user's meaningful
+         * content byte-identical for every language and input format.
+         */
+        input: (params.input ?? "").replace(/\r\n?/g, "\n"),
     };
 
     const backend = await resolveBackend(job);

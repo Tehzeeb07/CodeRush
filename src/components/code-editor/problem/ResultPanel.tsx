@@ -131,11 +131,10 @@ export default function ResultPanel({
                         role="tab"
                         aria-selected={tab === t.id}
                         onClick={() => onTabChange(t.id)}
-                        className={`px-4 py-2.5 text-sm font-medium transition-colors ${
-                            tab === t.id
+                        className={`px-4 py-2.5 text-sm font-medium transition-colors ${tab === t.id
                                 ? "border-b-2 border-indigo-500 text-white"
                                 : "border-b-2 border-transparent text-neutral-400 hover:text-neutral-200"
-                        }`}
+                            }`}
                     >
                         {t.label}
                     </button>
@@ -232,8 +231,20 @@ function TestResultsTab({
                     <p className="font-semibold">{banner.label}</p>
                     <p className="text-xs opacity-80">{banner.sub}</p>
                 </div>
-                <span className="ml-auto text-sm font-medium tabular-nums">
-                    {result.passedCount} / {result.totalCount} test cases
+                <span className="ml-auto flex items-center gap-3 text-sm font-medium tabular-nums">
+                    {result.mode === "submit" &&
+                        result.xpAwarded !== null &&
+                        result.xpAwarded > 0 && (
+                            <span
+                                className="rounded-full border border-emerald-400/40 bg-emerald-400/10 px-2 py-0.5 text-xs font-semibold text-emerald-300"
+                                title="XP awarded by the backend for newly passed test cases"
+                            >
+                                +{result.xpAwarded} XP
+                            </span>
+                        )}
+                    <span>
+                        {result.passedCount} / {result.totalCount} test cases
+                    </span>
                 </span>
             </div>
 
@@ -297,14 +308,14 @@ function TestResultsTab({
                                                 {tc.status === "accepted"
                                                     ? "Passed"
                                                     : tc.status === "compilation_error"
-                                                      ? "Compilation error"
-                                                      : tc.status === "timeout"
-                                                        ? "Exceeded time limit"
-                                                        : tc.status === "runtime_error"
-                                                          ? "Crashed"
-                                                          : tc.status === "memory_limit"
-                                                            ? "Memory limit exceeded"
-                                                            : "Wrong Answer"}
+                                                        ? "Compilation error"
+                                                        : tc.status === "timeout"
+                                                            ? "Exceeded time limit"
+                                                            : tc.status === "runtime_error"
+                                                                ? "Crashed"
+                                                                : tc.status === "memory_limit"
+                                                                    ? "Memory limit exceeded"
+                                                                    : "Wrong Answer"}
                                             </p>
                                         </>
                                     )}
@@ -426,10 +437,9 @@ function ErrorsTab({
                     error={{
                         type: "wrong_answer",
                         source: "judge/diff",
-                        title: `Wrong Answer — Test Case ${
-                            result.testResults.find((t) => t.status === "wrong_answer")
+                        title: `Wrong Answer — Test Case ${result.testResults.find((t) => t.status === "wrong_answer")
                                 ?.index ?? "?"
-                        }`,
+                            }`,
                         rawMessage: "",
                         line: null,
                         column: null,

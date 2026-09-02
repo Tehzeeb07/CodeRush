@@ -607,7 +607,7 @@ export default function BookmarksPage() {
                                 </h1>
 
                                 <div className="hidden h-7 items-center rounded-full border border-white/[0.08] bg-white/[0.03] px-3 text-xs font-medium text-neutral-500 sm:flex">
-                                    {bookmarks.length}
+                                    {bookmarks?.length ?? 0}
                                 </div>
                             </div>
 
@@ -634,7 +634,7 @@ export default function BookmarksPage() {
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                     <StatCard
                         label="Saved"
-                        value={bookmarks.length}
+                        value={bookmarks?.length ?? 0}
                         icon={<BookmarkIcon />}
                     />
 
@@ -748,7 +748,7 @@ export default function BookmarksPage() {
 
                 {/* Content */}
                 <UiErrorBoundary>
-                    {bookmarks.length === 0 ? (
+                    {(bookmarks?.length ?? 0) === 0 ? (
                         <EmptyBookmarks
                             hasFilters={false}
                             onClear={clearFilters}
@@ -797,7 +797,7 @@ export default function BookmarksPage() {
                 </UiErrorBoundary>
 
                 {/* Bottom hint */}
-                {bookmarks.length > 0 && (
+                {(bookmarks?.length ?? 0) > 0 && (
                     <div className="flex items-center justify-center gap-2 py-4 text-xs text-neutral-700">
                         <BookmarkIcon size={14} />
                         <span>

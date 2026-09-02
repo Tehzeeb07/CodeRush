@@ -1,37 +1,10 @@
 
 "use client";
 
-/**
- * CodeRush — Ultra Premium Analytics Dashboard
- *
- * Keeps the existing:
- * - Convex analytics query
- * - Authentication handling
- * - AnalyticsHeader
- * - KPI Grid
- * - Problem Stats
- * - Language Donut
- * - Activity Heatmap
- * - Performance Chart
- * - Skill Progress
- * - Recent Activity
- * - Insights
- * - Milestones
- *
- * Redesigned with:
- * - Premium black glass UI
- * - Ambient 3D lighting
- * - Animated grid background
- * - Floating glow effects
- * - Glass cards
- * - Premium section headers
- * - Smooth hover depth
- * - Responsive layout
- * - Light/dark-mode friendly CSS variables
- */
-
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
+import { motion, type Variants } from "framer-motion";
+
 import { useQuery } from "convex/react";
 
 import { api } from "../../../convex/_generated/api";
@@ -52,217 +25,231 @@ import RecentActivity from "../../components/analytics/recent-activity";
 import Insights from "../../components/analytics/insights";
 import Milestones from "../../components/analytics/milestones";
 
-/* ================================================================
+/* ============================================================
+   TYPES
+============================================================ */
+
+interface PremiumCardProps {
+    children: ReactNode;
+    className?: string;
+    delay?: number;
+}
+
+interface SectionHeaderProps {
+    number: string;
+    eyebrow: string;
+    title: string;
+    description?: string;
+}
+
+/* ============================================================
+   ANIMATIONS
+============================================================ */
+
+const fadeUp: Variants = {
+    hidden: {
+        opacity: 0,
+        y: 24,
+    },
+    show: {
+        opacity: 1,
+        y: 0,
+        transition: {
+            duration: 0.55,
+            ease: [0.16, 1, 0.3, 1],
+        },
+    },
+};
+
+const stagger: Variants = {
+    hidden: {},
+    show: {
+        transition: {
+            staggerChildren: 0.08,
+        },
+    },
+};
+
+/* ============================================================
+   BACKGROUND
+============================================================ */
+
+function AnalyticsBackground() {
+    return (
+        <>
+            {/* Base background */}
+            <div className="pointer-events-none fixed inset-0 -z-30 bg-[#07090d]" />
+
+            {/* Grid */}
+            <div
+                className="pointer-events-none fixed inset-0 -z-20 opacity-[0.045]"
+                style={{
+                    backgroundImage: `
+            linear-gradient(
+              rgba(96,165,250,.35) 1px,
+              transparent 1px
+            ),
+            linear-gradient(
+              90deg,
+              rgba(139,92,246,.35) 1px,
+              transparent 1px
+            )
+          `,
+                    backgroundSize: "42px 42px",
+                    maskImage:
+                        "linear-gradient(to bottom, black 0%, black 55%, transparent 100%)",
+                    WebkitMaskImage:
+                        "linear-gradient(to bottom, black 0%, black 55%, transparent 100%)",
+                }}
+            />
+
+            {/* Blue glow */}
+            <motion.div
+                animate={{
+                    x: [0, 35, 0],
+                    y: [0, 20, 0],
+                    scale: [1, 1.08, 1],
+                }}
+                transition={{
+                    duration: 12,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                }}
+                className="pointer-events-none fixed -left-40 -top-40 -z-10 h-[520px] w-[520px] rounded-full bg-blue-500/[0.12] blur-[140px]"
+            />
+
+            {/* Violet glow */}
+            <motion.div
+                animate={{
+                    x: [0, -30, 0],
+                    y: [0, 35, 0],
+                    scale: [1, 1.12, 1],
+                }}
+                transition={{
+                    duration: 14,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                }}
+                className="pointer-events-none fixed -right-44 top-[12%] -z-10 h-[500px] w-[500px] rounded-full bg-violet-500/[0.10] blur-[150px]"
+            />
+
+            {/* Cyan glow */}
+            <motion.div
+                animate={{
+                    x: [0, 25, 0],
+                    y: [0, -25, 0],
+                }}
+                transition={{
+                    duration: 11,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                }}
+                className="pointer-events-none fixed bottom-[-180px] left-[35%] -z-10 h-[450px] w-[450px] rounded-full bg-cyan-400/[0.07] blur-[140px]"
+            />
+
+            {/* Center glow */}
+            <div className="pointer-events-none fixed left-1/2 top-0 -z-10 h-[650px] w-[900px] -translate-x-1/2 rounded-full bg-gradient-to-r from-blue-500/[0.04] via-violet-500/[0.08] to-cyan-400/[0.04] blur-[130px]" />
+        </>
+    );
+}
+
+/* ============================================================
    PREMIUM CARD
-================================================================ */
+============================================================ */
 
 function PremiumCard({
     children,
     className = "",
-}: {
-    children: React.ReactNode;
-    className?: string;
-}) {
+    delay = 0,
+}: PremiumCardProps) {
     return (
-        <div
-            className={`
-                analytics-premium-card
-                group
-                relative
-                overflow-hidden
-                rounded-[24px]
-                border
-                border-white/[0.075]
-                bg-[#08090b]/75
-                shadow-[0_25px_80px_rgba(0,0,0,.28)]
-                backdrop-blur-[24px]
-                transition-all
-                duration-500
-                hover:-translate-y-[2px]
-                hover:border-white/[0.14]
-                hover:shadow-[0_35px_100px_rgba(0,0,0,.42)]
-                ${className}
-            `}
+        <motion.div
+            variants={fadeUp}
+            initial="hidden"
+            whileInView="show"
+            viewport={{
+                once: true,
+                amount: 0.08,
+            }}
+            transition={{
+                delay,
+            }}
+            whileHover={{
+                y: -4,
+                transition: {
+                    duration: 0.25,
+                },
+            }}
+            className={`group relative overflow-hidden rounded-3xl border border-white/[0.075] bg-[#0b0e14]/70 shadow-[0_25px_90px_rgba(0,0,0,.35)] backdrop-blur-2xl transition-all duration-300 hover:border-blue-400/[0.18] hover:shadow-[0_30px_100px_rgba(37,99,235,.12)] ${className}`}
         >
-            {/* Top reflection */}
+            {/* Top highlight */}
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-400/50 to-transparent opacity-60" />
 
-            <div
-                className="
-                    pointer-events-none
-                    absolute
-                    left-1/2
-                    top-0
-                    h-px
-                    w-1/2
-                    -translate-x-1/2
-                    bg-gradient-to-r
-                    from-transparent
-                    via-white/20
-                    to-transparent
-                    opacity-60
-                "
-            />
+            {/* Top right glow */}
+            <div className="pointer-events-none absolute -right-24 -top-24 h-48 w-48 rounded-full bg-blue-500/[0.06] blur-3xl transition-all duration-500 group-hover:bg-violet-500/[0.10]" />
 
-            {/* Corner glow */}
+            {/* Bottom left glow */}
+            <div className="pointer-events-none absolute -bottom-24 -left-24 h-40 w-40 rounded-full bg-cyan-400/[0.035] blur-3xl transition-all duration-500 group-hover:bg-cyan-400/[0.07]" />
 
-            <div
-                className="
-                    pointer-events-none
-                    absolute
-                    -right-20
-                    -top-20
-                    h-40
-                    w-40
-                    rounded-full
-                    bg-white/[0.025]
-                    blur-3xl
-                    transition-all
-                    duration-700
-                    group-hover:bg-white/[0.045]
-                "
-            />
-
-            <div className="relative">
-                {children}
-            </div>
-        </div>
+            <div className="relative z-10">{children}</div>
+        </motion.div>
     );
 }
 
-/* ================================================================
+/* ============================================================
    SECTION HEADER
-================================================================ */
+============================================================ */
 
 function SectionHeader({
+    number,
     eyebrow,
     title,
     description,
-    number,
-}: {
-    eyebrow: string;
-    title: string;
-    description?: string;
-    number: string;
-}) {
+}: SectionHeaderProps) {
     return (
-        <div className="mb-5 flex items-end justify-between gap-4">
+        <motion.div
+            variants={fadeUp}
+            initial="hidden"
+            whileInView="show"
+            viewport={{
+                once: true,
+            }}
+            className="mb-6 flex items-end justify-between gap-4"
+        >
             <div>
                 <div className="flex items-center gap-2">
-                    <span className="font-mono text-[8px] font-bold tracking-[0.3em] text-white/20">
+                    <span className="font-mono text-[9px] font-bold tracking-[0.28em] text-blue-400/50">
                         {number}
                     </span>
 
-                    <span className="h-px w-5 bg-white/10" />
+                    <span className="h-px w-7 bg-gradient-to-r from-blue-400/40 to-violet-400/20" />
 
-                    <span className="text-[8px] font-black uppercase tracking-[0.3em] text-white/25">
+                    <span className="text-[9px] font-black uppercase tracking-[0.3em] text-white/35">
                         {eyebrow}
                     </span>
                 </div>
 
-                <h2 className="mt-2 text-[17px] font-bold tracking-[-0.025em] text-white sm:text-[19px]">
+                <h2 className="mt-2 bg-gradient-to-r from-white via-white to-white/55 bg-clip-text text-[18px] font-bold tracking-[-0.03em] text-transparent sm:text-[20px]">
                     {title}
                 </h2>
 
                 {description && (
-                    <p className="mt-1 text-[11px] leading-5 text-white/25">
+                    <p className="mt-1 text-[11px] leading-5 text-white/30">
                         {description}
                     </p>
                 )}
             </div>
 
-            <div className="hidden h-8 w-8 items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.025] sm:flex">
-                <MiniArrowIcon />
+            <div className="hidden h-9 w-9 items-center justify-center rounded-xl border border-white/[0.07] bg-white/[0.025] sm:flex">
+                <ArrowIcon />
             </div>
-        </div>
+        </motion.div>
     );
 }
 
-/* ================================================================
-   HERO BACKGROUND
-================================================================ */
-
-function AnalyticsBackground() {
-    return (
-        <>
-            {/* Main ambient lights */}
-
-            <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-                <div
-                    className="
-                        absolute
-                        left-[8%]
-                        top-[8%]
-                        h-[420px]
-                        w-[420px]
-                        rounded-full
-                        bg-white/[0.018]
-                        blur-[120px]
-                    "
-                />
-
-                <div
-                    className="
-                        absolute
-                        right-[5%]
-                        top-[22%]
-                        h-[360px]
-                        w-[360px]
-                        rounded-full
-                        bg-white/[0.015]
-                        blur-[110px]
-                    "
-                />
-
-                <div
-                    className="
-                        absolute
-                        bottom-[5%]
-                        left-[40%]
-                        h-[400px]
-                        w-[400px]
-                        rounded-full
-                        bg-white/[0.012]
-                        blur-[130px]
-                    "
-                />
-            </div>
-
-            {/* Fine grid */}
-
-            <div
-                className="
-                    pointer-events-none
-                    fixed
-                    inset-0
-                    -z-20
-                    opacity-[0.035]
-                "
-                style={{
-                    backgroundImage: `
-                        linear-gradient(
-                            rgba(255,255,255,.4) 1px,
-                            transparent 1px
-                        ),
-                        linear-gradient(
-                            90deg,
-                            rgba(255,255,255,.4) 1px,
-                            transparent 1px
-                        )
-                    `,
-                    backgroundSize: "42px 42px",
-                    maskImage:
-                        "linear-gradient(to bottom, black, transparent 80%)",
-                    WebkitMaskImage:
-                        "linear-gradient(to bottom, black, transparent 80%)",
-                }}
-            />
-        </>
-    );
-}
-
-/* ================================================================
-   PREMIUM HERO
-================================================================ */
+/* ============================================================
+   HERO
+============================================================ */
 
 function AnalyticsHero({
     hasSubmissions,
@@ -270,82 +257,85 @@ function AnalyticsHero({
     hasSubmissions: boolean;
 }) {
     return (
-        <div className="relative mb-7 overflow-hidden rounded-[28px] border border-white/[0.07] bg-[#070809]/80 px-5 py-7 shadow-[0_30px_100px_rgba(0,0,0,.3)] backdrop-blur-[28px] sm:px-7 sm:py-8 lg:px-9">
-            {/* Large glow */}
-
-            <div
-                className="
-                    pointer-events-none
-                    absolute
-                    -right-24
-                    -top-32
-                    h-72
-                    w-72
-                    rounded-full
-                    bg-white/[0.035]
-                    blur-[80px]
-                "
-            />
-
-            <div
-                className="
-                    pointer-events-none
-                    absolute
-                    -bottom-32
-                    left-[25%]
-                    h-64
-                    w-64
-                    rounded-full
-                    bg-white/[0.018]
-                    blur-[80px]
-                "
-            />
-
+        <motion.div
+            variants={fadeUp}
+            initial="hidden"
+            animate="show"
+            className="group relative mb-7 overflow-hidden rounded-3xl border border-white/[0.08] bg-[#090c12]/75 px-5 py-7 shadow-[0_35px_120px_rgba(0,0,0,.4)] backdrop-blur-2xl sm:px-8 sm:py-9 lg:px-10"
+        >
             {/* Top line */}
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-400/70 to-transparent" />
 
-            <div className="absolute left-0 right-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+            {/* Hero glow */}
+            <div className="pointer-events-none absolute -right-32 -top-40 h-[420px] w-[420px] rounded-full bg-gradient-to-br from-blue-500/[0.12] via-violet-500/[0.08] to-cyan-400/[0.05] blur-[100px]" />
 
-            <div className="relative flex flex-col justify-between gap-7 lg:flex-row lg:items-center">
+            {/* Rotating ring */}
+            <motion.div
+                animate={{
+                    rotate: 360,
+                }}
+                transition={{
+                    duration: 25,
+                    repeat: Infinity,
+                    ease: "linear",
+                }}
+                className="pointer-events-none absolute -right-[100px] -top-[100px] h-[300px] w-[300px] rounded-full border border-blue-400/[0.08]"
+            />
+
+            <div className="relative flex flex-col justify-between gap-8 lg:flex-row lg:items-center">
                 <div>
-                    <div className="mb-3 flex items-center gap-2">
-                        <span className="flex h-2 w-2 rounded-full bg-white shadow-[0_0_14px_rgba(255,255,255,.7)]" />
+                    {/* Status */}
+                    <div className="mb-4 flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full bg-cyan-400 shadow-[0_0_16px_rgba(34,211,238,.8)]" />
 
-                        <span className="text-[8px] font-black uppercase tracking-[0.35em] text-white/30">
+                        <span className="text-[9px] font-black uppercase tracking-[0.35em] text-blue-300/60">
                             Developer Intelligence
                         </span>
                     </div>
 
-                    <h1 className="text-[30px] font-black tracking-[-0.055em] text-white sm:text-[38px] lg:text-[44px]">
-                        Your Coding
-                        <span className="text-white/25">
-                            {" "}
+                    {/* Heading */}
+                    <h1 className="text-[32px] font-black tracking-[-0.06em] text-white sm:text-[42px] lg:text-[48px]">
+                        Your Coding{" "}
+                        <span className="bg-gradient-to-r from-blue-400 via-violet-400 to-cyan-300 bg-clip-text text-transparent">
                             Intelligence
                         </span>
                     </h1>
 
-                    <p className="mt-3 max-w-xl text-[12px] leading-6 text-white/30 sm:text-[13px]">
-                        Measure your progress, understand your coding
-                        behavior, and turn every submission into
-                        measurable improvement.
+                    <p className="mt-4 max-w-2xl text-[12px] leading-6 text-white/35 sm:text-[13px]">
+                        Measure your progress, understand your coding behavior, and turn
+                        every submission into measurable improvement.
                     </p>
+
+                    {/* Tags */}
+                    <div className="mt-5 flex flex-wrap gap-2">
+                        {["REAL-TIME", "PERFORMANCE", "SKILLS", "PROGRESS"].map(
+                            (item) => (
+                                <span
+                                    key={item}
+                                    className="rounded-full border border-white/[0.07] bg-white/[0.025] px-3 py-1.5 text-[8px] font-bold tracking-[0.18em] text-white/35"
+                                >
+                                    {item}
+                                </span>
+                            ),
+                        )}
+                    </div>
                 </div>
 
-                {/* Status */}
-
-                <div className="flex shrink-0 items-center gap-3 rounded-2xl border border-white/[0.07] bg-white/[0.025] px-4 py-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.04]">
+                {/* Status card */}
+                <div className="relative flex shrink-0 items-center gap-3 rounded-2xl border border-blue-400/[0.12] bg-gradient-to-br from-blue-500/[0.08] via-violet-500/[0.05] to-cyan-400/[0.04] px-4 py-3 shadow-[0_20px_60px_rgba(37,99,235,.08)]">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-blue-400/[0.15] bg-blue-400/[0.07] text-blue-300">
                         <ActivityIcon />
                     </div>
 
                     <div>
-                        <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-white/20">
+                        <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-white/25">
                             System Status
                         </p>
 
                         <div className="mt-1 flex items-center gap-2">
-                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,.8)]" />
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,.9)]" />
 
-                            <span className="text-[10px] font-semibold text-white/60">
+                            <span className="text-[10px] font-semibold text-white/65">
                                 {hasSubmissions
                                     ? "Analytics Active"
                                     : "Awaiting Activity"}
@@ -355,28 +345,37 @@ function AnalyticsHero({
                 </div>
             </div>
 
-            {/* Decorative data line */}
-
-            <div className="relative mt-7 h-px overflow-hidden bg-white/[0.05]">
-                <div className="analytics-scan-line absolute left-0 top-0 h-full w-24 bg-gradient-to-r from-transparent via-white/25 to-transparent" />
+            {/* Scan line */}
+            <div className="relative mt-8 h-px overflow-hidden bg-white/[0.05]">
+                <motion.div
+                    animate={{
+                        x: ["-100%", "500%"],
+                    }}
+                    transition={{
+                        duration: 3.5,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                    }}
+                    className="absolute left-0 top-0 h-full w-32 bg-gradient-to-r from-transparent via-cyan-300/60 to-transparent"
+                />
             </div>
 
             <div className="mt-3 flex items-center justify-between">
-                <span className="font-mono text-[7px] uppercase tracking-[0.3em] text-white/10">
+                <span className="font-mono text-[7px] uppercase tracking-[0.3em] text-white/15">
                     CODERUSH / ANALYTICS / LIVE
                 </span>
 
-                <span className="font-mono text-[7px] text-white/10">
-                    v2.0
+                <span className="font-mono text-[7px] text-blue-300/20">
+                    V2.0
                 </span>
             </div>
-        </div>
+        </motion.div>
     );
 }
 
-/* ================================================================
-   LOADING SKELETON
-================================================================ */
+/* ============================================================
+   SKELETON
+============================================================ */
 
 function SkeletonBlock({
     className = "",
@@ -385,185 +384,144 @@ function SkeletonBlock({
 }) {
     return (
         <div
-            className={`
-                analytics-skeleton
-                rounded-xl
-                bg-white/[0.035]
-                ${className}
-            `}
+            className={`relative overflow-hidden rounded-xl bg-white/[0.035] before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_1.8s_infinite] before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent ${className}`}
         />
-    );
-}
-
-function SkeletonKPI() {
-    return (
-        <div className="relative overflow-hidden rounded-[22px] border border-white/[0.06] bg-[#090a0c]/70 p-5">
-            <SkeletonBlock className="h-9 w-9" />
-
-            <SkeletonBlock className="mt-5 h-7 w-28" />
-
-            <SkeletonBlock className="mt-2 h-3 w-20" />
-
-            <SkeletonBlock className="mt-4 h-2 w-16" />
-        </div>
-    );
-}
-
-function SkeletonChart() {
-    return (
-        <div className="relative overflow-hidden rounded-[24px] border border-white/[0.06] bg-[#090a0c]/70 p-6">
-            <SkeletonBlock className="h-5 w-36" />
-
-            <SkeletonBlock className="mt-5 h-[240px] w-full" />
-        </div>
     );
 }
 
 function AnalyticsSkeleton() {
     return (
-        <div className="space-y-6">
+        <div className="space-y-8">
             {/* Hero */}
-
-            <div className="rounded-[28px] border border-white/[0.06] bg-[#08090b]/70 p-7">
+            <div className="rounded-3xl border border-white/[0.06] bg-[#0b0e14]/70 p-8">
                 <SkeletonBlock className="h-3 w-40" />
-
-                <SkeletonBlock className="mt-4 h-10 w-72" />
-
-                <SkeletonBlock className="mt-3 h-4 w-full max-w-xl" />
-
+                <SkeletonBlock className="mt-5 h-12 w-80" />
+                <SkeletonBlock className="mt-4 h-4 w-full max-w-xl" />
                 <SkeletonBlock className="mt-8 h-px w-full" />
             </div>
 
-            {/* KPI */}
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {Array.from({ length: 6 }).map(
-                    (_, index) => (
-                        <SkeletonKPI key={index} />
-                    )
-                )}
+            {/* KPIs */}
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {Array.from({ length: 6 }).map((_, index) => (
+                    <div
+                        key={index}
+                        className="rounded-3xl border border-white/[0.06] bg-[#0b0e14]/70 p-6"
+                    >
+                        <SkeletonBlock className="h-10 w-10" />
+                        <SkeletonBlock className="mt-6 h-8 w-28" />
+                        <SkeletonBlock className="mt-3 h-3 w-20" />
+                        <SkeletonBlock className="mt-5 h-2 w-24" />
+                    </div>
+                ))}
             </div>
 
             {/* Charts */}
-
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                <SkeletonChart />
-                <SkeletonChart />
+                {Array.from({ length: 2 }).map((_, index) => (
+                    <div
+                        key={index}
+                        className="rounded-3xl border border-white/[0.06] bg-[#0b0e14]/70 p-6"
+                    >
+                        <SkeletonBlock className="h-5 w-40" />
+                        <SkeletonBlock className="mt-6 h-60 w-full" />
+                    </div>
+                ))}
             </div>
 
-            <SkeletonChart />
-
-            <SkeletonChart />
-
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                <SkeletonChart />
-                <SkeletonChart />
+            {/* Large chart */}
+            <div className="rounded-3xl border border-white/[0.06] bg-[#0b0e14]/70 p-6">
+                <SkeletonBlock className="h-5 w-40" />
+                <SkeletonBlock className="mt-6 h-64 w-full" />
             </div>
         </div>
     );
 }
 
-/* ================================================================
+/* ============================================================
    EMPTY STATE
-================================================================ */
+============================================================ */
 
 function EmptyAnalytics() {
     return (
-        <div className="relative overflow-hidden rounded-[30px] border border-white/[0.07] bg-[#08090b]/80 px-6 py-24 text-center shadow-[0_30px_100px_rgba(0,0,0,.3)] backdrop-blur-[25px]">
-            {/* Ambient glow */}
+        <motion.div
+            variants={fadeUp}
+            initial="hidden"
+            animate="show"
+            className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-[#0b0e14]/75 px-6 py-24 text-center shadow-[0_30px_100px_rgba(0,0,0,.35)] backdrop-blur-2xl"
+        >
+            {/* Glow */}
+            <div className="pointer-events-none absolute left-1/2 top-1/2 h-96 w-96 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-r from-blue-500/[0.08] via-violet-500/[0.07] to-cyan-400/[0.05] blur-[110px]" />
 
-            <div className="pointer-events-none absolute left-1/2 top-1/2 h-80 w-80 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/[0.025] blur-[100px]" />
+            {/* Rings */}
+            <motion.div
+                animate={{
+                    rotate: [0, 180, 360],
+                }}
+                transition={{
+                    duration: 18,
+                    repeat: Infinity,
+                    ease: "linear",
+                }}
+                className="relative mx-auto flex h-28 w-28 items-center justify-center rounded-full border border-blue-400/[0.12]"
+            >
+                <div className="absolute inset-3 rounded-full border border-violet-400/[0.12]" />
 
-            {/* Decorative rings */}
+                <div className="absolute inset-7 rounded-full border border-cyan-400/[0.14]" />
 
-            <div className="relative mx-auto flex h-24 w-24 items-center justify-center">
-                <div className="absolute inset-0 rounded-full border border-white/[0.06]" />
-
-                <div className="absolute inset-3 rounded-full border border-white/[0.05]" />
-
-                <div className="absolute inset-6 rounded-full border border-white/[0.08]" />
-
-                <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl border border-white/[0.1] bg-white/[0.04] text-white/60 shadow-[0_15px_50px_rgba(255,255,255,.05)]">
-                    <CodeGlyph />
+                <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl border border-blue-400/[0.15] bg-gradient-to-br from-blue-500/[0.12] to-violet-500/[0.08] text-blue-300">
+                    <CodeIcon />
                 </div>
-            </div>
+            </motion.div>
 
             <div className="relative">
-                <div className="mt-8 text-[8px] font-black uppercase tracking-[0.4em] text-white/20">
+                <p className="mt-8 text-[8px] font-black uppercase tracking-[0.4em] text-blue-300/40">
                     Analytics Engine
-                </div>
+                </p>
 
-                <h2 className="mt-3 text-[25px] font-black tracking-[-0.04em] text-white">
+                <h2 className="mt-3 text-[26px] font-black tracking-[-0.04em] text-white">
                     Start Your Coding Journey
                 </h2>
 
                 <p className="mx-auto mt-3 max-w-lg text-[12px] leading-6 text-white/30">
-                    Your analytics workspace is ready. Submit your
-                    first solution and CodeRush will begin building
-                    your personalized coding intelligence profile.
+                    Submit your first solution and CodeRush will begin building your
+                    personalized coding intelligence profile.
                 </p>
 
                 <Link
                     href="/challenges"
-                    className="
-                        group
-                        relative
-                        mt-8
-                        inline-flex
-                        h-11
-                        items-center
-                        gap-3
-                        overflow-hidden
-                        rounded-xl
-                        border
-                        border-white/[0.12]
-                        bg-white/[0.07]
-                        px-5
-                        text-[11px]
-                        font-bold
-                        text-white
-                        shadow-[0_15px_40px_rgba(0,0,0,.3)]
-                        transition-all
-                        duration-300
-                        hover:border-white/[0.2]
-                        hover:bg-white/[0.11]
-                        hover:shadow-[0_20px_55px_rgba(0,0,0,.45)]
-                    "
+                    className="group relative mt-8 inline-flex h-11 items-center gap-3 overflow-hidden rounded-xl border border-blue-400/[0.25] bg-gradient-to-r from-blue-500/[0.15] via-violet-500/[0.13] to-cyan-400/[0.10] px-6 text-[11px] font-bold text-white shadow-[0_15px_50px_rgba(37,99,235,.15)] transition-all duration-300 hover:border-cyan-300/[0.35] hover:shadow-[0_20px_65px_rgba(139,92,246,.2)]"
                 >
-                    <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/[0.08] to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+                    <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/[0.10] to-transparent transition-transform duration-700 group-hover:translate-x-full" />
 
-                    <span className="relative">
-                        Explore Problems
-                    </span>
+                    <span className="relative">Explore Problems</span>
 
-                    <ArrowRightIcon />
+                    <ArrowIcon />
                 </Link>
             </div>
-
-            <div className="relative mx-auto mt-10 max-w-md border-t border-white/[0.05] pt-4">
-                <span className="font-mono text-[7px] uppercase tracking-[0.3em] text-white/10">
-                    No submission data detected
-                </span>
-            </div>
-        </div>
+        </motion.div>
     );
 }
 
-/* ================================================================
+/* ============================================================
    SIGNED OUT
-================================================================ */
+============================================================ */
 
 function SignedOutState() {
     return (
         <div className="flex min-h-[70vh] items-center justify-center px-4">
-            <div className="relative w-full max-w-md overflow-hidden rounded-[28px] border border-white/[0.08] bg-[#08090b]/85 p-8 text-center shadow-[0_30px_100px_rgba(0,0,0,.5)] backdrop-blur-[30px]">
-                <div className="pointer-events-none absolute left-1/2 top-0 h-px w-32 -translate-x-1/2 bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+            <motion.div
+                variants={fadeUp}
+                initial="hidden"
+                animate="show"
+                className="relative w-full max-w-md overflow-hidden rounded-3xl border border-white/[0.08] bg-[#0b0e14]/80 p-8 text-center shadow-[0_30px_100px_rgba(0,0,0,.5)] backdrop-blur-2xl"
+            >
+                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-400/60 to-transparent" />
 
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.035] text-white/60">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-blue-400/[0.12] bg-gradient-to-br from-blue-500/[0.10] to-violet-500/[0.08] text-blue-300">
                     <LockIcon />
                 </div>
 
-                <p className="mt-6 text-[8px] font-black uppercase tracking-[0.35em] text-white/20">
+                <p className="mt-6 text-[8px] font-black uppercase tracking-[0.35em] text-blue-300/40">
                     Authentication Required
                 </p>
 
@@ -572,41 +530,80 @@ function SignedOutState() {
                 </h1>
 
                 <p className="mt-3 text-[12px] leading-6 text-white/30">
-                    Sign in to access your personalized CodeRush
-                    analytics workspace.
+                    Sign in to access your personalized CodeRush analytics workspace.
                 </p>
 
                 <Link
                     href="/login"
-                    className="
-                        mt-7
-                        inline-flex
-                        h-11
-                        items-center
-                        justify-center
-                        rounded-xl
-                        border
-                        border-white/[0.12]
-                        bg-white/[0.07]
-                        px-6
-                        text-[11px]
-                        font-bold
-                        text-white
-                        transition-all
-                        hover:border-white/[0.2]
-                        hover:bg-white/[0.11]
-                    "
+                    className="mt-7 inline-flex h-11 items-center justify-center rounded-xl border border-blue-400/[0.20] bg-gradient-to-r from-blue-500/[0.12] to-violet-500/[0.10] px-6 text-[11px] font-bold text-white transition-all hover:border-blue-300/[0.35] hover:bg-blue-500/[0.18]"
                 >
                     Continue to Login
                 </Link>
-            </div>
+            </motion.div>
         </div>
     );
 }
 
-/* ================================================================
+/* ============================================================
+   SECTION WRAPPER
+============================================================ */
+
+function AnalyticsSection({
+    number,
+    eyebrow,
+    title,
+    description,
+    children,
+}: SectionHeaderProps & {
+    children: ReactNode;
+}) {
+    return (
+        <section>
+            <SectionHeader
+                number={number}
+                eyebrow={eyebrow}
+                title={title}
+                description={description}
+            />
+
+            {children}
+        </section>
+    );
+}
+
+/* ============================================================
+   FOOTER
+============================================================ */
+
+function AnalyticsFooter() {
+    return (
+        <motion.div
+            variants={fadeUp}
+            initial="hidden"
+            whileInView="show"
+            viewport={{
+                once: true,
+            }}
+            className="flex flex-col items-center justify-between gap-3 border-t border-white/[0.06] pt-7 sm:flex-row"
+        >
+            <div className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,.9)]" />
+
+                <span className="font-mono text-[7px] uppercase tracking-[0.25em] text-white/20">
+                    Analytics engine synchronized
+                </span>
+            </div>
+
+            <span className="font-mono text-[7px] uppercase tracking-[0.25em] text-blue-300/15">
+                CodeRush Developer Intelligence
+            </span>
+        </motion.div>
+    );
+}
+
+/* ============================================================
    MAIN ANALYTICS VIEW
-================================================================ */
+============================================================ */
 
 export default function AnalyticsView() {
     const [range, setRange] =
@@ -615,40 +612,39 @@ export default function AnalyticsView() {
     const [refreshing, setRefreshing] =
         useState(false);
 
-    const user = useQuery(
-        api.users.currentUser
-    );
+    /* User */
+    const user = useQuery(api.users.currentUser);
 
-    const data = useQuery(
-        api.analytics.getAnalytics,
-        { range }
-    ) as AnalyticsData | null | undefined;
+    /* Analytics */
+    const data = useQuery(api.analytics.getAnalytics, {
+        range,
+    }) as AnalyticsData | null | undefined;
 
-    function onRefresh() {
+    /* Refresh */
+    const handleRefresh = () => {
         setRefreshing(true);
 
         window.setTimeout(() => {
             setRefreshing(false);
         }, 700);
-    }
+    };
 
-    /* ============================================================
+    /* ==========================================================
        SIGNED OUT
-    ============================================================ */
+    ========================================================== */
 
     if (user === null) {
         return (
             <main className="analytics-page min-h-screen">
                 <AnalyticsBackground />
-
                 <SignedOutState />
             </main>
         );
     }
 
-    /* ============================================================
+    /* ==========================================================
        LOADING
-    ============================================================ */
+    ========================================================== */
 
     if (
         user === undefined ||
@@ -666,391 +662,305 @@ export default function AnalyticsView() {
         );
     }
 
-    /* ============================================================
+    /* ==========================================================
        DATA
-    ============================================================ */
+    ========================================================== */
 
     return (
         <main className="analytics-page min-h-screen">
             <AnalyticsBackground />
 
             <div className="mx-auto w-full max-w-[1500px] px-4 pb-16 pt-7 sm:px-6 lg:px-8 lg:pt-9">
-                {/* =================================================
-                    PREMIUM HERO
-                ================================================= */}
-
+                {/* HERO */}
                 <AnalyticsHero
-                    hasSubmissions={
-                        data.hasSubmissions
-                    }
+                    hasSubmissions={data.hasSubmissions}
                 />
 
-                {/* =================================================
-                    EXISTING ANALYTICS HEADER
-                ================================================= */}
-
-                <div className="relative mb-7 overflow-hidden rounded-[22px] border border-white/[0.06] bg-[#08090b]/65 p-3 shadow-[0_20px_70px_rgba(0,0,0,.2)] backdrop-blur-[20px]">
-                    <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+                {/* ANALYTICS HEADER */}
+                <motion.div
+                    variants={fadeUp}
+                    initial="hidden"
+                    animate="show"
+                    className="relative mb-8 overflow-hidden rounded-3xl border border-white/[0.07] bg-[#0b0e14]/65 p-2 shadow-[0_20px_70px_rgba(0,0,0,.25)] backdrop-blur-2xl"
+                >
+                    <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-violet-400/40 to-transparent" />
 
                     <AnalyticsHeader
                         range={range}
                         onRange={setRange}
-                        onRefresh={onRefresh}
+                        onRefresh={handleRefresh}
                         refreshing={refreshing}
                     />
-                </div>
+                </motion.div>
 
-                {/* =================================================
-                    EMPTY STATE
-                ================================================= */}
-
+                {/* EMPTY STATE */}
                 {!data.hasSubmissions ? (
                     <EmptyAnalytics />
                 ) : (
-                    <div className="space-y-9">
-                        {/* =================================================
-                            KPI OVERVIEW
-                        ================================================= */}
+                    <div className="space-y-10">
+                        {/* ==================================================
+                01 — OVERVIEW
+            ================================================== */}
 
-                        <section>
-                            <SectionHeader
-                                number="01"
-                                eyebrow="Overview"
-                                title="Performance Snapshot"
-                                description="A high-level view of your current coding performance."
-                            />
+                        <AnalyticsSection
+                            number="01"
+                            eyebrow="Overview"
+                            title="Performance Snapshot"
+                            description="A high-level view of your current coding performance."
+                        >
+                            <motion.div
+                                variants={stagger}
+                                initial="hidden"
+                                whileInView="show"
+                                viewport={{
+                                    once: true,
+                                    amount: 0.05,
+                                }}
+                            >
+                                <KpiGrid kpis={data.kpis} />
+                            </motion.div>
+                        </AnalyticsSection>
 
-                            <div className="analytics-section-shell">
-                                <KpiGrid
-                                    kpis={data.kpis}
-                                />
-                            </div>
-                        </section>
+                        {/* ==================================================
+                02 — DISTRIBUTION
+            ================================================== */}
 
-                        {/* =================================================
-                            PROBLEM + LANGUAGE
-                        ================================================= */}
-
-                        <section>
-                            <SectionHeader
-                                number="02"
-                                eyebrow="Distribution"
-                                title="Problem & Language Intelligence"
-                                description="Understand what you solve and how you solve it."
-                            />
-
+                        <AnalyticsSection
+                            number="02"
+                            eyebrow="Distribution"
+                            title="Problem & Language Intelligence"
+                            description="Understand what you solve and how you solve it."
+                        >
                             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                                 <PremiumCard>
                                     <ProblemStats
-                                        problems={
-                                            data.problems
-                                        }
-                                        solved={
-                                            data.kpis
-                                                .problemsSolved
-                                        }
+                                        problems={data.problems}
+                                        solved={data.kpis.problemsSolved}
                                     />
                                 </PremiumCard>
 
-                                <PremiumCard>
+                                <PremiumCard delay={0.08}>
                                     <LanguageDonut
-                                        languages={
-                                            data.languages
-                                        }
-                                        total={
-                                            data.languagesTotal
-                                        }
+                                        languages={data.languages}
+                                        total={data.languagesTotal}
                                     />
                                 </PremiumCard>
                             </div>
-                        </section>
+                        </AnalyticsSection>
 
-                        {/* =================================================
-                            ACTIVITY
-                        ================================================= */}
+                        {/* ==================================================
+                03 — ACTIVITY
+            ================================================== */}
 
-                        <section>
-                            <SectionHeader
-                                number="03"
-                                eyebrow="Activity"
-                                title="Coding Consistency"
-                                description="Track the rhythm and consistency of your development activity."
-                            />
-
+                        <AnalyticsSection
+                            number="03"
+                            eyebrow="Activity"
+                            title="Coding Consistency"
+                            description="Track the rhythm and consistency of your development activity."
+                        >
                             <PremiumCard className="p-1">
                                 <ActivityHeatmap
-                                    heatmap={
-                                        data.heatmap
-                                    }
+                                    heatmap={data.heatmap}
                                 />
                             </PremiumCard>
-                        </section>
+                        </AnalyticsSection>
 
-                        {/* =================================================
-                            PERFORMANCE
-                        ================================================= */}
+                        {/* ==================================================
+                04 — PERFORMANCE
+            ================================================== */}
 
-                        <section>
-                            <SectionHeader
-                                number="04"
-                                eyebrow="Performance"
-                                title="Execution Intelligence"
-                                description="Analyze your progress and execution performance over time."
-                            />
-
+                        <AnalyticsSection
+                            number="04"
+                            eyebrow="Performance"
+                            title="Execution Intelligence"
+                            description="Analyze your progress and execution performance over time."
+                        >
                             <PremiumCard className="p-1">
                                 <PerformanceChart
-                                    performance={
-                                        data.performance
-                                    }
+                                    performance={data.performance}
                                 />
                             </PremiumCard>
-                        </section>
+                        </AnalyticsSection>
 
-                        {/* =================================================
-                            RECENT + SKILLS
-                        ================================================= */}
+                        {/* ==================================================
+                05 — DEVELOPMENT
+            ================================================== */}
 
-                        <section>
-                            <SectionHeader
-                                number="05"
-                                eyebrow="Development"
-                                title="Growth & Skill Progress"
-                                description="See your latest activity and the skills you're developing."
-                            />
-
+                        <AnalyticsSection
+                            number="05"
+                            eyebrow="Development"
+                            title="Growth & Skill Progress"
+                            description="See your latest activity and the skills you're developing."
+                        >
                             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                                 <PremiumCard>
                                     <RecentActivity
-                                        recent={
-                                            data.recent
-                                        }
+                                        recent={data.recent}
                                     />
                                 </PremiumCard>
 
-                                <PremiumCard>
+                                <PremiumCard delay={0.08}>
                                     <SkillProgress
-                                        skills={
-                                            data.skills
-                                        }
+                                        skills={data.skills}
                                     />
                                 </PremiumCard>
                             </div>
-                        </section>
+                        </AnalyticsSection>
 
-                        {/* =================================================
-                            INSIGHTS + MILESTONES
-                        ================================================= */}
+                        {/* ==================================================
+                06 — INTELLIGENCE
+            ================================================== */}
 
-                        <section>
-                            <SectionHeader
-                                number="06"
-                                eyebrow="Intelligence"
-                                title="Insights & Milestones"
-                                description="Personalized signals generated from your coding history."
-                            />
-
+                        <AnalyticsSection
+                            number="06"
+                            eyebrow="Intelligence"
+                            title="Insights & Milestones"
+                            description="Personalized signals generated from your coding history."
+                        >
                             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                                 <PremiumCard>
                                     <Insights
-                                        insights={
-                                            data.insights
-                                        }
+                                        insights={data.insights}
                                     />
                                 </PremiumCard>
 
-                                <PremiumCard>
+                                <PremiumCard delay={0.08}>
                                     <Milestones
-                                        m={
-                                            data.milestones
-                                        }
+                                        m={data.milestones}
                                     />
                                 </PremiumCard>
                             </div>
-                        </section>
+                        </AnalyticsSection>
 
-                        {/* =================================================
-                            FOOTER STATUS
-                        ================================================= */}
-
-                        <div className="flex flex-col items-center justify-between gap-3 border-t border-white/[0.05] pt-6 sm:flex-row">
-                            <div className="flex items-center gap-2">
-                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,.8)]" />
-
-                                <span className="font-mono text-[7px] uppercase tracking-[0.25em] text-white/15">
-                                    Analytics engine synchronized
-                                </span>
-                            </div>
-
-                            <span className="font-mono text-[7px] uppercase tracking-[0.25em] text-white/10">
-                                CodeRush Developer Intelligence
-                            </span>
-                        </div>
+                        {/* FOOTER */}
+                        <AnalyticsFooter />
                     </div>
                 )}
             </div>
 
-            {/* =========================================================
-                PREMIUM ANALYTICS CSS
-            ========================================================= */}
+            {/* ========================================================
+          GLOBAL CSS
+      ======================================================== */}
 
             <style jsx global>{`
-                .analytics-page {
-                    position: relative;
-                    background:
-                        radial-gradient(
-                            circle at 50% -10%,
-                            rgba(255, 255, 255, 0.035),
-                            transparent 35%
-                        ),
-                        #050607;
-                    color: white;
-                    isolation: isolate;
-                }
+        .analytics-page {
+          position: relative;
+          min-height: 100vh;
+          color: white;
+          isolation: isolate;
+          background:
+            radial-gradient(
+              circle at 50% -10%,
+              rgba(59, 130, 246, 0.07),
+              transparent 34%
+            ),
+            #07090d;
+        }
 
-                .analytics-premium-card {
-                    transform: translateZ(0);
-                }
+        .analytics-page ::selection {
+          background: rgba(96, 165, 250, 0.25);
+          color: white;
+        }
 
-                .analytics-section-shell {
-                    position: relative;
-                }
+        .analytics-page button:focus-visible,
+        .analytics-page a:focus-visible {
+          outline: 1px solid rgba(96, 165, 250, 0.6);
+          outline-offset: 3px;
+        }
 
-                .analytics-skeleton {
-                    position: relative;
-                    overflow: hidden;
-                }
+        .analytics-page ::-webkit-scrollbar {
+          width: 6px;
+          height: 6px;
+        }
 
-                .analytics-skeleton::after {
-                    content: "";
-                    position: absolute;
-                    inset: 0;
-                    transform: translateX(-100%);
-                    background: linear-gradient(
-                        90deg,
-                        transparent,
-                        rgba(255,255,255,.045),
-                        transparent
-                    );
-                    animation: analyticsSkeleton 1.7s infinite;
-                }
+        .analytics-page ::-webkit-scrollbar-track {
+          background: transparent;
+        }
 
-                .analytics-scan-line {
-                    animation: analyticsScan 3.5s
-                        cubic-bezier(.16,1,.3,1)
-                        infinite;
-                }
+        .analytics-page ::-webkit-scrollbar-thumb {
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.09);
+        }
 
-                @keyframes analyticsSkeleton {
-                    100% {
-                        transform: translateX(100%);
-                    }
-                }
+        .analytics-page ::-webkit-scrollbar-thumb:hover {
+          background: rgba(96, 165, 250, 0.25);
+        }
 
-                @keyframes analyticsScan {
-                    0% {
-                        transform: translateX(-150%);
-                        opacity: 0;
-                    }
+        @keyframes shimmer {
+          100% {
+            transform: translateX(100%);
+          }
+        }
 
-                    20% {
-                        opacity: 1;
-                    }
+        @media (prefers-reduced-motion: reduce) {
+          .analytics-page *,
+          .analytics-page *::before,
+          .analytics-page *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+          }
+        }
 
-                    70% {
-                        opacity: 1;
-                    }
-
-                    100% {
-                        transform: translateX(1100%);
-                        opacity: 0;
-                    }
-                }
-
-                /* Better selection */
-
-                .analytics-page ::selection {
-                    background: rgba(255,255,255,.18);
-                    color: white;
-                }
-
-                /* Premium focus */
-
-                .analytics-page
-                    button:focus-visible,
-                .analytics-page
-                    a:focus-visible {
-                    outline: 1px solid
-                        rgba(255,255,255,.35);
-                    outline-offset: 3px;
-                }
-
-                /* Scrollbar */
-
-                .analytics-page
-                    ::-webkit-scrollbar {
-                    width: 6px;
-                    height: 6px;
-                }
-
-                .analytics-page
-                    ::-webkit-scrollbar-track {
-                    background: transparent;
-                }
-
-                .analytics-page
-                    ::-webkit-scrollbar-thumb {
-                    border-radius: 999px;
-                    background: rgba(255,255,255,.08);
-                }
-
-                .analytics-page
-                    ::-webkit-scrollbar-thumb:hover {
-                    background: rgba(255,255,255,.15);
-                }
-
-                /* Reduced motion */
-
-                @media (
-                    prefers-reduced-motion: reduce
-                ) {
-                    .analytics-page *,
-                    .analytics-page
-                        *::before,
-                    .analytics-page
-                        *::after {
-                        animation-duration:
-                            .01ms !important;
-                        animation-iteration-count:
-                            1 !important;
-                        transition-duration:
-                            .01ms !important;
-                    }
-                }
-
-                /* Small screens */
-
-                @media (max-width: 640px) {
-                    .analytics-page {
-                        background:
-                            radial-gradient(
-                                circle at 50% -5%,
-                                rgba(255,255,255,.04),
-                                transparent 38%
-                            ),
-                            #050607;
-                    }
-                }
-            `}</style>
+        @media (max-width: 640px) {
+          .analytics-page {
+            background:
+              radial-gradient(
+                circle at 50% -5%,
+                rgba(59, 130, 246, 0.09),
+                transparent 40%
+              ),
+              #07090d;
+          }
+        }
+      `}</style>
         </main>
     );
 }
 
-/* ================================================================
+/* ============================================================
    ICONS
-================================================================ */
+============================================================ */
 
-function CodeGlyph() {
+function ActivityIcon() {
+    return (
+        <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.7"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+        >
+            <polyline points="3 12 7 12 10 4 14 20 17 12 21 12" />
+        </svg>
+    );
+}
+
+function ArrowIcon() {
+    return (
+        <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.7"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="text-blue-300/50"
+            aria-hidden="true"
+        >
+            <path d="M5 12h14" />
+            <path d="m13 6 6 6-6 6" />
+        </svg>
+    );
+}
+
+function CodeIcon() {
     return (
         <svg
             width="21"
@@ -1065,69 +975,7 @@ function CodeGlyph() {
         >
             <polyline points="16 18 22 12 16 6" />
             <polyline points="8 6 2 12 8 18" />
-            <line
-                x1="13"
-                y1="3"
-                x2="11"
-                y2="21"
-            />
-        </svg>
-    );
-}
-
-function ActivityIcon() {
-    return (
-        <svg
-            width="17"
-            height="17"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.7"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-        >
-            <polyline points="3 12 7 12 10 4 14 20 17 12 21 12" />
-        </svg>
-    );
-}
-
-function MiniArrowIcon() {
-    return (
-        <svg
-            width="13"
-            height="13"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="text-white/30"
-            aria-hidden="true"
-        >
-            <path d="M5 12h14" />
-            <path d="m13 6 6 6-6 6" />
-        </svg>
-    );
-}
-
-function ArrowRightIcon() {
-    return (
-        <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-        >
-            <path d="M5 12h14" />
-            <path d="m13 6 6 6-6 6" />
+            <line x1="13" y1="3" x2="11" y2="21" />
         </svg>
     );
 }
@@ -1145,14 +993,7 @@ function LockIcon() {
             strokeLinejoin="round"
             aria-hidden="true"
         >
-            <rect
-                x="4"
-                y="10"
-                width="16"
-                height="11"
-                rx="2"
-            />
-
+            <rect x="4" y="10" width="16" height="11" rx="2" />
             <path d="M8 10V7a4 4 0 0 1 8 0v3" />
         </svg>
     );

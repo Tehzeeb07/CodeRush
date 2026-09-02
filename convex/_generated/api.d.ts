@@ -32,6 +32,8 @@ import type * as showcase from "../showcase.js";
 import type * as submissions from "../submissions.js";
 import type * as teams from "../teams.js";
 import type * as users from "../users.js";
+import type * as webSubmissions from "../webSubmissions.js";
+import type * as xp from "../xp.js";
 
 import type {
   ApiFromModules,
@@ -64,6 +66,8 @@ declare const fullApi: ApiFromModules<{
   submissions: typeof submissions;
   teams: typeof teams;
   users: typeof users;
+  webSubmissions: typeof webSubmissions;
+  xp: typeof xp;
 }>;
 
 /**

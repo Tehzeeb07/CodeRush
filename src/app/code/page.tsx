@@ -447,6 +447,7 @@ export default function CodePage() {
             startedAtMs: number,
             exitCode: number | null,
             sessionId?: string,
+            errorMessage?: string,
         ) => {
             if (sessionId) {
                 if (
@@ -463,37 +464,41 @@ export default function CodePage() {
             }
 
             try {
-                const result =
-                    await convex.mutation(
-                        api.leaderboard.recordSubmission,
-                        {
-                            language:
-                                sessionLanguage,
-                            status,
-                            executionTime:
-                                Math.max(
-                                    0,
-                                    Date.now() -
-                                    startedAtMs,
-                                ),
-                            exitCode:
-                                exitCode ??
-                                undefined,
-                        },
-                    );
+                if (sessionId) {
+                    const result =
+                        await convex.mutation(
+                            api.leaderboard.recordCodeExecution,
+                            {
+                                executionId: sessionId,
+                                status,
+                                executionTime:
+                                    Math.max(
+                                        0,
+                                        Date.now() -
+                                        startedAtMs,
+                                    ),
+                                exitCode:
+                                    exitCode ??
+                                    undefined,
+                                errorMessage:
+                                    errorMessage ??
+                                    undefined,
+                            },
+                        );
 
-                if (
-                    (result.pointsAwarded ?? 0) >
-                    0
-                ) {
-                    push(
-                        `+${result.pointsAwarded} points for a successful run!`,
-                        "success",
-                    );
+                    if (
+                        (result.xpAwarded ?? 0) >
+                        0
+                    ) {
+                        push(
+                            `+${result.xpAwarded} XP for a successful run!`,
+                            "success",
+                        );
+                    }
                 }
             } catch (err) {
                 console.error(
-                    "[CodeRush] Could not record this run:",
+                    "Failed to record execution:",
                     err,
                 );
             }
