@@ -30,6 +30,47 @@ export const create = mutation({
   },
 });
 
+export const addMember = mutation({
+  args: {
+    teamId: v.id("teams"),
+    username: v.string(),
+  },
+  handler: async (ctx, { teamId, username }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const team = await ctx.db.get(teamId);
+    if (!team) throw new Error("Team not found");
+    if (team.ownerId !== userId) throw new Error("Only the team owner can add members");
+
+    const profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_username", (q) => q.eq("username", username))
+      .unique();
+    if (!profile) throw new Error("No user found with that username");
+
+    const existing = await ctx.db
+      .query("teamMembers")
+      .withIndex("by_team_and_user", (q) =>
+        q.eq("teamId", teamId).eq("userId", profile.userId)
+      )
+      .unique();
+
+    if (existing) {
+      if (existing.status === "accepted") throw new Error("Already a member");
+      await ctx.db.patch(existing._id, { status: "accepted" });
+      return;
+    }
+
+    await ctx.db.insert("teamMembers", {
+      teamId,
+      userId: profile.userId,
+      status: "accepted",
+      requestedAt: Date.now(),
+    });
+  },
+});
+
 export const list = query({
   args: {},
   handler: async (ctx) => {
