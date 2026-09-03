@@ -17,6 +17,32 @@ export default function TeamDetailPage() {
 
   const [error, setError] = useState<string | null>(null);
   const [requesting, setRequesting] = useState(false);
+  const addMember = useMutation(api.teams.addMember);
+  const [addUsername, setAddUsername] = useState("");
+  const [addError, setAddError] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  async function handleAddMember(e: React.FormEvent) {
+    e.preventDefault();
+    setAddError(null);
+    setAdding(true);
+    try {
+      await addMember({ teamId, username: addUsername.trim() });
+      setAddUsername("");
+    } catch (err) {
+      setAddError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setAdding(false);
+    }
+  }
+
+  function handleShare() {
+    const url = `${window.location.origin}/teams/${teamId}`;
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
 
   async function handleJoinRequest() {
     setError(null);
@@ -56,7 +82,15 @@ export default function TeamDetailPage() {
           ← Back to teams
         </Link>
 
-        <h1 className="text-2xl font-bold mt-4 mb-1">{team.name}</h1>
+        <div className="flex items-center justify-between mt-4 mb-1">
+          <h1 className="text-2xl font-bold">{team.name}</h1>
+          <button
+            onClick={handleShare}
+            className="text-xs rounded-md border border-neutral-700 hover:bg-neutral-800 text-white px-3 py-1.5 transition-colors"
+          >
+            {copied ? "Copied!" : "Share"}
+          </button>
+        </div>
         {team.description && (
           <p className="text-neutral-400 text-sm mb-6">{team.description}</p>
         )}
