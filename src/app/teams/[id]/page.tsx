@@ -119,6 +119,29 @@ export default function TeamDetailPage() {
           <p className="text-sm text-emerald-400 mb-6">✓ You&apos;re a member of this team.</p>
         )}
 
+        {/* Add members directly — owner only */}
+        {team.isOwner && (
+          <form onSubmit={handleAddMember} className="mb-6">
+            <h2 className="font-semibold text-sm mb-2 text-neutral-300">Add Members</h2>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={addUsername}
+                onChange={(e) => setAddUsername(e.target.value)}
+                placeholder="Enter username"
+                className="flex-1 rounded-md bg-neutral-900 border border-neutral-800 px-3 py-2 text-white text-sm outline-none focus:border-neutral-500"
+              />
+              <button
+                type="submit"
+                disabled={adding || !addUsername.trim()}
+                className="text-sm rounded-md bg-emerald-500 hover:bg-emerald-400 disabled:opacity-60 text-black font-semibold px-4 py-2 transition-colors"
+              >
+                {adding ? "Adding…" : "+ Add"}
+              </button>
+            </div>
+            {addError && <p className="text-sm text-red-400 mt-2">{addError}</p>}
+          </form>
+        )}
         {/* Pending requests — owner only */}
         {team.isOwner && team.pending.length > 0 && (
           <div className="mb-6">
