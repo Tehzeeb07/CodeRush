@@ -19,6 +19,10 @@ export default function TeamDetailPage() {
   const [requesting, setRequesting] = useState(false);
   const addMember = useMutation(api.teams.addMember);
   const [addUsername, setAddUsername] = useState("");
+  const suggestions = useQuery(
+    api.users.searchByUsername,
+    addUsername.trim() ? { query: addUsername.trim() } : "skip"
+  );
   const [addError, setAddError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -123,12 +127,13 @@ export default function TeamDetailPage() {
         {team.isOwner && (
           <form onSubmit={handleAddMember} className="mb-6">
             <h2 className="font-semibold text-sm mb-2 text-neutral-300">Add Members</h2>
-            <div className="flex gap-2">
+            <div className="flex gap-2 relative">
               <input
                 type="text"
                 value={addUsername}
                 onChange={(e) => setAddUsername(e.target.value)}
                 placeholder="Enter username"
+                autoComplete="off"
                 className="flex-1 rounded-md bg-neutral-900 border border-neutral-800 px-3 py-2 text-white text-sm outline-none focus:border-neutral-500"
               />
               <button
@@ -138,6 +143,21 @@ export default function TeamDetailPage() {
               >
                 {adding ? "Adding…" : "+ Add"}
               </button>
+
+              {addUsername.trim() && suggestions && suggestions.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-neutral-900 border border-neutral-800 rounded-md overflow-hidden z-10">
+                  {suggestions.map((u) => (
+                    <button
+                      key={u.username}
+                      type="button"
+                      onClick={() => setAddUsername(u.username)}
+                      className="w-full text-left px-3 py-2 text-sm text-white hover:bg-neutral-800 transition-colors"
+                    >
+                      {u.username}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             {addError && <p className="text-sm text-red-400 mt-2">{addError}</p>}
           </form>
