@@ -565,6 +565,33 @@ export default function SiteNavbar() {
                                     </div>
                                 </form>
 
+                                {/* Find users */}
+                                <div className="relative hidden 2xl:block">
+                                    <input
+                                        type="text"
+                                        value={userSearch}
+                                        onChange={(e) => setUserSearch(e.target.value)}
+                                        placeholder="Find users..."
+                                        aria-label="Find users"
+                                        className="h-9 w-36 rounded-xl border border-white/[0.07] bg-white/[0.025] px-3 text-[11px] text-white outline-none transition-all placeholder:text-white/20 focus:w-44 focus:border-blue-400/20 focus:bg-blue-500/[0.035]"
+                                    />
+                                    {userSearch.trim() && userResults && userResults.length > 0 && (
+                                        <div className="absolute right-0 top-[calc(100%+8px)] w-56 overflow-hidden rounded-2xl border border-white/[0.09] bg-[#07090d]/95 p-2 shadow-[0_20px_80px_rgba(0,0,0,.6)] z-50">
+                                            {userResults.map((u) => (
+                                                <Link
+                                                    key={u.username}
+                                                    href={`/u/${u.username}`}
+                                                    onClick={() => setUserSearch("")}
+                                                    className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[11px] font-semibold text-white/60 transition hover:bg-blue-500/[0.06] hover:text-white"
+                                                >
+                                                    <Avatar avatarUrl={u.avatarUrl} username={u.username} size={22} />
+                                                    {u.username}
+                                                </Link>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
                                 {/* Editor */}
                                 <Link
                                     href="/code"

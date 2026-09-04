@@ -11,6 +11,7 @@ import {
     SkeletonList,
     UiErrorBoundary,
 } from "@/components/ui/states";
+import LithosSpotlightBackground from "@/components/background/LithosSpotlightBackground";
 
 type SortOption =
     | "recently-added"
@@ -855,6 +856,8 @@ function Shell({
 }) {
     return (
         <div className="min-h-screen bg-[#050505] text-white">
+            <LithosSpotlightBackground />
+
             {/* Ambient background */}
             <div className="pointer-events-none fixed inset-0 overflow-hidden">
                 <div className="absolute left-1/2 top-[-300px] h-[600px] w-[900px] -translate-x-1/2 rounded-full bg-white/[0.018] blur-[120px]" />
