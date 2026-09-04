@@ -1,16 +1,35 @@
-
 "use client";
 
-/**
- * CodeRush — Premium Dashboard
- *
- * Connects to the existing CodeRush pages.
- */
-
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import Premium3DBackground from "@/components/background/Premium3DBackground";
+
+import {
+    ArrowUpRight,
+    Trophy,
+    Code2,
+    Users,
+    CheckCircle2,
+    BarChart3,
+    Flame,
+    Bookmark,
+    UsersRound,
+    Activity,
+    Sparkles,
+    Edit3,
+    User,
+    Zap,
+    Target,
+    Terminal,
+    Sun,
+    Moon,
+} from "lucide-react";
+
+/* ================================================================
+   TYPES
+================================================================ */
 
 interface Activity {
     status: string;
@@ -20,6 +39,7 @@ interface Activity {
 interface UserStats {
     rank: number;
     points: number;
+    xp: number;
     totalSubmissions: number;
     successfulSubmissions: number;
     problemsSolved: number;
@@ -27,22 +47,25 @@ interface UserStats {
     recentActivity: Activity[];
 }
 
-/** Consecutive calendar days ending today or yesterday with a successful run. */
+/* ================================================================
+   HELPERS
+================================================================ */
+
 function computeStreak(activity?: Activity[]): number {
     if (!activity || activity.length === 0) return 0;
 
     const days = new Set<number>();
 
-    for (const a of activity) {
-        if (a.status !== "success") continue;
+    for (const item of activity) {
+        if (item.status !== "success") continue;
 
-        const d = new Date(a.createdAt);
+        const date = new Date(item.createdAt);
 
         days.add(
             Date.UTC(
-                d.getUTCFullYear(),
-                d.getUTCMonth(),
-                d.getUTCDate()
+                date.getUTCFullYear(),
+                date.getUTCMonth(),
+                date.getUTCDate()
             )
         );
     }
@@ -66,31 +89,79 @@ function computeStreak(activity?: Activity[]): number {
     let streak = 0;
 
     for (
-        let d = start;
-        days.has(d);
-        d -= 86400000
+        let current = start;
+        days.has(current);
+        current -= 86400000
     ) {
-        streak += 1;
+        streak++;
     }
 
     return streak;
 }
 
-function formatNumber(n?: number | null): string {
-    if (n === undefined || n === null) return "—";
-
-    return n.toLocaleString("en-US");
+function formatNumber(value?: number | null) {
+    if (value === undefined || value === null) return "—";
+    return value.toLocaleString("en-US");
 }
 
+/* ================================================================
+   MAIN DASHBOARD
+================================================================ */
+
 export default function DashboardView() {
+    const [theme, setTheme] =
+        useState<"dark" | "light">("dark");
+
     const user = useQuery(api.users.currentUser);
 
     const stats = useQuery(
         api.leaderboard.getUserPublicStats,
         user?.username
-            ? { username: user.username }
+            ? {
+                username: user.username,
+            }
             : "skip"
     ) as UserStats | null | undefined;
+
+    // Use XP from stats (which comes from profiles.xp) or fallback to user.xp
+    const displayXp = stats?.xp ?? user?.xp ?? 0;
+
+    /* ============================================================
+       THEME
+    ============================================================ */
+
+    useEffect(() => {
+        // Defer state update to a microtask (react-hooks/set-state-in-effect).
+        queueMicrotask(() => {
+            const saved =
+                window.localStorage.getItem(
+                    "coderush-theme"
+                );
+
+            if (
+                saved === "dark" ||
+                saved === "light"
+            ) {
+                setTheme(saved);
+            }
+        });
+    }, []);
+
+    useEffect(() => {
+        document.documentElement.classList.toggle(
+            "dark",
+            theme === "dark"
+        );
+
+        window.localStorage.setItem(
+            "coderush-theme",
+            theme
+        );
+    }, [theme]);
+
+    /* ============================================================
+       LOADING
+    ============================================================ */
 
     if (user === undefined) {
         return <LoadingState />;
@@ -101,529 +172,978 @@ export default function DashboardView() {
     }
 
     const loading =
-        stats === undefined && user.username !== null;
+        stats === undefined &&
+        user.username !== null;
 
-    const username = user.username ?? "there";
+    const username =
+        user.username ?? "Developer";
 
-    const streak = computeStreak(
-        stats?.recentActivity
-    );
+    const streak =
+        computeStreak(
+            stats?.recentActivity
+        );
 
-    const profileHref = user.username
-        ? `/u/${user.username}`
-        : "/profile";
+    const profileHref =
+        user.username
+            ? `/u/${user.username}`
+            : "/profile";
+
+    /* ============================================================
+       RENDER
+    ============================================================ */
 
     return (
-        <>
-            <Premium3DBackground />
-            <div className="cr-shell cr-shell--transparent">
-            <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:py-10">
+        <div
+            className={`relative min-h-screen overflow-hidden transition-colors duration-500 ${theme === "dark"
+                    ? "bg-[#07090d] text-white"
+                    : "bg-[#f4f6f8] text-black"
+                }`}
+        >
 
-                {/* Page Header */}
+            {/* ====================================================
+                AMBIENT BACKGROUND
+            ==================================================== */}
 
-                <header className="dashboard-card flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+            <div className="pointer-events-none fixed inset-0 overflow-hidden">
 
-                    <div>
-                        <p className="eyebrow mb-2">
-                            CodeRush
-                        </p>
+                <div
+                    className={`absolute left-1/2 top-[-180px] h-[550px] w-[750px] -translate-x-1/2 rounded-full blur-[130px] ${theme === "dark"
+                            ? "bg-blue-600/[0.08]"
+                            : "bg-blue-500/[0.06]"
+                        }`}
+                />
 
-                        <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-                            Welcome back{" "}
-                            <span className="text-gradient">
-                                {username}
-                            </span>
-                        </h1>
+                <div
+                    className={`absolute bottom-[-220px] left-[-120px] h-[450px] w-[450px] rounded-full blur-[130px] ${theme === "dark"
+                            ? "bg-violet-600/[0.07]"
+                            : "bg-violet-500/[0.05]"
+                        }`}
+                />
 
-                        <p className="mt-2 max-w-xl text-sm text-[#a1a1aa]">
-                            {user.bio
-                                ? user.bio
-                                : "Practice coding, ship projects, and climb the leaderboard."}
-                        </p>
+                <div
+                    className={`absolute right-[-150px] top-[30%] h-[450px] w-[450px] rounded-full blur-[130px] ${theme === "dark"
+                            ? "bg-cyan-500/[0.045]"
+                            : "bg-cyan-500/[0.03]"
+                        }`}
+                />
+
+                {/* Grid */}
+
+                <div
+                    className={`absolute inset-0 ${theme === "dark"
+                            ? "opacity-[0.025]"
+                            : "opacity-[0.03]"
+                        }`}
+                    style={{
+                        backgroundImage:
+                            theme === "dark"
+                                ? `
+                                linear-gradient(
+                                    rgba(255,255,255,0.5) 1px,
+                                    transparent 1px
+                                ),
+                                linear-gradient(
+                                    90deg,
+                                    rgba(255,255,255,0.5) 1px,
+                                    transparent 1px
+                                )
+                                `
+                                : `
+                                linear-gradient(
+                                    rgba(0,0,0,0.35) 1px,
+                                    transparent 1px
+                                ),
+                                linear-gradient(
+                                    90deg,
+                                    rgba(0,0,0,0.35) 1px,
+                                    transparent 1px
+                                )
+                                `,
+                        backgroundSize: "42px 42px",
+                    }}
+                />
+
+            </div>
+
+            {/* ====================================================
+                CONTENT
+            ==================================================== */}
+
+            <main className="relative z-10 mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+
+                {/* =================================================
+                    TOP NAV
+                ================================================= */}
+
+                <motion.header
+                    initial={{
+                        opacity: 0,
+                        y: -10,
+                    }}
+                    animate={{
+                        opacity: 1,
+                        y: 0,
+                    }}
+                    className="mb-12 flex items-center justify-between"
+                >
+
+                    <div className="flex items-center gap-3">
+
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.07] bg-white/[0.025]">
+                            <Code2
+                                size={17}
+                                className="text-blue-400"
+                            />
+                        </div>
+
+                        <div>
+                            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-600">
+                                CodeRush
+                            </p>
+
+                            <p className="mt-0.5 text-xs font-semibold text-slate-400">
+                                Developer Dashboard
+                            </p>
+                        </div>
+
                     </div>
 
-                    <Link
-                        href="/code"
-                        className="primary-button shrink-0"
-                    >
-                        <CodeGlyph size={15} />
-                        Open Code Editor
-                    </Link>
+                    <div className="flex items-center gap-2">
 
-                </header>
+                        <div className="hidden items-center gap-2 rounded-full border border-emerald-400/10 bg-emerald-400/[0.04] px-3 py-1.5 sm:flex">
 
-                {/* Developer Overview */}
+                            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
 
-                <section
-                    className="dashboard-card stagger-1 mt-8"
-                    aria-label="Developer overview"
-                >
-                    <div className="premium-card p-5 sm:p-6">
-
-                        <p className="eyebrow mb-4">
-                            Developer Overview
-                        </p>
-
-                        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
-
-                            <StatCell
-                                icon={<ProblemsGlyph />}
-                                label="Problems Solved"
-                                loading={loading}
-                                value={formatNumber(
-                                    stats?.problemsSolved
-                                )}
-                            />
-
-                            <StatCell
-                                icon={<BoltGlyph />}
-                                label="XP Earned"
-                                loading={loading}
-                                value={`${formatNumber(
-                                    stats?.points
-                                )} XP`}
-                            />
-
-                            <StatCell
-                                icon={<TrophyGlyph />}
-                                label="Global Rank"
-                                loading={loading}
-                                value={
-                                    stats
-                                        ? `#${formatNumber(
-                                            stats.rank
-                                        )}`
-                                        : "—"
-                                }
-                            />
-
-                            <StatCell
-                                icon={<FlameGlyph />}
-                                label="Day Streak"
-                                loading={loading}
-                                value={`${streak}${loading
-                                    ? ""
-                                    : streak === 1
-                                        ? " day"
-                                        : " days"
-                                    }`}
-                            />
+                            <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-emerald-400">
+                                Online
+                            </span>
 
                         </div>
+
+                        <button
+                            type="button"
+                            onClick={() =>
+                                setTheme(
+                                    theme === "dark"
+                                        ? "light"
+                                        : "dark"
+                                )
+                            }
+                            className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.07] bg-white/[0.025] text-slate-400 transition hover:bg-white/[0.06] hover:text-white"
+                        >
+                            {theme === "dark" ? (
+                                <Sun size={15} />
+                            ) : (
+                                <Moon size={15} />
+                            )}
+                        </button>
+
                     </div>
+
+                </motion.header>
+
+                {/* =================================================
+                    HERO
+                ================================================= */}
+
+                <motion.section
+                    initial={{
+                        opacity: 0,
+                        y: 20,
+                    }}
+                    animate={{
+                        opacity: 1,
+                        y: 0,
+                    }}
+                    transition={{
+                        duration: 0.5,
+                    }}
+                    className="mb-10"
+                >
+
+                    <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-violet-400/10 bg-violet-400/[0.05] px-3 py-1.5">
+
+                        <Sparkles
+                            size={13}
+                            className="text-violet-400"
+                        />
+
+                        <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-violet-400">
+                            Developer Dashboard
+                        </span>
+
+                    </div>
+
+                    <h1 className="max-w-5xl text-4xl font-black tracking-[-0.05em] text-white sm:text-5xl lg:text-6xl">
+
+                        Welcome back,
+
+                        <br />
+
+                        <span className="bg-gradient-to-r from-blue-400 via-violet-400 to-cyan-400 bg-clip-text text-transparent">
+                            {username}.
+                        </span>
+
+                    </h1>
+
+                    <p className="mt-5 max-w-2xl text-sm leading-6 text-slate-500 sm:text-base">
+                        {user.bio ||
+                            "Practice coding, solve challenges, build projects, and climb the CodeRush leaderboard."}
+                    </p>
+
+                    <div className="mt-7 flex flex-wrap gap-3">
+
+                        <Link
+                            href="/code"
+                            className="group inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-[9px] font-black uppercase tracking-[0.16em] text-black transition hover:-translate-y-0.5 hover:bg-white/90"
+                        >
+                            <Terminal size={14} />
+
+                            Open Code Editor
+
+                            <ArrowUpRight
+                                size={13}
+                                className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                            />
+                        </Link>
+
+                        <Link
+                            href="/challenges"
+                            className="group inline-flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.025] px-5 py-3 text-[9px] font-black uppercase tracking-[0.16em] text-slate-400 backdrop-blur-xl transition hover:border-white/[0.14] hover:bg-white/[0.05] hover:text-white"
+                        >
+                            <Target size={14} />
+
+                            Explore Challenges
+
+                            <ArrowUpRight
+                                size={13}
+                                className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                            />
+                        </Link>
+
+                    </div>
+
+                </motion.section>
+
+                {/* =================================================
+                    STATISTICS
+                ================================================= */}
+
+                <section className="mb-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+
+                    <DashboardStat
+                        icon={
+                            <CheckCircle2
+                                size={17}
+                                className="text-blue-400"
+                            />
+                        }
+                        value={
+                            loading
+                                ? "..."
+                                : formatNumber(
+                                    stats?.problemsSolved
+                                )
+                        }
+                        label="Problems Solved"
+                        accent="bg-blue-500"
+                    />
+
+                    <DashboardStat
+                        icon={
+                            <Zap
+                                size={17}
+                                className="text-violet-400"
+                            />
+                        }
+                        value={
+                            loading
+                                ? "..."
+                                : formatNumber(
+                                    displayXp
+                                )
+                        }
+                        label="XP"
+                        accent="bg-violet-500"
+                        suffix="XP"
+                        subtext="+10 from code runs"
+                    />
+
+                    <DashboardStat
+                        icon={
+                            <Trophy
+                                size={17}
+                                className="text-cyan-400"
+                            />
+                        }
+                        value={
+                            loading
+                                ? "..."
+                                : stats
+                                    ? `#${formatNumber(
+                                        stats.rank
+                                    )}`
+                                    : "—"
+                        }
+                        label="Leaderboard Rank"
+                        accent="bg-cyan-500"
+                    />
+
+                    <DashboardStat
+                        icon={
+                            <Sparkles
+                                size={17}
+                                className="text-emerald-400"
+                            />
+                        }
+                        value={
+                            loading
+                                ? "..."
+                                : formatNumber(
+                                    stats?.points ?? displayXp
+                                )
+                        }
+                        label="Points"
+                        accent="bg-emerald-500"
+                        suffix="PTS"
+                    />
+
                 </section>
 
-                {/* Profile Summary */}
+                {/* =================================================
+                    PROFILE + PERFORMANCE
+                ================================================= */}
 
-                <section
-                    className="dashboard-card stagger-2 mt-6"
-                    aria-label="Your profile"
-                >
-                    <div className="premium-card flex flex-col gap-6 p-5 sm:p-6 lg:flex-row lg:items-center lg:justify-between">
+                <section className="mb-8 grid gap-5 lg:grid-cols-[1.35fr_0.65fr]">
 
-                        <div className="flex items-center gap-4">
+                    {/* PROFILE */}
 
-                            <AvatarBadge
-                                avatarUrl={user.avatarUrl}
-                                username={user.username}
-                                size={64}
-                            />
+                    <motion.div
+                        initial={{
+                            opacity: 0,
+                            y: 20,
+                        }}
+                        animate={{
+                            opacity: 1,
+                            y: 0,
+                        }}
+                        transition={{
+                            delay: 0.1,
+                        }}
+                        className="group relative overflow-hidden rounded-3xl border border-white/[0.06] bg-[#0d1118] transition-all duration-300 hover:border-white/[0.12]"
+                    >
 
-                            <div>
+                        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-400/50 to-transparent" />
 
-                                <h2 className="text-lg font-semibold text-white">
-                                    {user.username ??
-                                        "Your account"}
-                                </h2>
+                        <div className="pointer-events-none absolute -right-24 -top-24 h-56 w-56 rounded-full bg-blue-500/[0.08] blur-3xl" />
 
-                                <p className="text-sm text-[#a1a1aa]">
-                                    {user.email}
-                                </p>
+                        <div className="relative p-6 sm:p-7">
 
-                                <p className="mt-1 text-xs text-[#71717a]">
-                                    Competitive Developer
-                                </p>
+                            <div className="mb-7 flex items-center justify-between">
+
+                                <div>
+
+                                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-blue-400">
+                                        Developer Profile
+                                    </p>
+
+                                    <p className="mt-1.5 text-[10px] text-slate-600">
+                                        Your CodeRush identity
+                                    </p>
+
+                                </div>
+
+                                <User
+                                    size={17}
+                                    className="text-slate-700"
+                                />
+
+                            </div>
+
+                            <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+
+                                <div className="flex items-center gap-4">
+
+                                    <Avatar
+                                        avatarUrl={
+                                            user.avatarUrl
+                                        }
+                                        username={
+                                            user.username
+                                        }
+                                    />
+
+                                    <div>
+
+                                        <h2 className="text-lg font-bold text-white">
+                                            {user.username ||
+                                                "Your account"}
+                                        </h2>
+
+                                        <p className="mt-1 text-xs text-slate-600">
+                                            {user.email}
+                                        </p>
+
+                                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                                            <div className="inline-flex items-center gap-2 rounded-full border border-blue-400/10 bg-blue-400/[0.04] px-3 py-1.5">
+                                                <span className="h-1.5 w-1.5 rounded-full bg-blue-400" />
+                                                <span className="text-[8px] font-bold uppercase tracking-[0.16em] text-blue-400">
+                                                    Competitive Developer
+                                                </span>
+                                            </div>
+
+                                            <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/10 bg-emerald-400/[0.04] px-3 py-1.5 text-[8px] font-bold uppercase tracking-[0.16em] text-emerald-400">
+                                                <CheckCircle2 size={11} className="text-emerald-400" />
+                                                <span>{loading ? "..." : formatNumber(stats?.problemsSolved)} Problems Solved</span>
+                                            </div>
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                                <div className="flex gap-2">
+
+                                    <Link
+                                        href={
+                                            profileHref
+                                        }
+                                        className="inline-flex h-9 items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] px-3.5 text-[9px] font-bold uppercase tracking-[0.12em] text-slate-400 transition hover:border-white/[0.13] hover:bg-white/[0.05] hover:text-white"
+                                    >
+                                        <User size={13} />
+
+                                        Profile
+                                    </Link>
+
+                                    <Link
+                                        href="/profile"
+                                        className="inline-flex h-9 items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] px-3.5 text-[9px] font-bold uppercase tracking-[0.12em] text-slate-400 transition hover:border-white/[0.13] hover:bg-white/[0.05] hover:text-white"
+                                    >
+                                        <Edit3 size={13} />
+
+                                        Edit
+                                    </Link>
+
+                                </div>
 
                             </div>
 
                         </div>
 
-                        <div className="grid grid-cols-3 gap-3 text-center">
+                    </motion.div>
 
-                            <MiniStat
-                                label="Solved"
-                                value={
-                                    loading
-                                        ? "…"
-                                        : formatNumber(
-                                            stats?.problemsSolved
-                                        )
-                                }
-                            />
+                    {/* PERFORMANCE */}
 
-                            <MiniStat
-                                label="Submissions"
-                                value={
-                                    loading
-                                        ? "…"
-                                        : formatNumber(
-                                            stats?.totalSubmissions
-                                        )
-                                }
-                            />
+                    <motion.div
+                        initial={{
+                            opacity: 0,
+                            y: 20,
+                        }}
+                        animate={{
+                            opacity: 1,
+                            y: 0,
+                        }}
+                        transition={{
+                            delay: 0.16,
+                        }}
+                        className="relative overflow-hidden rounded-3xl border border-white/[0.06] bg-[#0d1118]"
+                    >
 
-                            <MiniStat
-                                label="Success"
-                                value={
-                                    loading
-                                        ? "…"
-                                        : `${stats?.successRate ?? 0}%`
-                                }
-                            />
+                        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-violet-400/40 to-transparent" />
+
+                        <div className="pointer-events-none absolute -right-20 -top-20 h-44 w-44 rounded-full bg-violet-500/[0.07] blur-3xl" />
+
+                        <div className="relative p-6">
+
+                            <div className="mb-6 flex items-center justify-between">
+
+                                <div>
+
+                                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-violet-400">
+                                        Performance
+                                    </p>
+
+                                    <p className="mt-1.5 text-[10px] text-slate-600">
+                                        Current statistics
+                                    </p>
+
+                                </div>
+
+                                <BarChart3
+                                    size={17}
+                                    className="text-slate-700"
+                                />
+
+                            </div>
+
+                            <div className="space-y-4">
+
+                                <PerformanceRow
+                                    label="Problems Solved"
+                                    value={
+                                        loading
+                                            ? "..."
+                                            : formatNumber(
+                                                stats?.problemsSolved
+                                            )
+                                    }
+                                />
+
+                                <PerformanceRow
+                                    label="Submissions"
+                                    value={
+                                        loading
+                                            ? "..."
+                                            : formatNumber(
+                                                stats?.totalSubmissions
+                                            )
+                                    }
+                                />
+
+                                <PerformanceRow
+                                    label="Successful"
+                                    value={
+                                        loading
+                                            ? "..."
+                                            : formatNumber(
+                                                stats?.successfulSubmissions
+                                            )
+                                    }
+                                />
+
+                                <PerformanceRow
+                                    label="Success Rate"
+                                    value={
+                                        loading
+                                            ? "..."
+                                            : `${stats?.successRate ?? 0}%`
+                                    }
+                                />
+
+                            </div>
 
                         </div>
 
-                        <div className="flex flex-wrap gap-3">
+                    </motion.div>
 
-                            <Link
-                                href={profileHref}
-                                className="secondary-button flex-1 lg:flex-none"
-                            >
-                                <UserGlyph size={15} />
-                                View Profile
-                            </Link>
-
-                            <Link
-                                href="/profile"
-                                className="secondary-button flex-1 lg:flex-none"
-                            >
-                                <EditGlyph size={15} />
-                                Edit Profile
-                            </Link>
-
-                        </div>
-
-                    </div>
                 </section>
 
-                {/* Feature Destinations */}
+                {/* =================================================
+                    WORKSPACE
+                ================================================= */}
 
-                <section
-                    className="mt-8"
-                    aria-label="Explore CodeRush"
-                >
+                <section className="mb-8">
+
+                    <div className="mb-5 flex items-end justify-between">
+
+                        <div>
+
+                            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">
+                                Explore CodeRush
+                            </p>
+
+                            <h2 className="mt-1.5 text-xl font-bold tracking-tight text-white">
+                                Your workspace
+                            </h2>
+
+                        </div>
+
+                        <span className="hidden text-[9px] font-bold uppercase tracking-[0.18em] text-slate-700 sm:block">
+                            06 destinations
+                        </span>
+
+                    </div>
+
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 
-                        <FeatureCard
-                            className="stagger-3"
+                        <WorkspaceCard
                             href="/challenges"
-                            icon={<CodeGlyph size={18} />}
+                            icon={
+                                <Code2 size={20} />
+                            }
                             title="Challenges"
-                            description="Improve your coding skills with curated programming challenges."
-                            cta="Explore Challenges"
+                            description="Solve curated programming problems and sharpen your competitive coding skills."
+                            number="01"
+                            accent="blue"
                         />
 
-                        <FeatureCard
-                            className="stagger-4"
+                        <WorkspaceCard
                             href="/showcase"
-                            icon={<ShowcaseGlyph size={18} />}
+                            icon={
+                                <Sparkles
+                                    size={20}
+                                />
+                            }
                             title="Showcase"
-                            description="Discover projects, solutions, and work from the CodeRush community."
-                            cta="Explore Showcase"
+                            description="Discover projects, solutions, and impressive work from the CodeRush community."
+                            number="02"
+                            accent="violet"
                         />
 
-                        <FeatureCard
-                            className="stagger-5"
+                        <WorkspaceCard
                             href="/leaderboard"
-                            icon={<TrophyGlyph size={18} />}
+                            icon={
+                                <Trophy
+                                    size={20}
+                                />
+                            }
                             title="Leaderboard"
-                            description="See how you rank against the CodeRush community."
-                            cta="View Leaderboard"
+                            description="Track your position and compete with developers across CodeRush."
+                            number="03"
+                            accent="cyan"
                         />
 
-                        <FeatureCard
-                            className="stagger-6"
+                        <WorkspaceCard
                             href="/bookmarks"
-                            icon={<BookmarkGlyph size={18} />}
+                            icon={
+                                <Bookmark
+                                    size={20}
+                                />
+                            }
                             title="Bookmarks"
-                            description="Quickly access your saved challenges and coding resources."
-                            cta="Open Bookmarks"
-                        />
-                        <FeatureCard
-                            className="stagger-7"
-                            href="/teams"
-                            icon={<TeamsGlyph size={18} />}
-                            title="Teams"
-                            description="Create or join a team and build hackathon projects together."
-                            cta="View Teams"
+                            description="Keep your favorite challenges and coding resources one click away."
+                            number="04"
+                            accent="violet"
                         />
 
-                        <FeatureCard
-                            className="stagger-8"
+                        <WorkspaceCard
+                            href="/teams"
+                            icon={
+                                <UsersRound
+                                    size={20}
+                                />
+                            }
+                            title="Teams"
+                            description="Collaborate with developers and build projects together."
+                            number="05"
+                            accent="blue"
+                        />
+
+                        <WorkspaceCard
                             href="/analytics"
-                            icon={<AnalyticsGlyph size={18} />}
+                            icon={
+                                <Activity
+                                    size={20}
+                                />
+                            }
                             title="Analytics"
-                            description="Track your coding performance, submissions, success rate, and progress."
-                            cta="View Analytics"
+                            description="Understand your coding performance and monitor your progress."
+                            number="06"
+                            accent="cyan"
                         />
 
                     </div>
+
                 </section>
 
-                    {/* Quick Actions */}
+                {/* =================================================
+                    QUICK ACTIONS
+                ================================================= */}
 
-                    <section
-                        className="dashboard-card stagger-6 mt-8"
-                        aria-label="Quick actions"
-                    >
-                        <div className="premium-card p-5 sm:p-6">
-                            <p className="eyebrow mb-4">Quick Actions</p>
-                            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-8">
-                                <QuickAction href="/challenges" label="Challenges" icon={<BoltGlyph size={15} />} />
-                                <QuickAction href="/leaderboard" label="Leaderboard" icon={<TrophyGlyph size={15} />} />
-                                <QuickAction href="/bookmarks" label="Bookmarks" icon={<BookmarkGlyph size={15} />} />
-                                <QuickAction href="/showcase" label="Showcase" icon={<ShowcaseGlyph size={15} />} />
-                                <QuickAction href="/teams" label="Teams" icon={<TeamsGlyph size={15} />} />
-                                <QuickAction href="/analytics" label="Analytics" icon={<AnalyticsGlyph size={15} />} />
-                                <QuickAction href={profileHref} label="View Profile" icon={<UserGlyph size={15} />} />
-                                <QuickAction href="/profile" label="Edit Profile" icon={<EditGlyph size={15} />} />
-                            </div>
-                        </div>
-                    </section>
-
-                </div>
-            </div>
-        </>
-    );
-}
-
-/* ================================================================
-   Loading State
-================================================================ */
-
-function LoadingState() {
-    return (
-        <div className="cr-shell flex items-center justify-center">
-
-            <div className="w-full max-w-7xl px-4 py-10 sm:px-6">
-
-                <div className="skeleton h-8 w-72" />
-
-                <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
-
-                    {[0, 1, 2, 3].map((i) => (
-                        <div
-                            key={i}
-                            className="premium-card p-5"
-                        >
-                            <div className="skeleton h-10 w-10" />
-
-                            <div className="skeleton mt-4 h-5 w-16" />
-                        </div>
-                    ))}
-
-                </div>
-
-            </div>
-        </div>
-    );
-}
-
-/* ================================================================
-   Signed Out State
-================================================================ */
-
-function SignedOutState() {
-    return (
-        <div className="cr-shell flex items-center justify-center px-4">
-
-            <div className="premium-card max-w-sm p-8 text-center">
-
-                <h1 className="text-xl font-semibold text-white">
-                    Not signed in
-                </h1>
-
-                <p className="mt-2 text-sm text-[#a1a1aa]">
-                    Sign in to access your CodeRush dashboard.
-                </p>
-
-                <Link
-                    href="/login"
-                    className="primary-button mt-6"
+                <motion.section
+                    initial={{
+                        opacity: 0,
+                        y: 20,
+                    }}
+                    animate={{
+                        opacity: 1,
+                        y: 0,
+                    }}
+                    transition={{
+                        delay: 0.25,
+                    }}
+                    className="relative overflow-hidden rounded-3xl border border-white/[0.06] bg-[#0d1118]"
                 >
-                    Go to login
-                </Link>
 
-            </div>
+                    <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/30 to-transparent" />
 
-        </div>
-    );
-}
+                    <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-cyan-500/[0.05] blur-3xl" />
 
-/* ================================================================
-   Stat Cell
-================================================================ */
+                    <div className="relative flex flex-col gap-5 p-5 sm:p-6 lg:flex-row lg:items-center lg:justify-between">
 
-interface StatCellProps {
-    icon: React.ReactNode;
-    label: string;
-    value: string;
-    loading: boolean;
-}
+                        <div>
 
-function StatCell({
-    icon,
-    label,
-    value,
-    loading,
-}: StatCellProps) {
-    return (
-        <div className="rounded-xl border border-[#ffffff0d] bg-[#0d0f12]/60 p-4">
+                            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">
+                                Quick Actions
+                            </p>
 
-            <div className="flex items-center gap-3">
+                            <p className="mt-1.5 text-xs text-slate-600">
+                                Jump directly into your workspace.
+                            </p>
 
-                <span className="stat-icon">
-                    {icon}
-                </span>
+                        </div>
 
-                {loading ? (
-                    <div className="skeleton h-7 w-20" />
-                ) : (
-                    <p className="text-xl font-bold text-white sm:text-2xl">
-                        {value}
+                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+
+                            <QuickAction
+                                href="/code"
+                                label="Code Editor"
+                                icon={
+                                    <Terminal
+                                        size={14}
+                                    />
+                                }
+                            />
+
+                            <QuickAction
+                                href="/challenges"
+                                label="Challenges"
+                                icon={
+                                    <Target
+                                        size={14}
+                                    />
+                                }
+                            />
+
+                            <QuickAction
+                                href="/leaderboard"
+                                label="Leaderboard"
+                                icon={
+                                    <Trophy
+                                        size={14}
+                                    />
+                                }
+                            />
+
+                            <QuickAction
+                                href="/analytics"
+                                label="Analytics"
+                                icon={
+                                    <BarChart3
+                                        size={14}
+                                    />
+                                }
+                            />
+
+                        </div>
+
+                    </div>
+
+                </motion.section>
+
+                {/* =================================================
+                    FOOTER
+                ================================================= */}
+
+                <div className="mt-14 border-t border-white/[0.05] pt-6 text-center">
+
+                    <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-slate-700">
+                        CodeRush · Build · Learn · Compete
                     </p>
-                )}
+
+                </div>
+
+            </main>
+        </div>
+    );
+}
+
+/* ================================================================
+   DASHBOARD STAT
+================================================================ */
+
+function DashboardStat({
+    icon,
+    value,
+    label,
+    accent,
+    suffix,
+    subtext,
+}: {
+    icon: React.ReactNode;
+    value: string | number;
+    label: string;
+    accent: string;
+    suffix?: string;
+    subtext?: string;
+}) {
+    return (
+        <motion.div
+            whileHover={{
+                y: -3,
+            }}
+            className="group relative overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.025] p-4 backdrop-blur-xl transition-all duration-300 hover:border-white/[0.12] hover:bg-white/[0.04]"
+        >
+
+            <div
+                className={`pointer-events-none absolute -right-10 -top-10 h-24 w-24 rounded-full ${accent} opacity-10 blur-3xl transition-opacity duration-500 group-hover:opacity-20`}
+            />
+
+            <div className="relative flex items-center gap-3">
+
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.06] bg-white/[0.04]">
+                    {icon}
+                </div>
+
+                <div>
+
+                    <div className="flex items-end gap-1.5">
+
+                        <p className="text-xl font-black tracking-tight text-white">
+                            {value}
+                        </p>
+
+                        {suffix && (
+                            <span className="mb-0.5 text-[8px] font-black uppercase tracking-wider text-slate-600">
+                                {suffix}
+                            </span>
+                        )}
+
+                    </div>
+
+                    <p className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.15em] text-slate-600">
+                        {label}
+                    </p>
+
+                    {subtext && (
+                        <p className="mt-0.5 text-[8px] font-medium text-emerald-400">
+                            {subtext}
+                        </p>
+                    )}
+
+                </div>
 
             </div>
 
-            <p className="mt-3 text-xs uppercase tracking-wide text-[#71717a]">
-                {label}
-            </p>
-
-        </div>
+        </motion.div>
     );
 }
 
 /* ================================================================
-   Mini Stat
+   WORKSPACE CARD
 ================================================================ */
 
-function MiniStat({
-    label,
-    value,
-}: {
-    label: string;
-    value: string;
-}) {
-    return (
-        <div className="rounded-xl border border-[#ffffff0d] bg-[#0d0f12]/60 px-3 py-2.5">
-
-            <p className="text-base font-bold text-white">
-                {value}
-            </p>
-
-            <p className="mt-0.5 text-[11px] uppercase tracking-wide text-[#71717a]">
-                {label}
-            </p>
-
-        </div>
-    );
-}
-
-/* ================================================================
-   Avatar
-================================================================ */
-
-function AvatarBadge({
-    avatarUrl,
-    username,
-    size,
-}: {
-    avatarUrl: string | null;
-    username: string | null;
-    size: number;
-}) {
-    if (avatarUrl) {
-        return (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-                src={avatarUrl}
-                alt=""
-                className="rounded-full border border-[#ffffff14] object-cover"
-                style={{
-                    width: size,
-                    height: size,
-                }}
-                onError={(e) => {
-                    e.currentTarget.style.display = "none";
-                }}
-            />
-        );
-    }
-
-    return (
-        <span
-            className="flex items-center justify-center rounded-full bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] text-xl font-semibold text-white"
-            style={{
-                width: size,
-                height: size,
-            }}
-        >
-            {username?.[0]?.toUpperCase() ?? "?"}
-        </span>
-    );
-}
-
-/* ================================================================
-   Feature Card
-================================================================ */
-
-interface FeatureCardProps {
-    href: string;
-    className?: string;
-    icon: React.ReactNode;
-    title: string;
-    description: string;
-    cta: string;
-}
-
-function FeatureCard({
+function WorkspaceCard({
     href,
-    className = "",
     icon,
     title,
     description,
-    cta,
-}: FeatureCardProps) {
+    number,
+    accent,
+}: {
+    href: string;
+    icon: React.ReactNode;
+    title: string;
+    description: string;
+    number: string;
+    accent: "blue" | "violet" | "cyan";
+}) {
+    const accentClasses = {
+        blue: {
+            text: "text-blue-400",
+            border: "group-hover:border-blue-400/20",
+            bg: "bg-blue-500/[0.06]",
+            glow: "bg-blue-500/[0.08]",
+            gradient:
+                "from-blue-500/20 via-blue-500/5 to-transparent",
+        },
+
+        violet: {
+            text: "text-violet-400",
+            border: "group-hover:border-violet-400/20",
+            bg: "bg-violet-500/[0.06]",
+            glow: "bg-violet-500/[0.08]",
+            gradient:
+                "from-violet-500/20 via-violet-500/5 to-transparent",
+        },
+
+        cyan: {
+            text: "text-cyan-400",
+            border: "group-hover:border-cyan-400/20",
+            bg: "bg-cyan-500/[0.06]",
+            glow: "bg-cyan-500/[0.08]",
+            gradient:
+                "from-cyan-500/20 via-cyan-500/5 to-transparent",
+        },
+    };
+
+    const colors = accentClasses[accent];
+
     return (
-        <Link
-            href={href}
-            className={`card-link premium-card premium-card-hover dashboard-card group p-6 ${className}`}
-        >
+        <Link href={href}>
 
-            <span className="stat-icon">
-                {icon}
-            </span>
+            <motion.div
+                whileHover={{
+                    y: -6,
+                }}
+                className={`group relative min-h-[225px] overflow-hidden rounded-3xl border border-white/[0.06] bg-[#0d1118] p-6 transition-all duration-300 ${colors.border} hover:shadow-[0_25px_70px_rgba(0,0,0,0.35)]`}
+            >
 
-            <h3 className="mt-4 text-lg font-semibold text-white">
-                {title}
-            </h3>
+                <div
+                    className={`absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent ${colors.text.replace(
+                        "text-",
+                        "via-"
+                    )}/30 to-transparent`}
+                />
 
-            <p className="mt-1.5 text-sm leading-relaxed text-[#a1a1aa]">
-                {description}
-            </p>
+                <span className="absolute right-5 top-5 font-mono text-[9px] font-bold tracking-[0.18em] text-slate-700 transition-colors group-hover:text-slate-500">
+                    {number}
+                </span>
 
-            <span className="hover-arrow mt-4 text-sm font-medium text-[#818cf8]">
-                {cta}
-                <ArrowGlyph />
-            </span>
+                <div
+                    className={`pointer-events-none absolute -right-12 -top-12 h-36 w-36 rounded-full ${colors.glow} blur-3xl transition-transform duration-500 group-hover:scale-125`}
+                />
+
+                <div
+                    className={`relative flex h-11 w-11 items-center justify-center rounded-xl border border-white/[0.07] ${colors.bg} ${colors.text} transition-transform duration-300 group-hover:scale-110`}
+                >
+                    {icon}
+                </div>
+
+                <div className="relative">
+
+                    <h3 className="mt-6 text-lg font-bold tracking-tight text-white">
+                        {title}
+                    </h3>
+
+                    <p className="mt-2 text-xs leading-6 text-slate-600">
+                        {description}
+                    </p>
+
+                </div>
+
+                <div className="absolute bottom-6 left-6 flex items-center gap-2 text-[8px] font-black uppercase tracking-[0.18em] text-slate-700 transition-all duration-300 group-hover:gap-3 group-hover:text-white">
+
+                    Explore
+
+                    <ArrowUpRight size={12} />
+
+                </div>
+
+            </motion.div>
 
         </Link>
     );
 }
 
 /* ================================================================
-   Quick Action
+   PERFORMANCE ROW
+================================================================ */
+
+function PerformanceRow({
+    label,
+    value,
+}: {
+    label: string;
+    value: string;
+}) {
+    return (
+        <div className="flex items-center justify-between border-b border-white/[0.05] pb-4 last:border-0 last:pb-0">
+
+            <span className="text-xs text-slate-600">
+                {label}
+            </span>
+
+            <span className="text-sm font-bold text-white">
+                {value}
+            </span>
+
+        </div>
+    );
+}
+
+/* ================================================================
+   QUICK ACTION
 ================================================================ */
 
 function QuickAction({
@@ -638,10 +1158,10 @@ function QuickAction({
     return (
         <Link
             href={href}
-            className="flex items-center justify-center gap-2 rounded-xl border border-[#ffffff0d] bg-[#0d0f12]/50 px-3 py-3 text-sm font-medium text-[#d4d4d8] transition-colors hover:border-[#6366f1]/50 hover:bg-[#6366f1]/10 hover:text-white"
+            className="group flex h-10 items-center justify-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.025] px-3 text-[9px] font-bold uppercase tracking-[0.08em] text-slate-600 transition-all duration-300 hover:-translate-y-0.5 hover:border-white/[0.13] hover:bg-white/[0.06] hover:text-white"
         >
 
-            <span className="text-[#818cf8]">
+            <span className="text-slate-700 transition-colors group-hover:text-cyan-400">
                 {icon}
             </span>
 
@@ -652,343 +1172,136 @@ function QuickAction({
 }
 
 /* ================================================================
-   Inline Icons
+   AVATAR
 ================================================================ */
 
-/* Code */
-
-function CodeGlyph({
-    size = 16,
+function Avatar({
+    avatarUrl,
+    username,
 }: {
-    size?: number;
+    avatarUrl: string | null;
+    username: string | null;
 }) {
-    return (
-        <svg
-            width={size}
-            height={size}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-        >
-            <polyline points="16 18 22 12 16 6" />
-            <polyline points="8 6 2 12 8 18" />
-        </svg>
-    );
-}
+    const [failed, setFailed] =
+        useState(false);
 
-/* Problems */
-
-function ProblemsGlyph({
-    size = 18,
-}: {
-    size?: number;
-}) {
-    return (
-        <svg
-            width={size}
-            height={size}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-        >
-            <path d="m8 6-5 6 5 6" />
-            <path d="m16 6 5 6-5 6" />
-            <line
-                x1="13"
-                y1="3"
-                x2="11"
-                y2="21"
+    if (avatarUrl && !failed) {
+        return (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+                src={avatarUrl}
+                alt=""
+                className="relative h-16 w-16 rounded-full object-cover ring-1 ring-white/10"
+                onError={() =>
+                    setFailed(true)
+                }
             />
-        </svg>
+        );
+    }
+
+    return (
+        <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-blue-500/30 via-violet-500/20 to-cyan-500/20 text-xl font-black text-white ring-1 ring-white/10">
+            {username?.charAt(0)?.toUpperCase() ||
+                "?"}
+        </div>
     );
 }
 
-/* Bolt */
+/* ================================================================
+   LOADING
+================================================================ */
 
-function BoltGlyph({
-    size = 18,
-}: {
-    size?: number;
-}) {
+function LoadingState() {
     return (
-        <svg
-            width={size}
-            height={size}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-        >
-            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-        </svg>
+        <div className="min-h-screen bg-[#07090d] px-4 py-10">
+
+            <div className="mx-auto max-w-7xl">
+
+                <div className="h-10 w-40 animate-pulse rounded-xl bg-white/[0.05]" />
+
+                <div className="mt-12 h-6 w-40 animate-pulse rounded bg-white/[0.05]" />
+
+                <div className="mt-4 h-20 w-[600px] max-w-full animate-pulse rounded bg-white/[0.05]" />
+
+                <div className="mt-5 h-5 w-96 max-w-full animate-pulse rounded bg-white/[0.03]" />
+
+                <div className="mt-8 grid grid-cols-2 gap-3 lg:grid-cols-4">
+
+                    {[1, 2, 3, 4].map(
+                        (item) => (
+                            <div
+                                key={item}
+                                className="h-24 animate-pulse rounded-2xl border border-white/[0.05] bg-white/[0.025]"
+                            />
+                        )
+                    )}
+
+                </div>
+
+                <div className="mt-6 grid gap-5 lg:grid-cols-[1.35fr_0.65fr]">
+
+                    <div className="h-52 animate-pulse rounded-3xl bg-white/[0.025]" />
+
+                    <div className="h-52 animate-pulse rounded-3xl bg-white/[0.025]" />
+
+                </div>
+
+            </div>
+
+        </div>
     );
 }
 
-/* Trophy */
+/* ================================================================
+   SIGNED OUT
+================================================================ */
 
-function TrophyGlyph({
-    size = 18,
-}: {
-    size?: number;
-}) {
+function SignedOutState() {
     return (
-        <svg
-            width={size}
-            height={size}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-        >
-            <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
-            <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
-            <path d="M4 22h16" />
-            <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
-            <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
-            <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
-        </svg>
-    );
-}
+        <div className="flex min-h-screen items-center justify-center bg-[#07090d] px-4">
 
-/* Flame */
+            <motion.div
+                initial={{
+                    opacity: 0,
+                    scale: 0.96,
+                }}
+                animate={{
+                    opacity: 1,
+                    scale: 1,
+                }}
+                className="relative w-full max-w-md overflow-hidden rounded-3xl border border-white/[0.06] bg-[#0d1118] p-10 text-center"
+            >
 
-function FlameGlyph({
-    size = 18,
-}: {
-    size?: number;
-}) {
-    return (
-        <svg
-            width={size}
-            height={size}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-        >
-            <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
-        </svg>
-    );
-}
+                <div className="pointer-events-none absolute left-1/2 top-0 h-48 w-48 -translate-x-1/2 rounded-full bg-blue-500/[0.08] blur-3xl" />
 
-/* Showcase */
+                <div className="relative mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-white/[0.07] bg-white/[0.04]">
 
-function ShowcaseGlyph({
-    size = 18,
-}: {
-    size?: number;
-}) {
-    return (
-        <svg
-            width={size}
-            height={size}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-        >
-            <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />
-        </svg>
-    );
-}
+                    <Users
+                        size={22}
+                        className="text-blue-400"
+                    />
 
-/* Bookmark */
+                </div>
 
-function BookmarkGlyph({
-    size = 18,
-}: {
-    size?: number;
-}) {
-    return (
-        <svg
-            width={size}
-            height={size}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-        >
-            <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
-        </svg>
-    );
-}
+                <h1 className="relative mt-6 text-2xl font-bold text-white">
+                    Not signed in
+                </h1>
 
-/* Teams */
+                <p className="relative mt-3 text-sm leading-6 text-slate-600">
+                    Sign in to access your CodeRush dashboard.
+                </p>
 
-function TeamsGlyph({
-    size = 18,
-}: {
-    size?: number;
-}) {
-    return (
-        <svg
-            width={size}
-            height={size}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-        >
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-            <circle
-                cx="9"
-                cy="7"
-                r="4"
-            />
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-        </svg>
-    );
-}
+                <Link
+                    href="/login"
+                    className="relative mt-7 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-[9px] font-black uppercase tracking-[0.16em] text-black transition hover:-translate-y-0.5"
+                >
+                    Sign In
 
-/* Analytics */
+                    <ArrowUpRight size={13} />
+                </Link>
 
-function AnalyticsGlyph({
-    size = 18,
-}: {
-    size?: number;
-}) {
-    return (
-        <svg
-            width={size}
-            height={size}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-        >
-            <line
-                x1="18"
-                y1="20"
-                x2="18"
-                y2="10"
-            />
-            <line
-                x1="12"
-                y1="20"
-                x2="12"
-                y2="4"
-            />
-            <line
-                x1="6"
-                y1="20"
-                x2="6"
-                y2="14"
-            />
-        </svg>
-    );
-}
+            </motion.div>
 
-/* User */
-
-function UserGlyph({
-    size = 16,
-}: {
-    size?: number;
-}) {
-    return (
-        <svg
-            width={size}
-            height={size}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-        >
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-            <circle
-                cx="12"
-                cy="7"
-                r="4"
-            />
-        </svg>
-    );
-}
-
-/* Edit */
-
-function EditGlyph({
-    size = 16,
-}: {
-    size?: number;
-}) {
-    return (
-        <svg
-            width={size}
-            height={size}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-        >
-            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-        </svg>
-    );
-}
-
-/* Arrow */
-
-function ArrowGlyph({
-    size = 14,
-}: {
-    size?: number;
-}) {
-    return (
-        <svg
-            width={size}
-            height={size}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-        >
-            <line
-                x1="5"
-                y1="12"
-                x2="19"
-                y2="12"
-            />
-
-            <polyline points="12 5 19 12 12 19" />
-        </svg>
+        </div>
     );
 }

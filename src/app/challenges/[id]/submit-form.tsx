@@ -28,9 +28,9 @@ export default function SubmitForm({ challengeId }: { challengeId: Id<"challenge
   const [prefilledId, setPrefilledId] = useState<string | null>(null);
   if (existing && editing && prefilledId !== existing._id) {
     setPrefilledId(existing._id);
-    setRepoUrl(existing.repoUrl);
+    setRepoUrl(existing.repoUrl ?? "");
     setDemoUrl(existing.demoUrl ?? "");
-    setDescription(existing.description);
+    setDescription(existing.description ?? "");
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -41,7 +41,7 @@ export default function SubmitForm({ challengeId }: { challengeId: Id<"challenge
       if (existing) {
         await updateSubmission({
           submissionId: existing._id,
-          teamId: teamId ? (teamId as any) : undefined,
+          teamId: teamId ? (teamId as Id<"teams">) : undefined,
           repoUrl,
           demoUrl: demoUrl || undefined,
           description,
@@ -49,7 +49,7 @@ export default function SubmitForm({ challengeId }: { challengeId: Id<"challenge
       } else {
         await createSubmission({
           challengeId,
-          teamId: teamId ? (teamId as any) : undefined,
+          teamId: teamId ? (teamId as Id<"teams">) : undefined,
           repoUrl,
           demoUrl: demoUrl || undefined,
           description,

@@ -1,36 +1,14 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-}
 /* ============================================================
-   CodeRush — Premium Developer Platform Design System
-   ------------------------------------------------------------
-   Dark, developer-grade aesthetic. These are plain, reusable CSS
-   classes so styling stays consistent (works alongside Tailwind).
+   BASE THEME
 ============================================================ */
+
 :root {
+    --background: #ffffff;
+    --foreground: #171717;
+
+    /* CodeRush Design System */
     --bg-primary: #09090b;
     --bg-secondary: #0d0f12;
     --bg-elevated: #111318;
@@ -65,50 +43,115 @@ body {
     --shadow-pop: 0 24px 60px rgba(0, 0, 0, 0.45);
 }
 
+/* ============================================================
+   TAILWIND THEME
+============================================================ */
+
+@theme inline {
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+
+    --font-sans: var(--font-geist-sans);
+    --font-mono: var(--font-geist-mono);
+}
+
+/* ============================================================
+   DARK MODE
+============================================================ */
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --background: #0a0a0a;
+        --foreground: #ededed;
+    }
+}
+
+/* ============================================================
+   GLOBAL BODY
+============================================================ */
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+    min-height: 100%;
+}
+
 body {
     background: var(--bg-primary);
     color: var(--text-strong);
-    font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system,
-        "Segoe UI", Roboto, sans-serif;
+
+    font-family:
+        var(--font-geist-sans),
+        ui-sans-serif,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        sans-serif;
+
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
 }
 
-/* Ambient background glow behind page content. */
+/* ============================================================
+   CODERUSH APP SHELL
+============================================================ */
+
 .cr-shell {
     position: relative;
     min-height: 100vh;
+
     background:
-        radial-gradient(1200px 600px at 15% -10%, rgba(99, 102, 241, 0.07), transparent 60%),
-        radial-gradient(1000px 500px at 100% 0%, rgba(139, 92, 246, 0.05), transparent 55%),
+        radial-gradient(1200px 600px at 15% -10%,
+            rgba(99, 102, 241, 0.07),
+            transparent 60%),
+        radial-gradient(1000px 500px at 100% 0%,
+            rgba(139, 92, 246, 0.05),
+            transparent 55%),
         var(--bg-primary);
 }
 
-/* Used when a premium animated background sits behind the shell. */
 .cr-shell--transparent {
     background: transparent;
 }
 
-/* ---------- Focus states (accessibility) ---------- */
+/* ============================================================
+   ACCESSIBILITY
+============================================================ */
+
 :focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
     border-radius: 4px;
 }
 
-/* ---------- Buttons ---------- */
+/* ============================================================
+   PRIMARY BUTTON
+============================================================ */
+
 .primary-button {
-    background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
-    color: #fff;
+    background: linear-gradient(135deg,
+            var(--accent),
+            var(--accent-secondary));
+
+    color: #ffffff;
     border: none;
     border-radius: 10px;
+
     padding: 10px 16px;
+
     font-weight: 600;
     font-size: 0.875rem;
+
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
+
     cursor: pointer;
+
     transition:
         transform 160ms ease,
         box-shadow 160ms ease,
@@ -117,7 +160,9 @@ body {
 
 .primary-button:hover {
     transform: translateY(-1px);
-    box-shadow: 0 8px 24px rgba(99, 102, 241, 0.25);
+
+    box-shadow:
+        0 8px 24px rgba(99, 102, 241, 0.25);
 }
 
 .primary-button:active {
@@ -131,19 +176,30 @@ body {
     box-shadow: none;
 }
 
+/* ============================================================
+   SECONDARY BUTTON
+============================================================ */
+
 .secondary-button {
     background: rgba(255, 255, 255, 0.04);
+
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 10px;
+
     padding: 10px 16px;
+
     color: var(--text-strong);
+
     font-weight: 500;
     font-size: 0.875rem;
+
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
+
     cursor: pointer;
+
     transition:
         background-color 160ms ease,
         border-color 160ms ease,
@@ -152,22 +208,37 @@ body {
 
 .secondary-button:hover {
     background: rgba(255, 255, 255, 0.07);
-    border-color: rgba(255, 255, 255, 0.18);
+
+    border-color:
+        rgba(255, 255, 255, 0.18);
 }
+
+/* ============================================================
+   GHOST BUTTON
+============================================================ */
 
 .ghost-button {
     background: transparent;
     border: none;
+
     border-radius: 10px;
+
     padding: 8px 12px;
+
     color: var(--text-secondary);
+
     font-weight: 500;
     font-size: 0.875rem;
+
     cursor: pointer;
+
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    transition: background-color 160ms ease, color 160ms ease;
+
+    transition:
+        background-color 160ms ease,
+        color 160ms ease;
 }
 
 .ghost-button:hover {
@@ -175,39 +246,70 @@ body {
     color: var(--text-primary);
 }
 
-/* ---------- Premium cards (subtle glassmorphism) ---------- */
+/* ============================================================
+   PREMIUM CARDS
+============================================================ */
+
 .premium-card {
     background: rgba(20, 23, 29, 0.78);
+
     border: 1px solid var(--border);
+
     border-radius: var(--radius-xl);
+
     backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
+
     transition:
         transform 180ms ease,
         border-color 180ms ease,
         box-shadow 180ms ease;
 }
 
+.premium-card:hover {
+    transform: translateY(-2px);
+
+    border-color: var(--border-hover);
+
+    box-shadow:
+        var(--shadow-card);
+}
+
 .premium-card-static {
     background: rgba(20, 23, 29, 0.65);
+
     border: 1px solid var(--border);
+
     border-radius: var(--radius-xl);
+
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
 }
 
-/* ---------- Icons ---------- */
+/* ============================================================
+   ICON BUTTON
+============================================================ */
+
 .icon-btn {
     display: inline-flex;
+
     align-items: center;
     justify-content: center;
+
     width: 36px;
     height: 36px;
+
     border-radius: 10px;
+
     border: 1px solid var(--border);
-    background: rgba(255, 255, 255, 0.02);
+
+    background:
+        rgba(255, 255, 255, 0.02);
+
     color: var(--text-secondary);
+
     cursor: pointer;
+
     transition:
         background-color 160ms ease,
         border-color 160ms ease,
@@ -215,175 +317,496 @@ body {
 }
 
 .icon-btn:hover {
-    background: rgba(255, 255, 255, 0.06);
+    background:
+        rgba(255, 255, 255, 0.06);
+
     color: var(--text-primary);
-    border-color: var(--border-strong);
+
+    border-color:
+        var(--border-strong);
 }
 
-/* ---------- Navigation ---------- */
+/* ============================================================
+   NAVIGATION
+============================================================ */
+
 .nav-item {
     position: relative;
+
     display: inline-flex;
+
     align-items: center;
     gap: 8px;
+
     padding: 8px 12px;
+
     border-radius: 10px;
+
     font-size: 0.875rem;
     font-weight: 500;
+
     color: var(--text-secondary);
+
     text-decoration: none;
-    transition: background-color 160ms ease, color 160ms ease;
+
+    transition:
+        background-color 160ms ease,
+        color 160ms ease;
 }
 
 .nav-item:hover {
     color: var(--text-primary);
-    background: rgba(255, 255, 255, 0.05);
+
+    background:
+        rgba(255, 255, 255, 0.05);
 }
 
 .nav-item.active {
-    background: var(--accent-soft);
-    color: var(--accent-text);
+    background:
+        var(--accent-soft);
+
+    color:
+        var(--accent-text);
 }
 
 .nav-item .nav-indicator {
     position: absolute;
+
     bottom: 4px;
     left: 50%;
+
     transform: translateX(-50%);
+
     width: 14px;
     height: 2px;
+
     border-radius: 999px;
-    background: var(--accent);
+
+    background:
+        var(--accent);
+
     opacity: 0;
-    transition: opacity 160ms ease;
+
+    transition:
+        opacity 160ms ease;
 }
 
 .nav-item.active .nav-indicator {
     opacity: 1;
 }
 
-/* ---------- User menu / dropdowns (glass) ---------- */
+/* ============================================================
+   DROPDOWN MENU
+============================================================ */
+
 .cr-menu {
     transform-origin: top right;
-    animation: crScaleIn 160ms ease both;
-    background: rgba(17, 19, 24, 0.92);
-    border: 1px solid var(--border-strong);
-    border-radius: var(--radius-lg);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    box-shadow: var(--shadow-pop);
+
+    animation:
+        crScaleIn 160ms ease both;
+
+    background:
+        rgba(17, 19, 24, 0.92);
+
+    border:
+        1px solid var(--border-strong);
+
+    border-radius:
+        var(--radius-lg);
+
+    backdrop-filter:
+        blur(20px);
+
+    -webkit-backdrop-filter:
+        blur(20px);
+
+    box-shadow:
+        var(--shadow-pop);
 }
 
 .menu-item {
     display: flex;
+
     align-items: center;
     gap: 10px;
+
     width: 100%;
+
     padding: 9px 12px;
+
     border-radius: 10px;
+
     font-size: 0.875rem;
-    color: var(--text-strong);
+
+    color:
+        var(--text-strong);
+
     text-decoration: none;
+
     background: transparent;
     border: none;
+
     text-align: left;
+
     cursor: pointer;
-    transition: background-color 140ms ease, color 140ms ease;
+
+    transition:
+        background-color 140ms ease,
+        color 140ms ease;
 }
 
 .menu-item:hover,
 .menu-item:focus-visible {
-    background: rgba(255, 255, 255, 0.06);
-    color: var(--text-primary);
+    background:
+        rgba(255, 255, 255, 0.06);
+
+    color:
+        var(--text-primary);
+
     outline: none;
 }
 
 .menu-item.danger {
-    color: var(--danger);
+    color:
+        var(--danger);
 }
 
 .menu-item.danger:hover {
-    background: rgba(239, 68, 68, 0.1);
-    color: var(--danger);
+    background:
+        rgba(239, 68, 68, 0.1);
+
+    color:
+        var(--danger);
 }
 
 .menu-separator {
     height: 1px;
+
     margin: 6px 8px;
-    background: var(--border);
+
+    background:
+        var(--border);
 }
 
-/* ---------- Text helpers ---------- */
+/* ============================================================
+   TEXT HELPERS
+============================================================ */
+
 .text-gradient {
-    background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+    background:
+        linear-gradient(135deg,
+            var(--accent),
+            var(--accent-secondary));
+
     -webkit-background-clip: text;
     background-clip: text;
+
     color: transparent;
 }
 
 .eyebrow {
     font-size: 0.72rem;
+
     font-weight: 600;
+
     letter-spacing: 0.14em;
+
     text-transform: uppercase;
-    color: var(--text-muted);
+
+    color:
+        var(--text-muted);
 }
 
-/* ---------- Dashboard bits ---------- */
+/* ============================================================
+   DASHBOARD
+============================================================ */
+
 .stat-icon {
     display: inline-flex;
+
     align-items: center;
     justify-content: center;
+
     width: 42px;
     height: 42px;
+
     border-radius: 12px;
-    background: var(--accent-soft);
-    color: var(--accent-text);
+
+    background:
+        var(--accent-soft);
+
+    color:
+        var(--accent-text);
 }
 
 .dashboard-card {
-    animation: crFadeUp 0.4s ease both;
+    animation:
+        crFadeUp 0.4s ease both;
 }
 
-.stagger-1 { animation-delay: 0.04s; }
-.stagger-2 { animation-delay: 0.08s; }
-.stagger-3 { animation-delay: 0.12s; }
-.stagger-4 { animation-delay: 0.16s; }
-.stagger-5 { animation-delay: 0.2s; }
-.stagger-6 { animation-delay: 0.24s; }
+.stagger-1 {
+    animation-delay: 0.04s;
+}
 
-/* Arrow that nudges right on hover of a whole card. */
+.stagger-2 {
+    animation-delay: 0.08s;
+}
+
+.stagger-3 {
+    animation-delay: 0.12s;
+}
+
+.stagger-4 {
+    animation-delay: 0.16s;
+}
+
+.stagger-5 {
+    animation-delay: 0.2s;
+}
+
+.stagger-6 {
+    animation-delay: 0.24s;
+}
+
+/* ============================================================
+   CARD HOVER ARROW
+============================================================ */
+
 .hover-arrow {
     display: inline-flex;
+
     align-items: center;
     gap: 6px;
-    transition: gap 160ms ease, color 160ms ease;
+
+    transition:
+        gap 160ms ease,
+        color 160ms ease;
 }
 
 .card-link:hover .hover-arrow {
     gap: 10px;
-    color: var(--accent-text);
+
+    color:
+        var(--accent-text);
 }
 
-/* ---------- Skeleton ---------- */
+/* ============================================================
+   SKELETON LOADING
+============================================================ */
+
 .skeleton {
-    background: linear-gradient(
-        90deg,
-        rgba(255, 255, 255, 0.04),
-        rgba(255, 255, 255, 0.08),
-        rgba(255, 255, 255, 0.04)
-    );
-    background-size: 200% 100%;
-    animation: crSkeleton 1.5s infinite;
+    background:
+        linear-gradient(90deg,
+            rgba(255, 255, 255, 0.04),
+            rgba(255, 255, 255, 0.08),
+            rgba(255, 255, 255, 0.04));
+
+    background-size:
+        200% 100%;
+
+    animation:
+        crSkeleton 1.5s infinite;
+
     border-radius: 8px;
 }
 
-/* ---------- Animations ---------- */
+/* ============================================================
+   NAVBAR
+============================================================ */
+
+.cr-navbar {
+    animation:
+        crNavIn 0.3s ease both;
+}
+
+/* ============================================================
+   MOBILE HAMBURGER
+============================================================ */
+
+.hamburger {
+    display: inline-flex;
+
+    align-items: center;
+    justify-content: center;
+
+    width: 40px;
+    height: 40px;
+
+    border-radius: 10px;
+
+    border:
+        1px solid var(--border);
+
+    background:
+        transparent;
+
+    color:
+        var(--text-secondary);
+
+    cursor: pointer;
+
+    transition:
+        background-color 160ms ease,
+        color 160ms ease;
+}
+
+.hamburger:hover {
+    background:
+        rgba(255, 255, 255, 0.05);
+
+    color:
+        var(--text-primary);
+}
+
+/* ============================================================
+   ANALYTICS
+============================================================ */
+
+.cr-tip {
+    display: inline-flex;
+
+    align-items: center;
+    gap: 6px;
+
+    padding: 6px 10px;
+
+    border-radius: 8px;
+
+    background:
+        rgba(9, 10, 13, 0.92);
+
+    border:
+        1px solid rgba(255, 255, 255, 0.12);
+
+    box-shadow:
+        0 10px 30px rgba(0, 0, 0, 0.4);
+
+    pointer-events: none;
+
+    transition:
+        opacity 150ms ease,
+        transform 150ms ease;
+}
+
+.cr-chart-line {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+
+    animation:
+        crDraw 0.9s ease forwards;
+}
+
+.cr-chart-area {
+    opacity: 0;
+
+    animation:
+        crFade 0.4s ease 0.2s forwards;
+}
+
+.cr-ring {
+    transition:
+        stroke-dashoffset 0.7s ease;
+}
+
+/* ============================================================
+   CODERUSH INFINITE MARQUEE
+   LEFT → RIGHT CONTINUOUS MOVEMENT
+============================================================ */
+
+/*
+   Wrapper clips content outside screen.
+*/
+
+.cr-marquee {
+    position: relative;
+
+    width: 100%;
+
+    overflow: hidden;
+
+    /* Smooth fade on both edges */
+
+    -webkit-mask-image:
+        linear-gradient(to right,
+            transparent 0%,
+            black 8%,
+            black 92%,
+            transparent 100%);
+
+    mask-image:
+        linear-gradient(to right,
+            transparent 0%,
+            black 8%,
+            black 92%,
+            transparent 100%);
+}
+
+/*
+   Moving track.
+*/
+
+.cr-marquee-track {
+    display: flex;
+
+    width: max-content;
+
+    animation:
+        crMarqueeLeftToRight var(--marquee-duration, 25s) linear infinite;
+
+    will-change:
+        transform;
+}
+
+/*
+   Each duplicate group.
+*/
+
+.cr-marquee-group {
+    display: flex;
+
+    flex-shrink: 0;
+
+    align-items: center;
+}
+
+/*
+   LEFT → RIGHT
+
+   Start at -50%
+   Move to 0
+
+   Because content is duplicated,
+   loop is seamless.
+*/
+
+@keyframes crMarqueeLeftToRight {
+    0% {
+        transform: translateX(-50%);
+    }
+
+    100% {
+        transform: translateX(0%);
+    }
+}
+
+/*
+   Optional pause when user hovers.
+*/
+
+.cr-marquee:hover .cr-marquee-track {
+    animation-play-state: paused;
+}
+
+/* ============================================================
+   GENERAL ANIMATIONS
+============================================================ */
+
 @keyframes crFadeUp {
     from {
         opacity: 0;
         transform: translateY(8px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -393,104 +816,69 @@ body {
 @keyframes crScaleIn {
     from {
         opacity: 0;
-        transform: scale(0.96) translateY(-4px);
+
+        transform:
+            scale(0.96) translateY(-4px);
     }
+
     to {
         opacity: 1;
-        transform: scale(1) translateY(0);
+
+        transform:
+            scale(1) translateY(0);
     }
 }
 
 @keyframes crSkeleton {
     to {
-        background-position: -200% 0;
+        background-position:
+            -200% 0;
     }
 }
 
 @keyframes crNavIn {
     from {
         opacity: 0;
-        transform: translateY(-6px);
+
+        transform:
+            translateY(-6px);
     }
+
     to {
         opacity: 1;
-        transform: translateY(0);
+
+        transform:
+            translateY(0);
     }
 }
 
-.cr-navbar {
-    animation: crNavIn 0.3s ease both;
-}
-
-/* ---------- Mobile hamburger ---------- */
-.hamburger {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    border: 1px solid var(--border);
-    background: transparent;
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: background-color 160ms ease, color 160ms ease;
-}
-
-.hamburger:hover {
-    background: rgba(255, 255, 255, 0.05);
-    color: var(--text-primary);
-}
-
-/* ---------- Analytics chart micro-interactions ---------- */
-.cr-tip {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 10px;
-    border-radius: 8px;
-    background: rgba(9, 10, 13, 0.92);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-    pointer-events: none;
-    transition: opacity 150ms ease, transform 150ms ease;
-}
-
-/* SVG line draw animation — uses pathLength={1}, so dashes are normalized. */
-.cr-chart-line {
-    stroke-dasharray: 1;
-    stroke-dashoffset: 1;
-    animation: crDraw 0.9s ease forwards;
-}
 @keyframes crDraw {
     to {
         stroke-dashoffset: 0;
     }
 }
 
-.cr-chart-area {
-    opacity: 0;
-    animation: crFade 0.4s ease 0.2s forwards;
-}
 @keyframes crFade {
     to {
         opacity: 1;
     }
 }
 
-/* Donut acceptance ring paints in from the top. */
-.cr-ring {
-    transition: stroke-dashoffset 0.7s ease;
-}
+/* ============================================================
+   REDUCED MOTION
+============================================================ */
 
-/* ---------- Reduced motion ---------- */
 @media (prefers-reduced-motion: reduce) {
+
     *,
     *::before,
     *::after {
         animation-duration: 0.01ms !important;
+
         animation-iteration-count: 1 !important;
+
         transition-duration: 0.01ms !important;
+
         scroll-behavior: auto !important;
     }
 }

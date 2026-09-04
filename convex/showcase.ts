@@ -33,7 +33,11 @@ export const adminListShowcase = query({
     const pageSize = Math.min(args.pageSize ?? 12, 50);
     const search = args.search?.trim().toLowerCase() ?? "";
 
-    const all = await ctx.db.query("submissions").collect();
+    // Web Development (in-browser) submissions are reviewed separately and
+    // never surface as project-showcase posts.
+    const all = (await ctx.db.query("submissions").collect()).filter(
+      (s) => s.submissionType !== "web"
+    );
     const likes = await ctx.db.query("likes").collect();
     const likeCounts = new Map<string, number>();
     for (const like of likes) {
@@ -73,7 +77,7 @@ export const adminListShowcase = query({
       filtered = posts.filter(
         (p) =>
           p.title.toLowerCase().includes(search) ||
-          p.description.toLowerCase().includes(search) ||
+          p.description?.toLowerCase().includes(search) ||
           p.authorName.toLowerCase().includes(search)
       );
     }

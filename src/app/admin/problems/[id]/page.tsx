@@ -1,230 +1,55 @@
 "use client";
 
-import { useEffect, useState } from "react";
+/**
+ * Admin Problem Details / View page (/admin/problems/[id]).
+ * Read-only inspection of a real problem loaded from the database via
+ * the admin-gated getProblemFull query (no mock data). Shows the
+ * problem exactly as users see it, plus admin metadata. The Edit
+ * button navigates to the editable form at /admin/problems/[id]/edit.
+ */
+
 import { useParams, useRouter } from "next/navigation";
-import { useMutation, useQuery } from "convex/react";
+import { useQuery } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import {
     ArrowLeft,
-    Save,
+    Pencil,
     Loader2,
-    Plus,
-    Trash2,
+    Clock,
+    MemoryStick,
+    FlaskConical,
+    FileText,
 } from "lucide-react";
 
-type Example = {
-    id: string;
-    input: string;
-    output: string;
-    explanation?: string;
+const statusStyles: Record<string, string> = {
+    Draft: "border-slate-600 bg-slate-800/60 text-slate-300",
+    Published: "border-emerald-500/40 bg-emerald-500/10 text-emerald-400",
+    Archived: "border-orange-500/40 bg-orange-500/10 text-orange-400",
 };
 
-type TestCase = {
-    id: string;
-    input: string;
-    expectedOutput: string;
-    isSample: boolean;
+const difficultyStyles: Record<string, string> = {
+    easy: "border-emerald-500/40 bg-emerald-500/10 text-emerald-400",
+    medium: "border-amber-500/40 bg-amber-500/10 text-amber-400",
+    hard: "border-red-500/40 bg-red-500/10 text-red-400",
 };
 
-export default function EditProblemPage() {
+export default function AdminViewProblemPage() {
     const params = useParams();
     const router = useRouter();
-
     const slug = decodeURIComponent(
-        String(params.slug)
+        // The route is /admin/problems/[id]; the list navigates here
+        // with the problem's slug as the [id] segment.
+        String(params.id ?? params.slug)
     );
 
-    const problem = useQuery(api.problems.getProblemFull, {
-        slug,
-    });
-
-    const updateProblem = useMutation(
-        api.problems.updateProblem
-    );
-
-    const [title, setTitle] = useState("");
-    const [difficulty, setDifficulty] = useState<
-        "easy" | "medium" | "hard"
-    >("easy");
-    const [category, setCategory] = useState("");
-    const [tags, setTags] = useState("");
-    const [description, setDescription] = useState("");
-    const [constraints, setConstraints] = useState("");
-    const [timeLimitMs, setTimeLimitMs] = useState(1000);
-    const [memoryLimitMb, setMemoryLimitMb] = useState(256);
-    const [inputFormat, setInputFormat] = useState("");
-    const [outputFormat, setOutputFormat] = useState("");
-    const [hints, setHints] = useState("");
-    const [editorial, setEditorial] = useState("");
-    const [supportedLanguages, setSupportedLanguages] =
-        useState("");
-
-    const [examples, setExamples] = useState<Example[]>(
-        []
-    );
-
-    const [testCases, setTestCases] = useState<TestCase[]>(
-        []
-    );
-
-    const [published, setPublished] = useState(false);
-    const [archived, setArchived] = useState(false);
-
-    const [saving, setSaving] = useState(false);
-    const [error, setError] = useState("");
-
-    useEffect(() => {
-        if (!problem) return;
-
-        setTitle(problem.title);
-        setDifficulty(problem.difficulty);
-        setCategory(problem.category ?? "");
-        setTags(problem.tags.join(", "));
-        setDescription(problem.description);
-        setConstraints(problem.constraints.join("\n"));
-        setTimeLimitMs(problem.timeLimitMs);
-        setMemoryLimitMb(problem.memoryLimitMb);
-        setInputFormat(problem.inputFormat ?? "");
-        setOutputFormat(problem.outputFormat ?? "");
-        setHints((problem.hints ?? []).join("\n"));
-        setEditorial(problem.editorial ?? "");
-        setSupportedLanguages(
-            (problem.supportedLanguages ?? []).join(", ")
-        );
-
-        setExamples(problem.examples);
-        setTestCases(problem.testCases);
-
-        setPublished(problem.published ?? false);
-        setArchived(problem.archived ?? false);
-    }, [problem]);
-
-    const addExample = () => {
-        setExamples((current) => [
-            ...current,
-            {
-                id: crypto.randomUUID(),
-                input: "",
-                output: "",
-                explanation: "",
-            },
-        ]);
-    };
-
-    const removeExample = (id: string) => {
-        setExamples((current) =>
-            current.filter((item) => item.id !== id)
-        );
-    };
-
-    const addTestCase = () => {
-        setTestCases((current) => [
-            ...current,
-            {
-                id: crypto.randomUUID(),
-                input: "",
-                expectedOutput: "",
-                isSample: false,
-            },
-        ]);
-    };
-
-    const removeTestCase = (id: string) => {
-        setTestCases((current) =>
-            current.filter((item) => item.id !== id)
-        );
-    };
-
-    const handleSave = async (
-        event: React.FormEvent
-    ) => {
-        event.preventDefault();
-
-        if (!title.trim()) {
-            setError("Title is required.");
-            return;
-        }
-
-        if (!description.trim()) {
-            setError("Description is required.");
-            return;
-        }
-
-        if (testCases.length === 0) {
-            setError(
-                "At least one test case is required."
-            );
-            return;
-        }
-
-        setSaving(true);
-        setError("");
-
-        try {
-            await updateProblem({
-                id: problem!._id,
-                title: title.trim(),
-                difficulty,
-                tags: tags
-                    .split(",")
-                    .map((tag) => tag.trim())
-                    .filter(Boolean),
-                description,
-                examples,
-                constraints: constraints
-                    .split("\n")
-                    .map((item) => item.trim())
-                    .filter(Boolean),
-                timeLimitMs,
-                memoryLimitMb,
-                testCases,
-                published,
-                archived,
-                category: category.trim() || undefined,
-                inputFormat:
-                    inputFormat.trim() || undefined,
-                outputFormat:
-                    outputFormat.trim() || undefined,
-                hints: hints
-                    .split("\n")
-                    .map((item) => item.trim())
-                    .filter(Boolean),
-                editorial:
-                    editorial.trim() || undefined,
-                supportedLanguages:
-                    supportedLanguages
-                        .split(",")
-                        .map((item) => item.trim())
-                        .filter(Boolean),
-            });
-
-            router.push(
-                `/admin/problems/${encodeURIComponent(
-                    problem!.slug
-                )}`
-            );
-        } catch (err) {
-            console.error(err);
-
-            setError(
-                err instanceof Error
-                    ? err.message
-                    : "Failed to update problem."
-            );
-        } finally {
-            setSaving(false);
-        }
-    };
+    const problem = useQuery(api.problems.getProblemFull, { slug });
 
     if (problem === undefined) {
         return (
             <div className="min-h-screen bg-[#0F1117] text-white">
                 <div className="flex min-h-[500px] items-center justify-center">
                     <div className="flex items-center gap-3 text-slate-400">
-                        <Loader2
-                            size={22}
-                            className="animate-spin"
-                        />
+                        <Loader2 size={22} className="animate-spin" />
                         Loading problem...
                     </div>
                 </div>
@@ -235,576 +60,363 @@ export default function EditProblemPage() {
     if (problem === null) {
         return (
             <div className="min-h-screen bg-[#0F1117] p-8 text-white">
-                <h1 className="text-2xl font-bold">
-                    Problem not found
-                </h1>
+                <div className="mx-auto max-w-5xl">
+                    <button
+                        type="button"
+                        onClick={() => router.push("/admin/problems")}
+                        className="mb-6 inline-flex items-center gap-2 text-sm text-slate-400 hover:text-white"
+                    >
+                        <ArrowLeft size={17} />
+                        Back to Problems
+                    </button>
+                    <h1 className="text-2xl font-bold">Problem not found</h1>
+                    <p className="mt-2 text-sm text-slate-400">
+                        The problem you are looking for does not exist or may
+                        have been deleted.
+                    </p>
+                </div>
             </div>
         );
     }
 
+    const status = problem.archived
+        ? "Archived"
+        : problem.published
+          ? "Published"
+          : "Draft";
+
+    const samples = problem.testCases.filter((tc) => tc.isSample);
+
+    const formatDate = (value?: number) =>
+        value ? new Date(value).toLocaleString() : "—";
+
     return (
         <div className="min-h-screen bg-[#0F1117] p-6 text-white md:p-8">
-            <div className="mx-auto max-w-6xl">
+            <div className="mx-auto max-w-5xl">
                 {/* HEADER */}
-                <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                    <div>
+                        <button
+                            type="button"
+                            onClick={() => router.push("/admin/problems")}
+                            className="mb-3 inline-flex items-center gap-2 text-sm text-slate-400 hover:text-white"
+                        >
+                            <ArrowLeft size={17} />
+                            Back to Problems
+                        </button>
+
+                        <div className="flex flex-wrap items-center gap-3">
+                            <h1 className="text-2xl font-bold">
+                                {problem.title}
+                            </h1>
+                            <span
+                                className={`rounded-full border px-3 py-1 text-xs font-medium ${statusStyles[status]}`}
+                            >
+                                {status}
+                            </span>
+                            <span
+                                className={`rounded-full border px-3 py-1 text-xs font-medium capitalize ${difficultyStyles[problem.difficulty]}`}
+                            >
+                                {problem.difficulty}
+                            </span>
+                        </div>
+
+                        <p className="mt-2 font-mono text-xs text-slate-500">
+                            /problems/{problem.slug} · ID: {problem._id}
+                        </p>
+                    </div>
+
                     <button
                         type="button"
                         onClick={() =>
                             router.push(
-                                `/admin/problems/${encodeURIComponent(
-                                    problem.slug
-                                )}`
+                                `/admin/problems/${encodeURIComponent(problem.slug)}/edit`
                             )
                         }
-                        className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-white"
+                        className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-900/20 transition-all duration-200 hover:from-blue-500 hover:to-indigo-500"
                     >
-                        <ArrowLeft size={17} />
-                        Back to Problem
-                    </button>
-
-                    <h1 className="text-2xl font-bold">
+                        <Pencil size={16} />
                         Edit Problem
-                    </h1>
+                    </button>
                 </div>
 
-                {error && (
-                    <div className="mb-6 rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-400">
-                        {error}
+                {/* QUICK STATS */}
+                <div className="mb-8 grid gap-4 sm:grid-cols-4">
+                    {[
+                        {
+                            icon: FlaskConical,
+                            label: "Test Cases",
+                            value: `${problem.testCases.length} total`,
+                        },
+                        {
+                            icon: FileText,
+                            label: "Samples",
+                            value: `${samples.length} samples`,
+                        },
+                        {
+                            icon: Clock,
+                            label: "Time Limit",
+                            value: `${problem.timeLimitMs}ms`,
+                        },
+                        {
+                            icon: MemoryStick,
+                            label: "Memory Limit",
+                            value: `${problem.memoryLimitMb}MB`,
+                        },
+                    ].map((stat) => (
+                        <div
+                            key={stat.label}
+                            className="rounded-2xl border border-slate-800 bg-[#151922] p-4"
+                        >
+                            <div className="flex items-center gap-2 text-xs text-slate-500">
+                                <stat.icon size={14} />
+                                {stat.label}
+                            </div>
+                            <p className="mt-1.5 text-sm font-semibold">
+                                {stat.value}
+                            </p>
+                        </div>
+                    ))}
+                </div>
+
+                {/* DESCRIPTION */}
+                <section className="mb-6 rounded-2xl border border-slate-800 bg-[#151922] p-6">
+                    <h2 className="mb-4 text-lg font-semibold">Description</h2>
+                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-300">
+                        {problem.description}
+                    </p>
+                </section>
+
+                {/* FORMATS */}
+                <section className="mb-6 grid gap-4 md:grid-cols-2">
+                    <div className="rounded-2xl border border-slate-800 bg-[#151922] p-6">
+                        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">
+                            Input Format
+                        </h2>
+                        <p className="whitespace-pre-wrap font-mono text-sm text-slate-300">
+                            {problem.inputFormat || "—"}
+                        </p>
                     </div>
+                    <div className="rounded-2xl border border-slate-800 bg-[#151922] p-6">
+                        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">
+                            Output Format
+                        </h2>
+                        <p className="whitespace-pre-wrap font-mono text-sm text-slate-300">
+                            {problem.outputFormat || "—"}
+                        </p>
+                    </div>
+                </section>
+
+                {/* CONSTRAINTS */}
+                {problem.constraints.length > 0 && (
+                    <section className="mb-6 rounded-2xl border border-slate-800 bg-[#151922] p-6">
+                        <h2 className="mb-4 text-lg font-semibold">
+                            Constraints
+                        </h2>
+                        <ul className="space-y-2">
+                            {problem.constraints.map((constraint, index) => (
+                                <li
+                                    key={index}
+                                    className="font-mono text-sm text-slate-300"
+                                >
+                                    • {constraint}
+                                </li>
+                            ))}
+                        </ul>
+                    </section>
                 )}
 
-                <form
-                    onSubmit={handleSave}
-                    className="space-y-6"
-                >
-                    {/* BASIC INFORMATION */}
-                    <section className="rounded-2xl border border-slate-800 bg-[#151922] p-6">
-                        <h2 className="mb-6 text-lg font-semibold">
-                            Basic Information
-                        </h2>
-
-                        <div className="space-y-5">
-                            <div>
-                                <label className="mb-2 block text-sm text-slate-300">
-                                    Title
-                                </label>
-
-                                <input
-                                    value={title}
-                                    onChange={(e) =>
-                                        setTitle(e.target.value)
-                                    }
-                                    className="w-full rounded-xl border border-slate-700 bg-[#0F1117] px-4 py-3 text-sm outline-none focus:border-blue-500"
-                                />
-                            </div>
-
-                            <div className="grid gap-5 md:grid-cols-3">
-                                <div>
-                                    <label className="mb-2 block text-sm text-slate-300">
-                                        Difficulty
-                                    </label>
-
-                                    <select
-                                        value={difficulty}
-                                        onChange={(e) =>
-                                            setDifficulty(
-                                                e.target.value as
-                                                | "easy"
-                                                | "medium"
-                                                | "hard"
-                                            )
-                                        }
-                                        className="w-full rounded-xl border border-slate-700 bg-[#0F1117] px-4 py-3 text-sm outline-none focus:border-blue-500"
-                                    >
-                                        <option value="easy">
-                                            Easy
-                                        </option>
-                                        <option value="medium">
-                                            Medium
-                                        </option>
-                                        <option value="hard">
-                                            Hard
-                                        </option>
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className="mb-2 block text-sm text-slate-300">
-                                        Category
-                                    </label>
-
-                                    <input
-                                        value={category}
-                                        onChange={(e) =>
-                                            setCategory(e.target.value)
-                                        }
-                                        className="w-full rounded-xl border border-slate-700 bg-[#0F1117] px-4 py-3 text-sm outline-none focus:border-blue-500"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="mb-2 block text-sm text-slate-300">
-                                        Tags
-                                    </label>
-
-                                    <input
-                                        value={tags}
-                                        onChange={(e) =>
-                                            setTags(e.target.value)
-                                        }
-                                        placeholder="array, hash-map, searching"
-                                        className="w-full rounded-xl border border-slate-700 bg-[#0F1117] px-4 py-3 text-sm outline-none focus:border-blue-500"
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="mb-2 block text-sm text-slate-300">
-                                    Description
-                                </label>
-
-                                <textarea
-                                    value={description}
-                                    onChange={(e) =>
-                                        setDescription(e.target.value)
-                                    }
-                                    rows={9}
-                                    className="w-full resize-y rounded-xl border border-slate-700 bg-[#0F1117] px-4 py-3 text-sm outline-none focus:border-blue-500"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="mb-2 block text-sm text-slate-300">
-                                    Constraints
-                                </label>
-
-                                <textarea
-                                    value={constraints}
-                                    onChange={(e) =>
-                                        setConstraints(e.target.value)
-                                    }
-                                    rows={6}
-                                    placeholder="One constraint per line"
-                                    className="w-full resize-y rounded-xl border border-slate-700 bg-[#0F1117] px-4 py-3 text-sm outline-none focus:border-blue-500"
-                                />
-                            </div>
-                        </div>
-                    </section>
-
-                    {/* LIMITS */}
-                    <section className="rounded-2xl border border-slate-800 bg-[#151922] p-6">
-                        <h2 className="mb-6 text-lg font-semibold">
-                            Execution Limits
-                        </h2>
-
-                        <div className="grid gap-5 md:grid-cols-2">
-                            <div>
-                                <label className="mb-2 block text-sm text-slate-300">
-                                    Time Limit (ms)
-                                </label>
-
-                                <input
-                                    type="number"
-                                    min={1}
-                                    value={timeLimitMs}
-                                    onChange={(e) =>
-                                        setTimeLimitMs(
-                                            Number(e.target.value)
-                                        )
-                                    }
-                                    className="w-full rounded-xl border border-slate-700 bg-[#0F1117] px-4 py-3 text-sm outline-none focus:border-blue-500"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="mb-2 block text-sm text-slate-300">
-                                    Memory Limit (MB)
-                                </label>
-
-                                <input
-                                    type="number"
-                                    min={1}
-                                    value={memoryLimitMb}
-                                    onChange={(e) =>
-                                        setMemoryLimitMb(
-                                            Number(e.target.value)
-                                        )
-                                    }
-                                    className="w-full rounded-xl border border-slate-700 bg-[#0F1117] px-4 py-3 text-sm outline-none focus:border-blue-500"
-                                />
-                            </div>
-                        </div>
-                    </section>
-
-                    {/* EXAMPLES */}
-                    <section className="rounded-2xl border border-slate-800 bg-[#151922] p-6">
-                        <div className="mb-6 flex items-center justify-between">
-                            <h2 className="text-lg font-semibold">
-                                Examples
-                            </h2>
-
-                            <button
-                                type="button"
-                                onClick={addExample}
-                                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold hover:bg-blue-500"
-                            >
-                                <Plus size={15} />
-                                Add Example
-                            </button>
-                        </div>
-
-                        <div className="space-y-5">
-                            {examples.map((example, index) => (
+                {/* EXAMPLES */}
+                {problem.examples.length > 0 && (
+                    <section className="mb-6 rounded-2xl border border-slate-800 bg-[#151922] p-6">
+                        <h2 className="mb-4 text-lg font-semibold">Examples</h2>
+                        <div className="space-y-4">
+                            {problem.examples.map((example, index) => (
                                 <div
                                     key={example.id}
-                                    className="rounded-xl border border-slate-800 bg-[#0F1117] p-5"
+                                    className="rounded-xl border border-slate-800 bg-[#0F1117] p-4"
                                 >
-                                    <div className="mb-4 flex items-center justify-between">
-                                        <h3 className="text-sm font-semibold">
-                                            Example #{index + 1}
-                                        </h3>
-
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                removeExample(example.id)
-                                            }
-                                            className="rounded-lg p-2 text-red-400 hover:bg-red-500/10"
-                                        >
-                                            <Trash2 size={16} />
-                                        </button>
-                                    </div>
-
+                                    <p className="mb-3 text-sm font-medium text-slate-300">
+                                        Example {index + 1}
+                                    </p>
                                     <div className="grid gap-4 md:grid-cols-2">
-                                        <textarea
-                                            value={example.input}
-                                            onChange={(e) =>
-                                                setExamples((current) =>
-                                                    current.map((item) =>
-                                                        item.id === example.id
-                                                            ? {
-                                                                ...item,
-                                                                input:
-                                                                    e.target.value,
-                                                            }
-                                                            : item
-                                                    )
-                                                )
-                                            }
-                                            placeholder="Input"
-                                            rows={5}
-                                            className="rounded-xl border border-slate-700 bg-[#151922] p-4 text-sm outline-none focus:border-blue-500"
-                                        />
-
-                                        <textarea
-                                            value={example.output}
-                                            onChange={(e) =>
-                                                setExamples((current) =>
-                                                    current.map((item) =>
-                                                        item.id === example.id
-                                                            ? {
-                                                                ...item,
-                                                                output:
-                                                                    e.target.value,
-                                                            }
-                                                            : item
-                                                    )
-                                                )
-                                            }
-                                            placeholder="Output"
-                                            rows={5}
-                                            className="rounded-xl border border-slate-700 bg-[#151922] p-4 text-sm outline-none focus:border-blue-500"
-                                        />
-                                    </div>
-
-                                    <textarea
-                                        value={example.explanation ?? ""}
-                                        onChange={(e) =>
-                                            setExamples((current) =>
-                                                current.map((item) =>
-                                                    item.id === example.id
-                                                        ? {
-                                                            ...item,
-                                                            explanation:
-                                                                e.target.value,
-                                                        }
-                                                        : item
-                                                )
-                                            )
-                                        }
-                                        placeholder="Explanation (optional)"
-                                        rows={3}
-                                        className="mt-4 w-full rounded-xl border border-slate-700 bg-[#151922] p-4 text-sm outline-none focus:border-blue-500"
-                                    />
-                                </div>
-                            ))}
-                        </div>
-                    </section>
-
-                    {/* TEST CASES */}
-                    <section className="rounded-2xl border border-slate-800 bg-[#151922] p-6">
-                        <div className="mb-6 flex items-center justify-between">
-                            <div>
-                                <h2 className="text-lg font-semibold">
-                                    Test Cases
-                                </h2>
-
-                                <p className="mt-1 text-xs text-slate-500">
-                                    Hidden test cases are never exposed to normal
-                                    users.
-                                </p>
-                            </div>
-
-                            <button
-                                type="button"
-                                onClick={addTestCase}
-                                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold hover:bg-blue-500"
-                            >
-                                <Plus size={15} />
-                                Add Test
-                            </button>
-                        </div>
-
-                        <div className="space-y-5">
-                            {testCases.map((test, index) => (
-                                <div
-                                    key={test.id}
-                                    className="rounded-xl border border-slate-800 bg-[#0F1117] p-5"
-                                >
-                                    <div className="mb-4 flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <h3 className="text-sm font-semibold">
-                                                Test Case #{index + 1}
-                                            </h3>
-
-                                            <label className="flex items-center gap-2 text-xs text-slate-400">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={test.isSample}
-                                                    onChange={(e) =>
-                                                        setTestCases(
-                                                            (current) =>
-                                                                current.map(
-                                                                    (item) =>
-                                                                        item.id ===
-                                                                            test.id
-                                                                            ? {
-                                                                                ...item,
-                                                                                isSample:
-                                                                                    e.target
-                                                                                        .checked,
-                                                                            }
-                                                                            : item
-                                                                )
-                                                        )
-                                                    }
-                                                />
-                                                Sample
-                                            </label>
+                                        <div>
+                                            <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                                Input
+                                            </p>
+                                            <pre className="overflow-x-auto rounded-lg bg-[#0B0D13] p-3 font-mono text-sm text-slate-300">
+                                                {example.input}
+                                            </pre>
                                         </div>
-
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                removeTestCase(test.id)
-                                            }
-                                            className="rounded-lg p-2 text-red-400 hover:bg-red-500/10"
-                                        >
-                                            <Trash2 size={16} />
-                                        </button>
+                                        <div>
+                                            <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                                Output
+                                            </p>
+                                            <pre className="overflow-x-auto rounded-lg bg-[#0B0D13] p-3 font-mono text-sm text-slate-300">
+                                                {example.output}
+                                            </pre>
+                                        </div>
                                     </div>
-
-                                    <div className="grid gap-4 md:grid-cols-2">
-                                        <textarea
-                                            value={test.input}
-                                            onChange={(e) =>
-                                                setTestCases((current) =>
-                                                    current.map((item) =>
-                                                        item.id === test.id
-                                                            ? {
-                                                                ...item,
-                                                                input:
-                                                                    e.target.value,
-                                                            }
-                                                            : item
-                                                    )
-                                                )
-                                            }
-                                            placeholder="Input"
-                                            rows={6}
-                                            className="rounded-xl border border-slate-700 bg-[#151922] p-4 text-sm outline-none focus:border-blue-500"
-                                        />
-
-                                        <textarea
-                                            value={test.expectedOutput}
-                                            onChange={(e) =>
-                                                setTestCases((current) =>
-                                                    current.map((item) =>
-                                                        item.id === test.id
-                                                            ? {
-                                                                ...item,
-                                                                expectedOutput:
-                                                                    e.target.value,
-                                                            }
-                                                            : item
-                                                    )
-                                                )
-                                            }
-                                            placeholder="Expected Output"
-                                            rows={6}
-                                            className="rounded-xl border border-slate-700 bg-[#151922] p-4 text-sm outline-none focus:border-blue-500"
-                                        />
-                                    </div>
+                                    {example.explanation && (
+                                        <p className="mt-3 text-sm text-slate-400">
+                                            <span className="font-semibold text-slate-500">
+                                                Explanation:{" "}
+                                            </span>
+                                            {example.explanation}
+                                        </p>
+                                    )}
                                 </div>
                             ))}
                         </div>
                     </section>
+                )}
 
-                    {/* FORMATS / HINTS / EDITORIAL */}
-                    <section className="rounded-2xl border border-slate-800 bg-[#151922] p-6">
-                        <h2 className="mb-6 text-lg font-semibold">
-                            Additional Information
-                        </h2>
-
-                        <div className="space-y-5">
-                            <textarea
-                                value={inputFormat}
-                                onChange={(e) =>
-                                    setInputFormat(e.target.value)
-                                }
-                                placeholder="Input format"
-                                rows={3}
-                                className="w-full rounded-xl border border-slate-700 bg-[#0F1117] p-4 text-sm outline-none focus:border-blue-500"
-                            />
-
-                            <textarea
-                                value={outputFormat}
-                                onChange={(e) =>
-                                    setOutputFormat(e.target.value)
-                                }
-                                placeholder="Output format"
-                                rows={3}
-                                className="w-full rounded-xl border border-slate-700 bg-[#0F1117] p-4 text-sm outline-none focus:border-blue-500"
-                            />
-
-                            <textarea
-                                value={hints}
-                                onChange={(e) =>
-                                    setHints(e.target.value)
-                                }
-                                placeholder="Hints — one per line"
-                                rows={5}
-                                className="w-full rounded-xl border border-slate-700 bg-[#0F1117] p-4 text-sm outline-none focus:border-blue-500"
-                            />
-
-                            <textarea
-                                value={editorial}
-                                onChange={(e) =>
-                                    setEditorial(e.target.value)
-                                }
-                                placeholder="Editorial / solution explanation"
-                                rows={8}
-                                className="w-full rounded-xl border border-slate-700 bg-[#0F1117] p-4 text-sm outline-none focus:border-blue-500"
-                            />
-
-                            <input
-                                value={supportedLanguages}
-                                onChange={(e) =>
-                                    setSupportedLanguages(e.target.value)
-                                }
-                                placeholder="Supported languages: cpp, javascript, python"
-                                className="w-full rounded-xl border border-slate-700 bg-[#0F1117] px-4 py-3 text-sm outline-none focus:border-blue-500"
-                            />
-                        </div>
-                    </section>
-
-                    {/* PUBLISH SETTINGS */}
-                    <section className="rounded-2xl border border-slate-800 bg-[#151922] p-6">
-                        <h2 className="mb-5 text-lg font-semibold">
-                            Publishing
-                        </h2>
-
-                        <div className="space-y-4">
-                            <label className="flex cursor-pointer items-center gap-3">
-                                <input
-                                    type="checkbox"
-                                    checked={published}
-                                    onChange={(e) =>
-                                        setPublished(e.target.checked)
-                                    }
-                                />
-
-                                <div>
-                                    <p className="text-sm font-medium">
-                                        Published
-                                    </p>
-
-                                    <p className="text-xs text-slate-500">
-                                        Make this problem available to users.
-                                    </p>
-                                </div>
-                            </label>
-
-                            <label className="flex cursor-pointer items-center gap-3">
-                                <input
-                                    type="checkbox"
-                                    checked={archived}
-                                    onChange={(e) =>
-                                        setArchived(e.target.checked)
-                                    }
-                                />
-
-                                <div>
-                                    <p className="text-sm font-medium">
-                                        Archived
-                                    </p>
-
-                                    <p className="text-xs text-slate-500">
-                                        Hide this problem from normal active listings.
-                                    </p>
-                                </div>
-                            </label>
-                        </div>
-                    </section>
-
-                    {/* SAVE */}
-                    <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                        <button
-                            type="button"
-                            onClick={() =>
-                                router.push(
-                                    `/admin/problems/${encodeURIComponent(
-                                        problem.slug
-                                    )}`
-                                )
-                            }
-                            className="rounded-xl border border-slate-700 px-6 py-3 text-sm font-medium text-slate-300 hover:bg-slate-800"
-                        >
-                            Cancel
-                        </button>
-
-                        <button
-                            type="submit"
-                            disabled={saving}
-                            className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                            {saving ? (
-                                <>
-                                    <Loader2
-                                        size={17}
-                                        className="animate-spin"
-                                    />
-                                    Saving...
-                                </>
-                            ) : (
-                                <>
-                                    <Save size={17} />
-                                    Save Changes
-                                </>
-                            )}
-                        </button>
+                {/* TEST CASES */}
+                <section className="mb-6 rounded-2xl border border-slate-800 bg-[#151922] p-6">
+                    <div className="mb-4 flex items-center justify-between">
+                        <h2 className="text-lg font-semibold">Test Cases</h2>
+                        <span className="rounded-full border border-slate-700 bg-slate-800/60 px-3 py-1 text-xs text-slate-400">
+                            {samples.length} samples ·{" "}
+                            {problem.testCases.length} total
+                        </span>
                     </div>
-                </form>
+                    <div className="space-y-4">
+                        {problem.testCases.map((testCase, index) => (
+                            <div
+                                key={testCase.id}
+                                className="rounded-xl border border-slate-800 bg-[#0F1117] p-4"
+                            >
+                                <div className="mb-3 flex items-center gap-3">
+                                    <p className="text-sm font-medium text-slate-300">
+                                        Test Case {index + 1}
+                                    </p>
+                                    {testCase.isSample && (
+                                        <span className="rounded-full border border-blue-500/40 bg-blue-500/10 px-2 py-0.5 text-xs text-blue-400">
+                                            Sample
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="grid gap-4 md:grid-cols-2">
+                                    <div>
+                                        <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                            Input
+                                        </p>
+                                        <pre className="overflow-x-auto rounded-lg bg-[#0B0D13] p-3 font-mono text-sm text-slate-300">
+                                            {testCase.input}
+                                        </pre>
+                                    </div>
+                                    <div>
+                                        <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                            Expected Output
+                                        </p>
+                                        <pre className="overflow-x-auto rounded-lg bg-[#0B0D13] p-3 font-mono text-sm text-slate-300">
+                                            {testCase.expectedOutput}
+                                        </pre>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+
+                {/* LANGUAGES */}
+                <section className="mb-6 rounded-2xl border border-slate-800 bg-[#151922] p-6">
+                    <h2 className="mb-4 text-lg font-semibold">
+                        Supported Languages
+                    </h2>
+                    {(problem.supportedLanguages?.length ?? 0) > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                            {problem.supportedLanguages!.map((lang) => (
+                                <span
+                                    key={lang}
+                                    className="rounded-full border border-slate-700 bg-slate-800/60 px-3 py-1 font-mono text-xs text-slate-300"
+                                >
+                                    {lang}
+                                </span>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-sm text-slate-500">—</p>
+                    )}
+                </section>
+
+                {/* HINTS & EDITORIAL */}
+                {(problem.hints?.length ?? 0) > 0 && (
+                    <section className="mb-6 rounded-2xl border border-slate-800 bg-[#151922] p-6">
+                        <h2 className="mb-4 text-lg font-semibold">Hints</h2>
+                        <ol className="list-decimal space-y-2 pl-5">
+                            {problem.hints!.map((hint, index) => (
+                                <li
+                                    key={index}
+                                    className="text-sm text-slate-300"
+                                >
+                                    {hint}
+                                </li>
+                            ))}
+                        </ol>
+                    </section>
+                )}
+
+                {problem.editorial && (
+                    <section className="mb-6 rounded-2xl border border-slate-800 bg-[#151922] p-6">
+                        <h2 className="mb-4 text-lg font-semibold">
+                            Editorial / Explanation
+                        </h2>
+                        <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-300">
+                            {problem.editorial}
+                        </p>
+                    </section>
+                )}
+
+                {/* METADATA */}
+                <section className="mb-10 rounded-2xl border border-slate-800 bg-[#151922] p-6">
+                    <h2 className="mb-4 text-lg font-semibold">Metadata</h2>
+                    <dl className="grid gap-4 text-sm sm:grid-cols-2">
+                        <div>
+                            <dt className="text-xs uppercase tracking-wide text-slate-500">
+                                Category
+                            </dt>
+                            <dd className="mt-1 text-slate-300">
+                                {problem.category || "—"}
+                            </dd>
+                        </div>
+                        <div>
+                            <dt className="text-xs uppercase tracking-wide text-slate-500">
+                                Tags
+                            </dt>
+                            <dd className="mt-1 flex flex-wrap gap-2">
+                                {problem.tags.length > 0 ? (
+                                    problem.tags.map((tag) => (
+                                        <span
+                                            key={tag}
+                                            className="rounded-full border border-slate-700 bg-slate-800/60 px-2.5 py-0.5 text-xs text-slate-300"
+                                        >
+                                            {tag}
+                                        </span>
+                                    ))
+                                ) : (
+                                    <span className="text-slate-500">—</span>
+                                )}
+                            </dd>
+                        </div>
+                        <div>
+                            <dt className="text-xs uppercase tracking-wide text-slate-500">
+                                Created
+                            </dt>
+                            <dd className="mt-1 text-slate-300">
+                                {formatDate(problem.createdAt)}
+                            </dd>
+                        </div>
+                        <div>
+                            <dt className="text-xs uppercase tracking-wide text-slate-500">
+                                Last Updated
+                            </dt>
+                            <dd className="mt-1 text-slate-300">
+                                {formatDate(problem.updatedAt)}
+                            </dd>
+                        </div>
+                    </dl>
+                </section>
             </div>
         </div>
     );

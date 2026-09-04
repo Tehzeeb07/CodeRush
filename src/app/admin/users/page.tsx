@@ -1,6 +1,6 @@
-﻿"use client";
+"use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { motion, AnimatePresence } from "framer-motion";
@@ -9,32 +9,65 @@ import {
   ChevronLeft,
   ChevronRight,
   MoreVertical,
-  Eye,
-  Edit,
-  Shield,
-  Trash2,
   Ban,
   CheckCircle,
+  Loader2,
+  Users,
 } from "lucide-react";
-
-const ROLE_COLORS: Record<string, string> = {
-  USER: "bg-slate-500/20 text-slate-400",
-  ADMIN: "bg-blue-500/20 text-blue-400",
-  SUPER_ADMIN: "bg-amber-500/20 text-amber-400",
-};
+import { ROLE_COLORS, formatDate, type AdminListUser, type AppRole } from "./permissions";
+import { UserMenuPopover, type MenuAction } from "./user-menu";
+import {
+  BanUnbanModal,
+  ChangeRoleModal,
+  DeleteUserModal,
+  EditUserModal,
+  ViewProfileModal,
+} from "./user-modals";
 
 export default function AdminUsersPage() {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("ALL");
   const [page, setPage] = useState(0);
-  const [actionMenu, setActionMenu] = useState<string | null>(null);
+  const [menuState, setMenuState] = useState<{ user: AdminListUser; anchor: { x: number; y: number } } | null>(null);
+  const [selectedUser, setSelectedUser] = useState<AdminListUser | null>(null);
+  const [modal, setModal] = useState<MenuAction | null>(null);
+  const [toast, setToast] = useState<{ message: string; kind: "success" | "error" | "info" } | null>(null);
 
+  const me = useQuery(api.roles.me);
   const usersData = useQuery(api.admin.adminListUsers, {
     search: search || undefined,
-    roleFilter: roleFilter as "USER" | "ADMIN" | "SUPER_ADMIN" | "ALL",
+    roleFilter: roleFilter as any,
     page,
     pageSize: 10,
   });
+
+  const users = usersData?.users ?? [];
+  const total = usersData?.total ?? 0;
+  const totalPages = usersData?.totalPages ?? 0;
+  const isLoading = usersData === undefined;
+  const callerRole: AppRole = (me?.role as AppRole | undefined) ?? "USER";
+
+  function notify(message: string, kind: "success" | "error" | "info" = "info") {
+    setToast({ message, kind });
+  }
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 3500);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  function handleAction(action: MenuAction) {
+    if (!menuState) return;
+    setSelectedUser(menuState.user);
+    setMenuState(null);
+    setModal(action);
+  }
+
+  function closeModal() {
+    setModal(null);
+    setSelectedUser(null);
+  }
 
   return (
     <div className="space-y-6">
@@ -71,91 +104,131 @@ export default function AdminUsersPage() {
 
       {/* Users table */}
       <div className="overflow-hidden rounded-xl border border-slate-700/50 bg-[#1E293B]">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-slate-700/50">
-                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">User</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Role</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Status</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">XP</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Joined</th>
-                <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-slate-400">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-700/50">
-              {usersData?.users.map((user) => (
-                <tr key={user._id} className="transition-colors hover:bg-slate-700/20">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#3B82F6] to-[#8B5CF6] text-sm font-bold text-white">
-                        {user.email?.[0]?.toUpperCase() ?? "?"}
-                      </div>
-                      <div>
-                        <p className="font-medium text-white">{user.username ?? "Unnamed"}</p>
-                        <p className="text-sm text-slate-400">{user.email}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${ROLE_COLORS[user.role] ?? "bg-slate-500/20 text-slate-400"}`}>
-                      {user.role}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    {user.isBanned ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-red-500/20 px-2.5 py-1 text-xs font-semibold text-red-400">
-                        <Ban size={12} /> Banned
-                      </span>
-                    ) : user.isSuspended ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/20 px-2.5 py-1 text-xs font-semibold text-amber-400">
-                        Suspended
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-2.5 py-1 text-xs font-semibold text-emerald-400">
-                        <CheckCircle size={12} /> Active
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-slate-300">{user.xp ?? 0}</td>
-                  <td className="px-6 py-4 text-sm text-slate-400">
-                    {new Date(user.createdAt).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <button
-                      onClick={() => setActionMenu(actionMenu === user._id ? null : user._id)}
-                      className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-700/50 hover:text-white"
-                    >
-                      <MoreVertical size={16} />
-                    </button>
-                  </td>
+        {isLoading ? (
+          <div className="flex items-center justify-center gap-2 py-16 text-sm text-slate-400">
+            <Loader2 size={16} className="animate-spin" /> Loading users...
+          </div>
+        ) : users.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 py-16 text-center">
+            <Users size={28} className="text-slate-600" />
+            <p className="text-sm font-medium text-slate-300">No users found</p>
+            <p className="text-xs text-slate-500">
+              {search || roleFilter !== "ALL"
+                ? "Try adjusting your search or role filter."
+                : "No users have registered yet."}
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[720px]">
+              <thead>
+                <tr className="border-b border-slate-700/50 text-left text-xs uppercase tracking-wider text-slate-400">
+                  <th className="px-6 py-3 font-semibold">User</th>
+                  <th className="px-6 py-3 font-semibold">Role</th>
+                  <th className="px-6 py-3 font-semibold">Status</th>
+                  <th className="px-6 py-3 font-semibold">XP</th>
+                  <th className="px-6 py-3 font-semibold">Joined</th>
+                  <th className="px-6 py-3 text-right font-semibold">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {users.map((u) => (
+                  <tr
+                    key={String(u._id)}
+                    className="border-b border-slate-800/50 transition-colors last:border-0 hover:bg-slate-800/30"
+                  >
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-[#3B82F6] to-[#8B5CF6] text-sm font-bold text-white">
+                          {u.avatarUrl ? (
+                            <img src={u.avatarUrl} alt="" className="h-full w-full object-cover" />
+                          ) : (
+                            (u.username ?? u.email ?? "?").slice(0, 1).toUpperCase()
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-white">
+                            {u.username ?? "Unnamed"}
+                          </p>
+                          <p className="truncate text-xs text-slate-400">{u.email}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span
+                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          ROLE_COLORS[u.role] ?? "bg-slate-500/20 text-slate-400"
+                        }`}
+                      >
+                        {u.role}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      {u.isBanned ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-red-500/20 px-2.5 py-1 text-xs font-semibold text-red-400">
+                          <Ban size={12} /> Banned
+                        </span>
+                      ) : u.isSuspended ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/20 px-2.5 py-1 text-xs font-semibold text-amber-400">
+                          Suspended
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-2.5 py-1 text-xs font-semibold text-emerald-400">
+                          <CheckCircle size={12} /> Active
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-slate-300">{u.xp.toLocaleString()}</td>
+                    <td className="px-6 py-4 text-sm text-slate-400">{formatDate(u.createdAt)}</td>
+                    <td className="px-6 py-4 text-right">
+                      <button
+                        type="button"
+                        data-menu-trigger
+                        aria-label={`Actions for ${u.username ?? u.email ?? "user"}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          setMenuState((current) =>
+                            current?.user._id === u._id
+                              ? null
+                              : { user: u, anchor: { x: rect.right, y: rect.bottom + 4 } }
+                          );
+                        }}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-700/50 hover:text-white"
+                      >
+                        <MoreVertical size={16} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {/* Pagination */}
-        {usersData && usersData.totalPages > 1 && (
+        {!isLoading && totalPages > 1 && (
           <div className="flex items-center justify-between border-t border-slate-700/50 px-6 py-4">
             <p className="text-sm text-slate-400">
-              Showing {page * 10 + 1} to {Math.min((page + 1) * 10, usersData.total)} of {usersData.total} users
+              Showing page {page + 1} of {totalPages} — {total} user{total === 1 ? "" : "s"} total
             </p>
             <div className="flex items-center gap-2">
               <button
+                type="button"
                 onClick={() => setPage(Math.max(0, page - 1))}
                 disabled={page === 0}
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-700/50 text-slate-400 transition-colors hover:bg-slate-700/50 disabled:opacity-50"
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-700/50 text-slate-400 transition-colors hover:bg-slate-700/50 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <ChevronLeft size={16} />
               </button>
               <span className="px-3 text-sm text-slate-400">
-                Page {page + 1} of {usersData.totalPages}
+                Page {page + 1} of {totalPages}
               </span>
               <button
-                onClick={() => setPage(Math.min(usersData.totalPages - 1, page + 1))}
-                disabled={page >= usersData.totalPages - 1}
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-700/50 text-slate-400 transition-colors hover:bg-slate-700/50 disabled:opacity-50"
+                type="button"
+                onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
+                disabled={page >= totalPages - 1}
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-700/50 text-slate-400 transition-colors hover:bg-slate-700/50 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <ChevronRight size={16} />
               </button>
@@ -164,31 +237,42 @@ export default function AdminUsersPage() {
         )}
       </div>
 
-      {/* Action menu dropdown */}
+      {/* Row action menu */}
       <AnimatePresence>
-        {actionMenu && (
+        {menuState && (
+          <UserMenuPopover
+            user={menuState.user}
+            callerRole={callerRole}
+            anchor={menuState.anchor}
+            onClose={() => setMenuState(null)}
+            onAction={handleAction}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Action modals */}
+      <ViewProfileModal open={modal === "view"} user={selectedUser} onClose={closeModal} />
+      <EditUserModal open={modal === "edit"} user={selectedUser} onClose={closeModal} onNotify={notify} />
+      <ChangeRoleModal open={modal === "role"} user={selectedUser} onClose={closeModal} onNotify={notify} />
+      <BanUnbanModal open={modal === "ban"} user={selectedUser} onClose={closeModal} onNotify={notify} />
+      <DeleteUserModal open={modal === "delete"} user={selectedUser} onClose={closeModal} onNotify={notify} />
+
+      {/* Toast notification */}
+      <AnimatePresence>
+        {toast && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="fixed right-6 top-32 z-50 w-48 rounded-lg border border-slate-700/50 bg-[#1E293B] p-1 shadow-xl"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 16 }}
+            className={`fixed bottom-6 right-6 z-[80] rounded-lg border px-4 py-3 text-sm shadow-xl ${
+              toast.kind === "success"
+                ? "border-emerald-700/50 bg-emerald-950/90 text-emerald-300"
+                : toast.kind === "error"
+                  ? "border-red-800 bg-red-950/90 text-red-300"
+                  : "border-slate-700/50 bg-[#1E293B] text-slate-200"
+            }`}
           >
-            <button className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-slate-300 hover:bg-slate-700/50">
-              <Eye size={14} /> View Profile
-            </button>
-            <button className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-slate-300 hover:bg-slate-700/50">
-              <Edit size={14} /> Edit User
-            </button>
-            <button className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-slate-300 hover:bg-slate-700/50">
-              <Shield size={14} /> Change Role
-            </button>
-            <hr className="my-1 border-slate-700/50" />
-            <button className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-red-400 hover:bg-red-500/10">
-              <Ban size={14} /> Ban
-            </button>
-            <button className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-red-400 hover:bg-red-500/10">
-              <Trash2 size={14} /> Delete
-            </button>
+            {toast.message}
           </motion.div>
         )}
       </AnimatePresence>

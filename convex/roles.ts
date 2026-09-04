@@ -36,7 +36,16 @@ const ROLE_RANK: Record<string, number> = {
   SUPER_ADMIN: 2,
 };
 
+const USERNAME_RE = /^[a-zA-Z0-9_]{3,20}$/;
+
 type UserRole = "USER" | "ADMIN" | "SUPER_ADMIN";
+
+/** Reject banned callers from privileged actions. */
+function requireNotBanned(caller: { isBanned: boolean }): void {
+  if (caller.isBanned) {
+    throw new Error("FORBIDDEN: Your account has been suspended. Contact an administrator to restore access.");
+  }
+}
 
 /**
  * Internal helper: resolve the full auth user + profile for a given userId.
@@ -48,6 +57,7 @@ async function resolveIdentity(
   email: string | undefined;
   role: UserRole;
   username: string | null;
+  isBanned: boolean;
 } | null> {
   const authUser = await ctx.db.get(userId);
   if (!authUser) return null;
@@ -64,6 +74,7 @@ async function resolveIdentity(
       email,
       role: "SUPER_ADMIN",
       username: profile?.username ?? null,
+      isBanned: profile?.isBanned ?? false,
     };
   }
 
@@ -82,6 +93,7 @@ async function resolveIdentity(
     email,
     role: (roleRow?.role as UserRole) ?? "USER",
     username: profile?.username ?? null,
+    isBanned: profile?.isBanned ?? false,
   };
 }
 
@@ -95,6 +107,7 @@ export const me = query({
     email: string | undefined;
     role: UserRole;
     username: string | null;
+    isBanned: boolean;
   } | null> => {
     const userId = await getAuthUserId(ctx);
     if (!userId) return null;
@@ -243,6 +256,7 @@ export const updateUserRole = mutation({
 
     const caller = await resolveIdentity(ctx, callerId);
     if (!caller) throw new Error("Could not resolve caller");
+    requireNotBanned(caller);
     if (caller.role !== "SUPER_ADMIN") {
       throw new Error("Only SUPER_ADMIN can manage roles");
     }
@@ -306,6 +320,7 @@ export const setUserSuspension = mutation({
 
     const caller = await resolveIdentity(ctx, callerId);
     if (!caller) throw new Error("Could not resolve caller");
+    requireNotBanned(caller);
     if (caller.role !== "ADMIN" && caller.role !== "SUPER_ADMIN") {
       throw new Error("Insufficient permissions");
     }
@@ -320,8 +335,8 @@ export const setUserSuspension = mutation({
     if (!profile) throw new Error("User profile not found");
 
     const targetRole = await resolveIdentity(ctx, args.userId);
-    if (caller.role === "ADMIN" && targetRole?.role === "SUPER_ADMIN") {
-      throw new Error("ADMIN cannot modify a SUPER_ADMIN");
+    if (targetRole?.role === "SUPER_ADMIN") {
+      throw new Error("SUPER_ADMIN_PROTECTED: Cannot modify a SUPER_ADMIN account");
     }
 
     await ctx.db.patch(profile._id, {
@@ -352,6 +367,9 @@ export const setUserSuspension = mutation({
 
 /**
  * Mutation: ban or un-ban a user. SUPER_ADMIN only.
+ *
+ * SUPER_ADMIN accounts are always protected - both the env email list and
+ * DATABASE-assigned SUPER_ADMIN rows are rejected here server-side.
  */
 export const setUserBan = mutation({
   args: {
@@ -361,42 +379,57 @@ export const setUserBan = mutation({
   },
   handler: async (ctx, args) => {
     const callerId = await getAuthUserId(ctx);
-    if (!callerId) throw new Error("Not authenticated");
+    if (!callerId) throw new Error("UNAUTHORIZED: Not authenticated");
 
     const caller = await resolveIdentity(ctx, callerId);
-    if (!caller) throw new Error("Could not resolve caller");
+    if (!caller) throw new Error("UNAUTHORIZED: Could not resolve caller");
+    requireNotBanned(caller);
     if (caller.role !== "SUPER_ADMIN") {
-      throw new Error("Only SUPER_ADMIN can ban users");
+      throw new Error("FORBIDDEN: Only SUPER_ADMIN can ban users");
     }
     if (args.userId === callerId) {
-      throw new Error("You cannot ban yourself");
+      throw new Error("FORBIDDEN: You cannot ban yourself");
+    }
+
+    const target = await ctx.db.get(args.userId);
+    if (!target) throw new Error("USER_NOT_FOUND: User not found");
+
+    const targetRole = await resolveIdentity(ctx, args.userId);
+    if (targetRole?.role === "SUPER_ADMIN") {
+      throw new Error("SUPER_ADMIN_PROTECTED: Cannot ban a SUPER_ADMIN account");
     }
 
     const profile = await ctx.db
       .query("profiles")
       .withIndex("by_userId", (q) => q.eq("userId", args.userId))
       .unique();
+    if (!profile) throw new Error("USER_NOT_FOUND: User profile not found");
 
-    if (profile) {
-      await ctx.db.patch(profile._id, {
-        isBanned: args.banned,
-        bannedAt: args.banned ? Date.now() : undefined,
-        bannedReason: args.banned
-          ? args.reason ?? "No reason provided"
-          : undefined,
-        bannedBy: args.banned ? callerId : undefined,
-      });
+    if (args.banned && profile.isBanned) {
+      throw new Error("USER_ALREADY_BANNED: This user is already banned");
     }
+    if (!args.banned && !profile.isBanned) {
+      throw new Error("USER_NOT_BANNED: This user is not banned");
+    }
+
+    await ctx.db.patch(profile._id, {
+      isBanned: args.banned,
+      bannedAt: args.banned ? Date.now() : undefined,
+      bannedReason: args.banned
+        ? args.reason ?? "No reason provided"
+        : undefined,
+      bannedBy: args.banned ? callerId : undefined,
+    });
 
     await ctx.db.insert("auditLogs", {
       adminId: callerId,
       adminEmail: caller.email ?? "[unknown]",
-      action: "user_banned",
+      action: args.banned ? "user_banned" : "user_unbanned",
       target: "user",
       targetId: args.userId,
-      details: `Banned: ${args.banned}${
-        args.reason ? ` â€” ${args.reason}` : ""
-      }`,
+      details: args.banned
+        ? `Banned: ${args.reason ?? "No reason provided"}`
+        : "Unbanned - access restored",
       ip: undefined,
       createdAt: Date.now(),
     });
@@ -405,22 +438,81 @@ export const setUserBan = mutation({
   },
 });
 
-/** Delete a user â€” SUPER_ADMIN only. */
+/**
+ * Delete a user - SUPER_ADMIN only.
+ * Related records are cleaned up so the deletion leaves no dangling
+ * references: profile, role, stats, submissions (+ likes), likes,
+ * executions (+ logs), judge submissions, achievements, bookmarks,
+ * notifications, owned teams (+ memberships), memberships, and reports
+ * submitted by / targeting the user.
+ */
 export const deleteUser = mutation({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
     const callerId = await getAuthUserId(ctx);
-    if (!callerId) throw new Error("Not authenticated");
+    if (!callerId) throw new Error("UNAUTHORIZED: Not authenticated");
     const caller = await resolveIdentity(ctx, callerId);
-    if (!caller || caller.role !== "SUPER_ADMIN") throw new Error("Forbidden");
-    if (args.userId === callerId) throw new Error("You cannot delete yourself");
+    if (!caller) throw new Error("UNAUTHORIZED");
+    requireNotBanned(caller);
+    if (caller.role !== "SUPER_ADMIN") throw new Error("FORBIDDEN: Only SUPER_ADMIN can delete users");
+    if (args.userId === callerId) throw new Error("FORBIDDEN: You cannot delete yourself");
 
     const target = await ctx.db.get(args.userId);
-    if (!target) throw new Error("User not found");
+    if (!target) throw new Error("USER_NOT_FOUND: User not found");
     const targetEmail = (target.email as string) ?? "[unknown]";
-    if (superAdminEmails().includes(targetEmail.toLowerCase())) {
-      throw new Error("Cannot delete a SUPER_ADMIN");
+
+    const targetRole = await resolveIdentity(ctx, args.userId);
+    if (targetRole?.role === "SUPER_ADMIN") {
+      throw new Error("SUPER_ADMIN_PROTECTED: Cannot delete a SUPER_ADMIN account");
     }
+
+    // ------------------------------------------------------------------
+    // Convex AUTH data cleanup — the registered user must be permanently
+    // removed from the authentication data as well, otherwise the user
+    // would still "exist" in auth (sessions/accounts) after deletion.
+    // ------------------------------------------------------------------
+
+    // 1. Sessions -> their refresh tokens + verifiers, then the sessions.
+    const sessions = await ctx.db
+      .query("authSessions")
+      .withIndex("userId", (q) => q.eq("userId", args.userId))
+      .collect();
+    for (const session of sessions) {
+      const refreshTokens = await ctx.db
+        .query("authRefreshTokens")
+        .withIndex("sessionId", (q) => q.eq("sessionId", session._id))
+        .collect();
+      for (const token of refreshTokens) await ctx.db.delete(token._id);
+
+      // authVerifiers has no session index — scan is scoped to this app.
+      const verifiers = await ctx.db.query("authVerifiers").collect();
+      for (const verifier of verifiers) {
+        if (String(verifier.sessionId) === String(session._id)) {
+          await ctx.db.delete(verifier._id);
+        }
+      }
+
+      await ctx.db.delete(session._id);
+    }
+
+    // 2. Auth accounts (credentials) -> their verification codes, then the accounts.
+    const accounts = await ctx.db
+      .query("authAccounts")
+      .withIndex("userIdAndProvider", (q) => q.eq("userId", args.userId))
+      .collect();
+    for (const account of accounts) {
+      const codes = await ctx.db
+        .query("authVerificationCodes")
+        .withIndex("accountId", (q) => q.eq("accountId", account._id))
+        .collect();
+      for (const code of codes) await ctx.db.delete(code._id);
+
+      await ctx.db.delete(account._id);
+    }
+
+    // ------------------------------------------------------------------
+    // CodeRush domain cleanup — every table that references the user.
+    // ------------------------------------------------------------------
 
     const profile = await ctx.db
       .query("profiles")
@@ -452,6 +544,77 @@ export const deleteUser = mutation({
       .collect();
     for (const n of notifications) await ctx.db.delete(n._id);
 
+    const submissions = await ctx.db
+      .query("submissions")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .collect();
+    for (const s of submissions) {
+      const likesOn = await ctx.db
+        .query("likes")
+        .withIndex("by_submission", (q) => q.eq("submissionId", s._id))
+        .collect();
+      for (const l of likesOn) await ctx.db.delete(l._id);
+      await ctx.db.delete(s._id);
+    }
+
+    const userLikes = await ctx.db
+      .query("likes")
+      .withIndex("by_user_and_submission", (q) => q.eq("userId", args.userId))
+      .collect();
+    for (const l of userLikes) await ctx.db.delete(l._id);
+
+    const executionsOwn = await ctx.db
+      .query("executions")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .collect();
+    for (const e of executionsOwn) {
+      const logs = await ctx.db
+        .query("executionLogs")
+        .withIndex("by_execution", (q) => q.eq("executionId", e._id))
+        .collect();
+      for (const log of logs) await ctx.db.delete(log._id);
+      await ctx.db.delete(e._id);
+    }
+
+    const judgeSubs = await ctx.db
+      .query("judgeSubmissions")
+      .withIndex("by_user_created", (q) => q.eq("userId", args.userId))
+      .collect();
+    for (const s of judgeSubs) await ctx.db.delete(s._id);
+
+    const achievements = await ctx.db
+      .query("userAchievements")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .collect();
+    for (const a of achievements) await ctx.db.delete(a._id);
+
+    const ownedTeams = await ctx.db
+      .query("teams")
+      .withIndex("by_owner", (q) => q.eq("ownerId", args.userId))
+      .collect();
+    for (const t of ownedTeams) {
+      const members = await ctx.db
+        .query("teamMembers")
+        .withIndex("by_team", (q) => q.eq("teamId", t._id))
+        .collect();
+      for (const m of members) await ctx.db.delete(m._id);
+      await ctx.db.delete(t._id);
+    }
+    const memberships = await ctx.db
+      .query("teamMembers")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .collect();
+    for (const m of memberships) await ctx.db.delete(m._id);
+
+    const allReports = await ctx.db.query("reports").collect();
+    for (const r of allReports) {
+      if (String(r.reporterId) === String(args.userId)) {
+        await ctx.db.delete(r._id);
+      } else if (r.targetType === "user" && r.targetId === String(args.userId)) {
+        await ctx.db.delete(r._id);
+      }
+    }
+
     await ctx.db.delete(args.userId);
     await ctx.db.insert("auditLogs", {
       adminId: callerId,
@@ -460,6 +623,148 @@ export const deleteUser = mutation({
       target: "user",
       targetId: args.userId,
       details: `Deleted user ${targetEmail}`,
+      ip: undefined,
+      createdAt: Date.now(),
+    });
+
+    return { ok: true };
+  },
+});
+
+/**
+ * Query: full profile for a single user (admin users page -> View Profile).
+ * SUPER_ADMIN callers see everything (no secrets). ADMIN callers see
+ * protected-real rows masked for users who outrank them.
+ */
+export const adminGetUser = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const callerId = await getAuthUserId(ctx);
+    if (!callerId) throw new Error("UNAUTHORIZED: Not authenticated");
+    const caller = await resolveIdentity(ctx, callerId);
+    if (!caller) throw new Error("UNAUTHORIZED: Could not resolve caller");
+    if (caller.role !== "ADMIN" && caller.role !== "SUPER_ADMIN") {
+      throw new Error("FORBIDDEN: Insufficient permissions");
+    }
+
+    const target = await ctx.db.get(args.userId);
+    if (!target) throw new Error("USER_NOT_FOUND: User not found");
+
+    const targetRole = await resolveIdentity(ctx, args.userId);
+    if (!targetRole) throw new Error("USER_NOT_FOUND: User not found");
+    const isSuper = targetRole.role === "SUPER_ADMIN";
+
+    const profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .unique();
+
+    // ADMINS never see identity fields of people who outrank them.
+    const masked = caller.role === "ADMIN" && isSuper;
+
+    const lastExecution = await ctx.db
+      .query("executions")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .order("desc")
+      .first();
+
+    return {
+      _id: args.userId,
+      email: masked ? "[protected]" : (target.email as string | undefined),
+      username: masked ? "[protected]" : (profile?.username ?? null),
+      role: targetRole.role,
+      xp: profile?.xp ?? 0,
+      avatarUrl: masked ? null : (profile?.avatarUrl ?? null),
+      bio: masked ? null : (profile?.bio ?? null),
+      isSuspended: profile?.isSuspended ?? false,
+      isBanned: profile?.isBanned ?? false,
+      bannedAt: profile?.bannedAt ?? null,
+      bannedReason: profile?.bannedReason ?? null,
+      bannedBy: profile?.bannedBy ?? null,
+      createdAt: target._creationTime,
+      lastActiveAt: lastExecution?.startedAt ?? null,
+    };
+  },
+});
+
+/**
+ * Mutation: edit safe profile fields of a NON-SUPER_ADMIN account.
+ * Caller must be ADMIN (USER targets only) or SUPER_ADMIN (USER/ADMIN targets).
+ * Role is untouched here - role changes go through updateUserRole.
+ */
+export const adminUpdateUser = mutation({
+  args: {
+    userId: v.id("users"),
+    username: v.optional(v.string()),
+    bio: v.optional(v.string()),
+    avatarUrl: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const callerId = await getAuthUserId(ctx);
+    if (!callerId) throw new Error("UNAUTHORIZED: Not authenticated");
+    const caller = await resolveIdentity(ctx, callerId);
+    if (!caller) throw new Error("UNAUTHORIZED: Could not resolve caller");
+    requireNotBanned(caller);
+    if (caller.role !== "ADMIN" && caller.role !== "SUPER_ADMIN") {
+      throw new Error("FORBIDDEN: Insufficient permissions");
+    }
+
+    const target = await ctx.db.get(args.userId);
+    if (!target) throw new Error("USER_NOT_FOUND: User not found");
+
+    const targetRole = await resolveIdentity(ctx, args.userId);
+    if (targetRole?.role === "SUPER_ADMIN") {
+      throw new Error("SUPER_ADMIN_PROTECTED: Cannot edit a SUPER_ADMIN account");
+    }
+    if (caller.role === "ADMIN" && targetRole?.role === "ADMIN") {
+      throw new Error("FORBIDDEN: ADMIN cannot edit another ADMIN account");
+    }
+
+    const profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .unique();
+    if (!profile) throw new Error("USER_NOT_FOUND: User profile not found");
+
+    const patch: Record<string, unknown> = {};
+    if (args.username !== undefined) {
+      const username = args.username.trim();
+      if (!USERNAME_RE.test(username)) {
+        throw new Error("INVALID_USERNAME: Username must be 3-20 characters: letters, numbers, underscores only");
+      }
+      const taken = await ctx.db
+        .query("profiles")
+        .withIndex("by_username", (q) => q.eq("username", username))
+        .unique();
+      if (taken && String(taken.userId) !== String(args.userId)) {
+        throw new Error("USERNAME_TAKEN: That username is already in use");
+      }
+      patch.username = username;
+    }
+    if (args.bio !== undefined) {
+      const bio = args.bio.trim();
+      if (bio.length > 500) throw new Error("INVALID_BIO: Bio must be 500 characters or fewer");
+      patch.bio = bio;
+    }
+    if (args.avatarUrl !== undefined && args.avatarUrl !== null) {
+      if (args.avatarUrl.length > 2048 || !/^https?:\/\//.test(args.avatarUrl)) {
+        throw new Error("INVALID_AVATAR: Avatar must be a valid http(s) URL");
+      }
+      patch.avatarUrl = args.avatarUrl;
+    }
+    if (Object.keys(patch).length === 0) {
+      throw new Error("INVALID_INPUT: No editable fields provided");
+    }
+
+    await ctx.db.patch(profile._id, patch);
+
+    await ctx.db.insert("auditLogs", {
+      adminId: callerId,
+      adminEmail: caller.email ?? "[unknown]",
+      action: "user_updated",
+      target: "user",
+      targetId: args.userId,
+      details: `Updated profile fields: ${Object.keys(patch).join(", ")}`,
       ip: undefined,
       createdAt: Date.now(),
     });
@@ -507,4 +812,4 @@ export const listAdmins = query({
   },
 });
 
-export { superAdminEmails, resolveIdentity, ROLE_RANK };
+export { superAdminEmails, resolveIdentity, ROLE_RANK, requireNotBanned };

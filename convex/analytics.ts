@@ -85,8 +85,8 @@ function computeStreaks(
       prev === null
         ? 1
         : (dayStart(new Date(key + "T00:00:00Z").getTime()) -
-            dayStart(new Date(prev + "T00:00:00Z").getTime())) /
-          DAY;
+          dayStart(new Date(prev + "T00:00:00Z").getTime())) /
+        DAY;
     run = prev === null || gap === 1 ? run + 1 : 1;
     prev = key;
     if (run > longest) longest = run;
@@ -235,11 +235,11 @@ export const getAnalytics = query({
       solved: number;
       percent: number;
     }[] = [
-      { difficulty: "easy", solved: solvedCountByDifficulty.easy, percent: 0 },
-      { difficulty: "medium", solved: solvedCountByDifficulty.medium, percent: 0 },
-      { difficulty: "hard", solved: solvedCountByDifficulty.hard, percent: 0 },
-      { difficulty: "practice", solved: practiceSolves, percent: 0 },
-    ];
+        { difficulty: "easy", solved: solvedCountByDifficulty.easy, percent: 0 },
+        { difficulty: "medium", solved: solvedCountByDifficulty.medium, percent: 0 },
+        { difficulty: "hard", solved: solvedCountByDifficulty.hard, percent: 0 },
+        { difficulty: "practice", solved: practiceSolves, percent: 0 },
+      ];
     difficultyBuckets[0].percent = Math.round((difficultyBuckets[0].solved / 60) * 100);
     difficultyBuckets[1].percent = Math.round((difficultyBuckets[1].solved / 80) * 100);
     difficultyBuckets[2].percent = Math.round((difficultyBuckets[2].solved / 50) * 100);
@@ -430,7 +430,7 @@ export const getAnalytics = query({
     const insights: { icon: string; text: string }[] = [];
     if (solvesInRange - solvesPrev > 0) {
       insights.push({
-        icon: "ðŸ†",
+        icon: "◑",
         text: `You solved ${solvesInRange - solvesPrev} more ${(solvesInRange - solvesPrev) === 1 ? "problem" : "problems"} than in the previous period.`,
       });
     }

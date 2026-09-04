@@ -8,7 +8,7 @@ import { resolveIdentity } from "./roles";
 
 /** Seeded achievement definitions. */
 const DEFAULT_ACHIEVEMENTS = [
-  { code: "first_submission", name: "First Submission", description: "Submit your first solution", icon: "ðŸ†", category: "beginner", criteriaType: "submissions" as const, criteriaValue: 1, xpReward: 10, isActive: true },
+  { code: "first_submission", name: "First Submission", description: "Submit your first solution", icon: "◑", category: "beginner", criteriaType: "submissions" as const, criteriaValue: 1, xpReward: 10, isActive: true },
   { code: "ten_solved", name: "10 Problems Solved", description: "Solve 10 problems", icon: "ðŸ”¥", category: "milestone", criteriaType: "problems_solved" as const, criteriaValue: 10, xpReward: 50, isActive: true },
   { code: "hundred_executions", name: "100 Executions", description: "Run code 100 times", icon: "âš¡", category: "milestone", criteriaType: "executions" as const, criteriaValue: 100, xpReward: 50, isActive: true },
   { code: "top_10", name: "Top 10 Leaderboard", description: "Reach rank #10 or higher", icon: "ðŸ‘‘", category: "competitive", criteriaType: "leaderboard_rank" as const, criteriaValue: 10, xpReward: 100, isActive: true },

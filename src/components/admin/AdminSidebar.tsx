@@ -23,6 +23,7 @@ import {
   Shield,
   FileText,
   Settings,
+  Globe,
   ChevronLeft,
   ChevronRight,
   Search,
@@ -54,6 +55,11 @@ const navItems: NavItem[] = [
     icon: <Puzzle size={19} />,
   },
   {
+    href: "/admin/challenges",
+    label: "Challenges",
+    icon: <Trophy size={19} />,
+  },
+  {
     href: "/admin/test-cases",
     label: "Test Cases",
     icon: <TestTube2 size={19} />,
@@ -62,6 +68,11 @@ const navItems: NavItem[] = [
     href: "/admin/submissions",
     label: "Submissions",
     icon: <Code2 size={19} />,
+  },
+  {
+    href: "/admin/challenges/submissions",
+    label: "Web Submissions",
+    icon: <Globe size={19} />,
   },
   {
     href: "/admin/executions",
@@ -145,15 +156,15 @@ export function AdminSidebar({
     },
     {
       title: "Management",
-      items: visibleItems.slice(1, 6),
+      items: visibleItems.slice(1, 8),
     },
     {
       title: "Platform",
-      items: visibleItems.slice(6, 12),
+      items: visibleItems.slice(8, 14),
     },
     {
       title: "System",
-      items: visibleItems.slice(12),
+      items: visibleItems.slice(14),
     },
   ];
 

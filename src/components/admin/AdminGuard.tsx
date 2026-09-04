@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { ReactNode, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -18,7 +18,13 @@ export function AdminGuard({ children, requiredRole = "ADMIN" }: AdminGuardProps
   // identity === undefined → still loading, identity === null → signed out.
   const isLoading = identity === undefined;
 
+  // Banned callers are locked out of the admin area entirely — BanGate renders
+  // the full-screen suspension screen globally, so here we just avoid rendering
+  // the admin shell for them.
+  const isBanned = identity?.isBanned === true;
+
   const authorized =
+    isBanned === false &&
     identity != null &&
     (requiredRole === "SUPER_ADMIN"
       ? identity.role === "SUPER_ADMIN"
@@ -34,7 +40,7 @@ export function AdminGuard({ children, requiredRole = "ADMIN" }: AdminGuardProps
     if (!authorized) {
       router.push("/dashboard");
     }
-  }, [isLoading, identity, authorized, router]);
+  }, [isLoading, identity, isBanned, authorized, router]);
 
   if (isLoading) {
     return (

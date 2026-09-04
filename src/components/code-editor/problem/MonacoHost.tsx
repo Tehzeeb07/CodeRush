@@ -99,7 +99,7 @@ export default function MonacoHost({
             model,
             error,
         );
-        stageQuickFix(model, error!, language);
+        stageQuickFix(model, error, language);
     }, [error, language]);
 
     return (

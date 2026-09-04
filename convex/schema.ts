@@ -259,19 +259,43 @@ export default defineSchema({
     challengeId: v.id("challenges"),
     userId: v.id("users"),
     teamId: v.optional(v.id("teams")),
-    repoUrl: v.string(),
+    /** Project submissions (GitHub link flow) — required for those rows. */
+    repoUrl: v.optional(v.string()),
     demoUrl: v.optional(v.string()),
-    description: v.string(),
+    description: v.optional(v.string()),
     createdAt: v.number(),
     /** Showcase moderation flags (admin-managed). */
     isFeatured: v.optional(v.boolean()),
     isHidden: v.optional(v.boolean()),
     featuredAt: v.optional(v.number()),
+    /**
+     * Web Development challenge submissions (category/hackathonCategory = web).
+     * `submissionType = "web"` marks rows created from the in-browser editor;
+     * rows without it are the original GitHub-link project submissions.
+     */
+    submissionType: v.optional(v.union(v.literal("project"), v.literal("web"))),
+    /** Web editor code, present on `submissionType = "web"` rows. */
+    htmlCode: v.optional(v.string()),
+    cssCode: v.optional(v.string()),
+    javascriptCode: v.optional(v.string()),
+    /** Web submission lifecycle — pending → approved | rejected. */
+    status: v.optional(
+      v.union(v.literal("pending"), v.literal("approved"), v.literal("rejected"))
+    ),
+    submittedAt: v.optional(v.number()),
+    reviewedBy: v.optional(v.id("users")),
+    reviewedAt: v.optional(v.number()),
+    reviewNote: v.optional(v.string()),
+    /** XP granted once when a web submission is approved (idempotency guard). */
+    xpAwarded: v.optional(v.number()),
   })
     .index("by_challenge", ["challengeId"])
     .index("by_user", ["userId"])
     .index("by_featured", ["isFeatured"])
-    .index("by_team", ["teamId"]),
+    .index("by_team", ["teamId"])
+    .index("by_status", ["status"])
+    .index("by_submissionType", ["submissionType"])
+    .index("by_user_challenge", ["userId", "challengeId"]),
 
   challenges: defineTable({
     title: v.string(),
@@ -286,6 +310,19 @@ export default defineSchema({
       v.literal("speed"),
       v.literal("hackathon")
     ),
+    /**
+     * Hackathon sub-category. Challenges created through the Admin Panel
+     * Challenges → Hackathons flow set `category = "hackathon"` plus one of
+     * these sub-categories so they land in the correct public section:
+     *   AI / Coding / Web Development.
+     */
+    hackathonCategory: v.optional(
+      v.union(
+        v.literal("ai"),
+        v.literal("coding"),
+        v.literal("web")
+      )
+    ),
     difficulty: v.union(
       v.literal("beginner"),
       v.literal("intermediate"),
@@ -294,10 +331,45 @@ export default defineSchema({
     theme: v.optional(v.string()),
     xpReward: v.number(),
     deadline: v.optional(v.number()),
+    /** Hackathon start / end timestamps (ms since epoch). */
+    startDate: v.optional(v.number()),
+    endDate: v.optional(v.number()),
+    /** Rules or requirements for the challenge. */
+    rules: v.optional(v.string()),
+    /** Optional image/banner URL shown on the public challenge card/page. */
+    bannerUrl: v.optional(v.string()),
+    /** Admin who created the challenge. */
+    createdBy: v.optional(v.id("users")),
+    /**
+     * Web Development challenge starter templates. When set, the Web Editor
+     * opens with these instead of the generic placeholder code.
+     */
+    starterHtml: v.optional(v.string()),
+    starterCss: v.optional(v.string()),
+    starterJavascript: v.optional(v.string()),
+    updatedAt: v.optional(v.number()),
     createdAt: v.number(),
   })
     .index("by_category", ["category"])
+    .index("by_hackathonCategory", ["hackathonCategory"])
     .index("by_difficulty", ["difficulty"]),
+
+  /**
+   * Per-user saved drafts for Web Development challenges (in-browser editor).
+   * A draft exists when the user clicked "Save" (or auto-saved) inside
+   * /challenges/[id]/editor. One row per user + challenge. `_creationTime`
+   * doubles as the draft's createdAt.
+   */
+  webProjectDrafts: defineTable({
+    challengeId: v.id("challenges"),
+    userId: v.id("users"),
+    htmlCode: v.string(),
+    cssCode: v.string(),
+    javascriptCode: v.string(),
+    updatedAt: v.number(),
+  })
+    .index("by_user_challenge", ["userId", "challengeId"])
+    .index("by_challenge", ["challengeId"]),
 
   /**
    * Code execution records. One document per run submitted through the
@@ -332,11 +404,16 @@ export default defineSchema({
     problemId: v.optional(v.string()),
     /** Points awarded for this submission (denormalized for aggregations). */
     pointsAwarded: v.optional(v.number()),
+    /**
+     * XP awarded for this execution (denormalized for idempotency).
+     * Once set, this execution cannot award XP again.
+     */
+    xpAwarded: v.optional(v.number()),
   })
     .index("by_executionId", ["executionId"])
     .index("by_user", ["userId"])
     .index("by_user_startedAt", ["userId", "startedAt"])
-        .index("by_user_problem", ["userId", "problemId"])
+    .index("by_user_problem", ["userId", "problemId"])
     .index("by_status", ["status"])
     .index("by_startedAt", ["startedAt"]),
 
@@ -360,10 +437,15 @@ export default defineSchema({
    * Denormalized per-user coding statistics kept in sync exclusively by
    * secure server-side mutations (see convex/leaderboard.ts). Clients can
    * only read these — never write points/ranks directly.
+   *
+   * xp and points are kept in sync: both represent the user's score,
+   * with xp being the source of truth for display and points for ranking.
    */
   userStats: defineTable({
     userId: v.id("users"),
     points: v.number(),
+    /** XP is synchronized with points - both represent the same score. */
+    xp: v.optional(v.number()),
     totalSubmissions: v.number(),
     successfulSubmissions: v.number(),
     failedSubmissions: v.number(),
@@ -465,6 +547,12 @@ export default defineSchema({
     totalCount: v.optional(v.number()),
     runtimeMs: v.optional(v.number()),
     memoryKb: v.optional(v.number()),
+    /** Server-side ids of the test cases this submission passed (audit). */
+    passedTestCaseIds: v.optional(v.array(v.string())),
+    /** XP actually granted for this submission (set once — idempotency guard). */
+    xpAwarded: v.optional(v.number()),
+    /** XP-per-test-case rate that was in effect when this was judged. */
+    xpPerTestSnapshot: v.optional(v.number()),
     createdAt: v.number(),
     completedAt: v.optional(v.number()),
   })
@@ -473,4 +561,57 @@ export default defineSchema({
         .index("by_problem", ["problemId"])
     .index("by_outcome", ["outcome"])
     .index("by_createdAt", ["createdAt"]),
+  /**
+   * Per-user progress for every problem they have submitted to (§15).
+   *
+   * Written exclusively by the trusted XP/progress mutation after the judge
+   * produces its verdict. Clients may read their own rows but can never
+   * write them directly.
+   */
+  problemProgress: defineTable({
+    userId: v.id("users"),
+    problemId: v.id("problems"),
+    problemSlug: v.string(),
+    /** "attempted" = submitted but not fully accepted yet. */
+    status: v.union(v.literal("attempted"), v.literal("solved")),
+    bestPassedCount: v.number(),
+    totalTestCount: v.number(),
+    attempts: v.number(),
+    firstAttemptAt: v.number(),
+    firstSolvedAt: v.optional(v.number()),
+    /** Total XP ever awarded for this problem (already farm-protected). */
+    totalXpAwarded: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_problem", ["userId", "problemId"])
+    .index("by_problem", ["problemId"])
+    .index("by_user_updatedAt", ["userId", "updatedAt"]),
+
+  /**
+   * Append-only XP ledger (§12–§14).
+   *
+   * Every XP grant is a row here. `uniqueKey` makes awards idempotent:
+   * `xp:<userId>:<problemId>:<testCaseId>` guarantees a test case can only
+   * ever award XP once per user per problem, so re-submitting the same
+   * solution (or brute-forcing variants) cannot farm XP.
+   */
+  xpLedger: defineTable({
+    userId: v.id("users"),
+    amount: v.number(),
+    reason: v.union(
+      v.literal("test_case_passed"),
+      v.literal("achievement"),
+      v.literal("admin_grant"),
+    ),
+    problemId: v.optional(v.id("problems")),
+    problemSlug: v.optional(v.string()),
+    submissionId: v.optional(v.id("judgeSubmissions")),
+    testCaseId: v.optional(v.string()),
+    uniqueKey: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_unique_key", ["uniqueKey"])
+    .index("by_user_createdAt", ["userId", "createdAt"])
+    .index("by_user_problem", ["userId", "problemId"]),
 });

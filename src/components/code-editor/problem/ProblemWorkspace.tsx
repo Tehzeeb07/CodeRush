@@ -48,12 +48,15 @@ import {
     LoadingHint,
 } from "./Dialogs";
 
+import type { ProblemProgressView } from "@/../convex/xp";
+
 const AUTOSAVE_DEBOUNCE_MS = 1200;
 const CUSTOM_INPUT_LIMIT = 10_000;
 
 export interface ProblemWorkspaceProps {
     problem: SanitizedProblem;
     signedIn: boolean;
+    progress?: ProblemProgressView | null;
 }
 
 type DraftPhase = "checking" | "ask-restore" | "none";
@@ -95,6 +98,7 @@ export default function ProblemWorkspace({ problem, signedIn }: ProblemWorkspace
         return getLanguage("cpp").starterCode;
     });
 
+    const [customInputOpen, setCustomInputOpen] = useState(false);
     const [customInput, setCustomInput] = useState("");
     const [running, setRunning] = useState(false);
     const [result, setResult] = useState<JudgeResponse | null>(null);
@@ -265,15 +269,16 @@ export default function ProblemWorkspace({ problem, signedIn }: ProblemWorkspace
                         custom:
                             mode === "custom"
                                 ? {
-                                      stdout: "",
-                                      stderr: "",
-                                      exitCode: null,
-                                      executionTimeMs: 0,
-                                      memoryUsageKb: null,
-                                  }
+                                    stdout: "",
+                                    stderr: "",
+                                    exitCode: null,
+                                    executionTimeMs: 0,
+                                    memoryUsageKb: null,
+                                }
                                 : null,
                         submissionId: null,
                         createdAt: null,
+                        xpAwarded: null,
                     });
                     setTab("errors");
                     return;
@@ -284,10 +289,10 @@ export default function ProblemWorkspace({ problem, signedIn }: ProblemWorkspace
                     data.error && data.error.type !== "wrong_answer"
                         ? "errors"
                         : data.outcome === "wrong_answer"
-                          ? "tests"
-                          : data.mode === "custom"
-                            ? "output"
-                            : "tests",
+                            ? "tests"
+                            : data.mode === "custom"
+                                ? "output"
+                                : "tests",
                 );
                 if (data.ok && mode !== "custom") {
                     push("✓ All tests passed", "success");
@@ -343,8 +348,8 @@ export default function ProblemWorkspace({ problem, signedIn }: ProblemWorkspace
                 data.outcome === "accepted"
                     ? "tests"
                     : data.error
-                      ? "errors"
-                      : "tests",
+                        ? "errors"
+                        : "tests",
             );
             push(
                 data.outcome === "accepted"
@@ -451,6 +456,8 @@ export default function ProblemWorkspace({ problem, signedIn }: ProblemWorkspace
                     if (submitting || running) return;
                     setSubmitOpen(true);
                     setRunning(true);
+                } else if (e.altKey) {
+                    void execute("test");
                 } else {
                     void execute("run");
                 }
@@ -552,6 +559,15 @@ export default function ProblemWorkspace({ problem, signedIn }: ProblemWorkspace
                 </button>
                 <button
                     type="button"
+                    onClick={() => void execute("test")}
+                    disabled={running || submitting}
+                    title="Test against all test cases (Ctrl+Alt+Enter)"
+                    className="inline-flex items-center gap-2 rounded-md border border-amber-500/60 bg-amber-500/10 px-4 py-1.5 text-sm font-semibold text-amber-300 transition-colors hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                    {running ? "⟳ Testing…" : "🧪 Test"}
+                </button>
+                <button
+                    type="button"
                     onClick={() => void execute("submit")}
                     disabled={running || submitting}
                     title="Submit (Ctrl+Shift+Enter)"
@@ -588,6 +604,8 @@ export default function ProblemWorkspace({ problem, signedIn }: ProblemWorkspace
             onRun={() => void execute("custom")}
             running={running}
             maxBytes={CUSTOM_INPUT_LIMIT}
+            open={customInputOpen}
+            onOpenChange={setCustomInputOpen}
         />
     );
 

@@ -186,10 +186,17 @@ export class HttpBackend implements ExecutionBackend {
         job: ExecutionJob,
         target: { language: string; version: string },
     ): Record<string, unknown> {
-        const timeoutSeconds = Math.max(
-            1,
-            Math.round(SANDBOX_LIMITS.timeoutMs / 1000),
-        );
+        /**
+         * Piston's `compile_timeout` / `run_timeout` fields are in
+         * MILLISECONDS (not seconds) and the API rejects values above the
+         * service's configured cap (3000 ms on the standard deployment).
+         *
+         * Sending the app's 10-second limit as the bare number "10" made
+         * Piston enforce a 10 MILLISECOND cap — every compile/run was
+         * SIGKILLed instantly and surfaced as a bogus "Compilation failed."
+         * for perfectly valid C++/Java submissions.
+         */
+        const timeoutMs = Math.min(SANDBOX_LIMITS.timeoutMs, 3000);
         return {
             language: target.language,
             version: target.version,
@@ -200,8 +207,8 @@ export class HttpBackend implements ExecutionBackend {
                 },
             ],
             stdin: job.input,
-            compile_timeout: timeoutSeconds,
-            run_timeout: timeoutSeconds,
+            compile_timeout: timeoutMs,
+            run_timeout: timeoutMs,
         };
     }
 
@@ -242,8 +249,8 @@ export class HttpBackend implements ExecutionBackend {
 
                 console.error(
                     `[code-execution] execution service rejected request ` +
-                        `(HTTP ${response.status}) for ${job.language.id}: ` +
-                        `${serverReason}`,
+                    `(HTTP ${response.status}) for ${job.language.id}: ` +
+                    `${serverReason}`,
                 );
 
                 // 401/403 mean this app is not authorized for the service
@@ -284,7 +291,19 @@ export class HttpBackend implements ExecutionBackend {
             };
             const compile = data.compile;
 
-            // Compilation stage failed (C++ / Java).
+            // A compile-stage kill (SIGKILL/SIGTERM — Piston's "TO"/"XX"
+            // verdicts for wall-clock/memory limits) means the COMPILER was
+            // reaped by the sandbox, not that the source code is wrong.
+            // Report it as a timeout exactly like the run stage below, so we
+            // never fabricate "Compilation failed." out of a timeout.
+            if (
+                compile?.signal === "SIGKILL" ||
+                compile?.signal === "SIGTERM"
+            ) {
+                throw new ExecutionTimeoutError();
+            }
+
+            // Compilation stage genuinely failed (C++ / Java).
             if (
                 compile &&
                 ((compile.code !== null && compile.code !== 0) ||

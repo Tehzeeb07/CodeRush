@@ -17,6 +17,7 @@ import {
   CheckCircle2,
   XCircle,
 } from "lucide-react";
+import { ConfirmDialog } from "../../../components/admin/ConfirmDialog";
 
 export default function AdminProblemsPage() {
   const router = useRouter();
@@ -27,6 +28,12 @@ export default function AdminProblemsPage() {
   >(undefined);
 
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    type: "archive" | "delete";
+    id: string;
+    title: string;
+    currentlyArchived: boolean;
+  } | null>(null);
   const [message, setMessage] = useState<{
     type: "success" | "error";
     text: string;
@@ -73,18 +80,19 @@ export default function AdminProblemsPage() {
     router.push(`/admin/problems/${encodeURIComponent(slug)}/edit`);
   };
 
-  const handleDuplicate = async (id: string, slug: string) => {
+  const handleDuplicate = async (id: string) => {
     try {
       setActionLoading(`duplicate-${id}`);
 
-      const newSlug = `${slug}-copy-${Date.now()}`;
-
+      // Backend generates a unique "-copy" slug (with numeric suffixes if
+      // needed) and sets the duplicated problem to Draft status.
       await duplicateProblem({
         id: id as any,
-        newSlug,
       });
 
-      showSuccess("Problem duplicated successfully.");
+      showSuccess(
+        "Problem duplicated successfully. It was added to the list as a draft."
+      );
     } catch (error) {
       console.error("Duplicate problem error:", error);
 
@@ -98,7 +106,22 @@ export default function AdminProblemsPage() {
     }
   };
 
-  const handleArchive = async (
+  // Open the confirmation dialog for archiving / restoring.
+  const requestArchive = (
+    id: string,
+    currentlyArchived: boolean
+  ) => {
+    setConfirmDialog({
+      type: "archive",
+      id,
+      title:
+        problems.find((p) => p._id === id)?.title ??
+        "this problem",
+      currentlyArchived,
+    });
+  };
+
+  const performArchive = async (
     id: string,
     currentlyArchived: boolean
   ) => {
@@ -112,8 +135,8 @@ export default function AdminProblemsPage() {
 
       showSuccess(
         currentlyArchived
-          ? "Problem restored successfully."
-          : "Problem archived successfully."
+          ? "Problem restored and re-published to its previous status."
+          : "Problem archived. It is no longer visible to regular users."
       );
     } catch (error) {
       console.error("Archive problem error:", error);
@@ -125,16 +148,23 @@ export default function AdminProblemsPage() {
       );
     } finally {
       setActionLoading(null);
+      setConfirmDialog(null);
     }
   };
 
-  const handleDelete = async (id: string, title: string) => {
-    const confirmed = window.confirm(
-      `Are you sure you want to permanently delete "${title}"?\n\nThis action cannot be undone.`
-    );
+  // Open the confirmation dialog for deletion.
+  const requestDelete = (id: string) => {
+    setConfirmDialog({
+      type: "delete",
+      id,
+      title:
+        problems.find((p) => p._id === id)?.title ??
+        "this problem",
+      currentlyArchived: false,
+    });
+  };
 
-    if (!confirmed) return;
-
+  const performDelete = async (id: string) => {
     try {
       setActionLoading(`delete-${id}`);
 
@@ -142,7 +172,7 @@ export default function AdminProblemsPage() {
         id: id as any,
       });
 
-      showSuccess("Problem deleted successfully.");
+      showSuccess("Problem deleted permanently.");
     } catch (error) {
       console.error("Delete problem error:", error);
 
@@ -153,6 +183,21 @@ export default function AdminProblemsPage() {
       );
     } finally {
       setActionLoading(null);
+      setConfirmDialog(null);
+    }
+  };
+
+  // Dispatch the confirmed destructive action.
+  const performConfirmAction = () => {
+    if (!confirmDialog) return;
+
+    if (confirmDialog.type === "archive") {
+      void performArchive(
+        confirmDialog.id,
+        confirmDialog.currentlyArchived
+      );
+    } else {
+      void performDelete(confirmDialog.id);
     }
   };
 
@@ -503,8 +548,7 @@ export default function AdminProblemsPage() {
                         disabled={isDuplicateLoading}
                         onClick={() =>
                           handleDuplicate(
-                            problem._id,
-                            problem.slug
+                            problem._id
                           )
                         }
                         title="Duplicate Problem"
@@ -525,7 +569,7 @@ export default function AdminProblemsPage() {
                         type="button"
                         disabled={isArchiveLoading}
                         onClick={() =>
-                          handleArchive(
+                          requestArchive(
                             problem._id,
                             isArchived
                           )
@@ -552,9 +596,8 @@ export default function AdminProblemsPage() {
                         type="button"
                         disabled={isDeleteLoading}
                         onClick={() =>
-                          handleDelete(
-                            problem._id,
-                            problem.title
+                          requestDelete(
+                            problem._id
                           )
                         }
                         title="Delete Problem"
@@ -577,6 +620,41 @@ export default function AdminProblemsPage() {
           </div>
         </div>
       )}
+
+      {/* CONFIRM DIALOG (archive / restore / delete) */}
+      <ConfirmDialog
+        open={confirmDialog !== null}
+        title={
+          confirmDialog?.type === "delete"
+            ? "Delete Problem?"
+            : confirmDialog?.currentlyArchived
+              ? "Restore Problem?"
+              : "Archive Problem?"
+        }
+        description={
+          confirmDialog?.type === "delete"
+            ? `You are about to permanently delete "${confirmDialog?.title}". This action cannot be undone. Related submissions will be removed and bookmarks/execution history will be detached.`
+            : confirmDialog?.currentlyArchived
+              ? `"${confirmDialog?.title}" will become visible to regular users again based on its publish status.`
+              : `"${confirmDialog?.title}" will be hidden from the public problem list. It will remain available here in Admin Problem Management and can be restored at any time.`
+        }
+        confirmLabel={
+          confirmDialog?.type === "delete"
+            ? "Delete"
+            : confirmDialog?.currentlyArchived
+              ? "Restore"
+              : "Archive"
+        }
+        cancelLabel="Cancel"
+        variant={
+          confirmDialog?.type === "delete"
+            ? "destructive"
+            : "warning"
+        }
+        isLoading={actionLoading !== null}
+        onClose={() => setConfirmDialog(null)}
+        onConfirm={performConfirmAction}
+      />
     </div>
   );
 }

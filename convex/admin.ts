@@ -8,7 +8,7 @@
 import { v } from "convex/values";
 import { query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { resolveIdentity } from "./roles";
+import { resolveIdentity, requireNotBanned } from "./roles";
 
 /** Helper: check if email is a super admin. */
 function superAdminEmailCheck(email: string | undefined): boolean {
@@ -35,14 +35,25 @@ export const getDashboardOverview = query({
     const executions = await ctx.db.query("executions").collect();
     const judgeSubs = await ctx.db.query("judgeSubmissions").collect();
     const bookmarks = await ctx.db.query("bookmarks").collect();
-    const submissions = await ctx.db.query("submissions").collect();
+    const submissions = (await ctx.db.query("submissions").collect()).filter(
+      (s) => s.submissionType !== "web"
+    );
 
     const now = Date.now();
     const sevenDays = 7 * 86400000;
 
+    // Source of truth for users: the Convex users table. Execution records
+    // referencing a userId that no longer exists (orphans) are ignored so
+    // user counts always reflect currently registered users only.
+    const existingUserIds = new Set(users.map((u) => String(u._id)));
+
     const recentUserIds = new Set(
       executions
-        .filter((e) => e.startedAt >= now - sevenDays)
+        .filter(
+          (e) =>
+            e.startedAt >= now - sevenDays &&
+            existingUserIds.has(String(e.userId))
+        )
         .map((e) => e.userId)
     );
 
@@ -214,18 +225,32 @@ export const getAnalytics = query({
     const accepted = judgeSubs.filter((s) => s.outcome === "accepted").length;
     const successRate = judgeSubs.length > 0 ? Math.round((accepted / judgeSubs.length) * 100) : 0;
 
-    // Retention (users active in last 7 days / total users)
+    // Retention (users active in last 7 days / total users).
+    // Only executions belonging to currently registered users count.
+    const existingUserIds = new Set(users.map((u) => String(u._id)));
     const sevenDays = 7 * 86400000;
     const activeUserIds = new Set(
-      executions.filter((e) => e.startedAt >= now - sevenDays).map((e) => e.userId)
+      executions
+        .filter(
+          (e) =>
+            e.startedAt >= now - sevenDays &&
+            existingUserIds.has(String(e.userId))
+        )
+        .map((e) => e.userId)
     );
     const retention = users.length > 0 ? Math.round((activeUserIds.size / users.length) * 100) : 0;
 
-    // Active today (distinct users with an execution started today)
+    // Active today (distinct registered users with an execution started today)
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
     const activeToday = new Set(
-      executions.filter((e) => (e.startedAt ?? 0) >= todayStart.getTime()).map((e) => e.userId)
+      executions
+        .filter(
+          (e) =>
+            (e.startedAt ?? 0) >= todayStart.getTime() &&
+            existingUserIds.has(String(e.userId))
+        )
+        .map((e) => e.userId)
     ).size;
 
     return {
@@ -258,10 +283,12 @@ export const adminListUsers = query({
   },
   handler: async (ctx, args) => {
     const callerId = await getAuthUserId(ctx);
-    if (!callerId) throw new Error("Not authenticated");
+    if (!callerId) throw new Error("UNAUTHORIZED: Not authenticated");
     const caller = await resolveIdentity(ctx, callerId);
-    if (!caller || (caller.role !== "ADMIN" && caller.role !== "SUPER_ADMIN")) {
-      throw new Error("Insufficient permissions");
+    if (!caller) throw new Error("UNAUTHORIZED: Could not resolve caller");
+    requireNotBanned(caller);
+    if (caller.role !== "ADMIN" && caller.role !== "SUPER_ADMIN") {
+      throw new Error("FORBIDDEN: Insufficient permissions");
     }
 
     const page = Math.max(args.page ?? 0, 0);
@@ -269,9 +296,33 @@ export const adminListUsers = query({
     const search = args.search?.trim().toLowerCase() ?? "";
 
     const allUsers = await ctx.db.query("users").collect();
+    const allProfiles = await ctx.db.query("profiles").collect();
+    const profileByUser = new Map<string, { username: string | null }>(
+      allProfiles.map((p) => [String(p.userId), { username: p.username ?? null }])
+    );
+
+    // Role filter: compute the effective role (same priority as
+    // resolveIdentity — super-admin email list wins, then the roles table).
     let filtered = allUsers;
+    if (args.roleFilter && args.roleFilter !== "ALL") {
+      const allRoleRows = await ctx.db.query("roles").collect();
+      const roleByUser = new Map<string, string>(
+        allRoleRows.map((r) => [String(r.userId), r.role])
+      );
+      filtered = filtered.filter((u) => {
+        const effective = superAdminEmailCheck(u.email)
+          ? "SUPER_ADMIN"
+          : (roleByUser.get(String(u._id)) ?? "USER");
+        return effective === args.roleFilter;
+      });
+    }
+
     if (search) {
-      filtered = allUsers.filter((u) => (u.email ?? "").toLowerCase().includes(search));
+      filtered = filtered.filter((u) => {
+        if ((u.email ?? "").toLowerCase().includes(search)) return true;
+        const username = profileByUser.get(String(u._id))?.username ?? "";
+        return username.toLowerCase().includes(search);
+      });
     }
 
     const start = page * pageSize;
@@ -290,14 +341,18 @@ export const adminListUsers = query({
         effectiveRole = roleRow.role as "USER" | "ADMIN" | "SUPER_ADMIN";
       }
 
+      // ADMINs only see a protected stub for SUPER_ADMIN accounts.
+      const protectSuper = caller.role === "ADMIN" && effectiveRole === "SUPER_ADMIN";
+
       return {
-        _id: u._id, email: u.email,
-        username: profile?.username ?? null,
+        _id: u._id,
+        email: protectSuper ? "[protected]" : u.email,
+        username: protectSuper ? "[protected]" : (profile?.username ?? null),
         role: effectiveRole,
         isSuspended: profile?.isSuspended ?? false,
         isBanned: profile?.isBanned ?? false,
         xp: profile?.xp ?? 0,
-        avatarUrl: profile?.avatarUrl ?? null,
+        avatarUrl: protectSuper ? null : (profile?.avatarUrl ?? null),
         createdAt: u._creationTime,
       };
     }));

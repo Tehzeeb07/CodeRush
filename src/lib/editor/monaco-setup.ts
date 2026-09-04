@@ -159,10 +159,10 @@ const pendingQuickFixes = new Map<string, QuickFixContext>();
 
 export function stageQuickFix(
     model: import("monaco-editor").editor.ITextModel,
-    error: ParsedError,
+    error: ParsedError | null,
     language: string,
 ): void {
-    if (error.quickFix) {
+    if (error?.quickFix) {
         pendingQuickFixes.set(model.uri.toString(), { error, language });
     } else {
         pendingQuickFixes.delete(model.uri.toString());
