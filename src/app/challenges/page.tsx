@@ -29,6 +29,7 @@ import {
   Filter,
   CalendarDays,
 } from "lucide-react";
+import LithosSpotlightBackground from "@/components/background/LithosSpotlightBackground";
 
 const manrope = Manrope({ subsets: ["latin"], variable: "--font-manrope" });
 const cabin = Cabin({ subsets: ["latin"], variable: "--font-cabin" });
@@ -236,6 +237,8 @@ export default function ChallengesPage() {
     <div
       className={`${manrope.variable} ${cabin.variable} ${instrumentSerif.variable} ${inter.variable} relative isolate min-h-screen overflow-hidden bg-[#07050d] text-white`}
     >
+      <LithosSpotlightBackground />
+
       {/* Background Video */}
       <div className="pointer-events-none absolute inset-0 z-0 opacity-40">
         <video

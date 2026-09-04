@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import Link from "next/link";
+import LithosSpotlightBackground from "@/components/background/LithosSpotlightBackground";
 
 export default function TeamsPage() {
   const teams = useQuery(api.teams.list);
@@ -32,7 +33,9 @@ export default function TeamsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-white px-4 py-10">
+    <div className="relative isolate min-h-screen overflow-hidden bg-neutral-950 px-4 py-10 text-white">
+      <LithosSpotlightBackground />
+
       <div className="max-w-2xl mx-auto">
         <Link href="/dashboard" className="text-sm text-neutral-400 hover:underline">
           ← Back to dashboard
