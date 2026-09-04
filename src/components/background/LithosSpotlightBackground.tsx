@@ -81,16 +81,16 @@ export default function LithosSpotlightBackground() {
   }, []);
 
   return (
-    <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-black" aria-hidden="true">
+    <div className="pointer-events-none fixed inset-0 z-[1] overflow-hidden bg-black" aria-hidden="true">
       <div
         className="absolute inset-0 z-10 bg-center bg-cover bg-no-repeat hero-zoom"
         style={{ backgroundImage: `url(${BG_IMAGE_1})` }}
       />
       <div ref={revealRef} className="contents">
         <RevealLayer image={BG_IMAGE_2} />
-        <div className="absolute inset-0 z-[35] pointer-events-none bg-[radial-gradient(circle_360px_at_var(--spot-x,50%)_var(--spot-y,50%),rgba(215,160,82,0.22),transparent_72%)] mix-blend-screen" />
+        <div className="absolute inset-0 z-[35] pointer-events-none bg-[radial-gradient(circle_420px_at_var(--spot-x,50%)_var(--spot-y,50%),rgba(255,195,92,0.55),rgba(255,126,38,0.2)_42%,transparent_76%)] mix-blend-screen" />
       </div>
-      <div className="absolute inset-0 z-40 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0.02),rgba(0,0,0,0.3)_55%,rgba(0,0,0,0.68)_100%)]" />
+      <div className="absolute inset-0 z-40 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0),rgba(0,0,0,0.16)_55%,rgba(0,0,0,0.48)_100%)]" />
     </div>
   );
 }
