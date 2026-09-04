@@ -157,7 +157,7 @@ export default function SiteNavbar() {
     const navRef = useRef<HTMLElement>(null);
 
     const user = useQuery(api.users.currentUser);
-<<<<<<< HEAD
+
     const [userSearch, setUserSearch] = useState("");
     const userResults = useQuery(
         api.users.searchByUsername,
@@ -167,8 +167,6 @@ export default function SiteNavbar() {
     // Server-resolved role (convex/roles.ts). The SUPER_ADMIN decision is
     // made on the backend via the SUPER_ADMINS email list — the client only
     // reads the verdict, it never decides by email matching itself.
-=======
->>>>>>> development
     const identity = useQuery(api.roles.me);
 
     const isSuperAdmin = identity?.role === "SUPER_ADMIN";
@@ -499,106 +497,12 @@ export default function SiteNavbar() {
                                         link.href
                                     );
 
-<<<<<<< HEAD
-                            <input
-                                type="search"
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                placeholder="Search challenges…"
-                                aria-label="Search challenges"
-                                className="h-9 w-44 rounded-[10px] border border-[#ffffff14] bg-[#ffffff08] pl-8 pr-3 text-sm text-[#e4e4e7] transition-colors placeholder:text-[#71717a] focus:border-[#6366f1] focus:outline-none lg:w-56"
-                            />
-                        </div>
-                    </form>
-                                        {/* User search */}
-                    <div className="relative hidden md:block">
-                        <input
-                            type="text"
-                            value={userSearch}
-                            onChange={(e) => setUserSearch(e.target.value)}
-                            placeholder="Find users…"
-                            className="h-9 w-36 rounded-[10px] border border-[#ffffff14] bg-[#ffffff08] px-3 text-sm text-[#e4e4e7] placeholder:text-[#71717a] focus:border-[#6366f1] focus:outline-none lg:w-44"
-                        />
-                        {userSearch.trim() && userResults && userResults.length > 0 && (
-                            <div className="cr-menu absolute right-0 top-[calc(100%+8px)] w-56 p-2 z-50">
-                                {userResults.map((u) => (
-                                    <Link
-                                        key={u.username}
-                                        href={`/u/${u.username}`}
-                                        className="menu-item"
-                                        onClick={() => setUserSearch("")}
-                                    >
-                                        <Avatar avatarUrl={u.avatarUrl} username={u.username} size={22} />
-                                        {u.username}
-                                    </Link>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Code Editor */}
-                    <Link
-                        href="/code"
-                        aria-label="Open the code editor workspace"
-                        title="Code Editor"
-                        className="icon-btn"
-                    >
-                        <CodeGlyph size={16} />
-                    </Link>
-
-                    {/* Notification Bell - authenticated users only. Reactive
-                        Convex queries keep the unread badge in real time. */}
-                    {user ? <NotificationBell /> : null}
-
-                    {/* User Menu */}
-                    <div className="relative" ref={menuRef}>
-                        <button
-                            type="button"
-                            onClick={() =>
-                                setMenuOpen((open) => !open)
-                            }
-                            aria-haspopup="menu"
-                            aria-expanded={menuOpen}
-                            aria-label="Open user menu"
-                            className="flex h-9 items-center gap-2 rounded-[10px] border border-[#ffffff14] bg-[#ffffff06] py-1 pl-1 pr-2.5 transition-colors hover:border-[#818cf8]/50 hover:bg-[#ffffff0d]"
-                        >
-                            <Avatar
-                                avatarUrl={user?.avatarUrl ?? null}
-                                username={username}
-                                size={28}
-                            />
-
-                            <span className="hidden max-w-[110px] truncate text-sm font-medium text-[#e4e4e7] sm:block">
-                                {username ?? "…"}
-                            </span>
-
-                            <ChevronDownGlyph open={menuOpen} />
-                        </button>
-
-                        {menuOpen && (
-                            <div
-                                role="menu"
-                                aria-label="User menu"
-                                className="cr-menu absolute right-0 top-[calc(100%+8px)] w-64 p-2"
-                            >
-                                {user === undefined ? (
-                                    <div className="space-y-2 p-2">
-                                        <div className="skeleton h-4 w-1/2" />
-                                        <div className="skeleton h-3 w-2/3" />
-                                    </div>
-                                ) : (
-                                    <div className="mb-1 flex items-center gap-3 rounded-xl bg-[#ffffff08] px-3 py-2.5">
-                                        <Avatar
-                                            avatarUrl={
-                                                user?.avatarUrl ?? null
-=======
                                     return (
                                         <Link
                                             key={link.href}
                                             href={link.href}
                                             aria-current={
                                                 active ? "page" : undefined
->>>>>>> development
                                             }
                                             className={`group relative flex h-10 items-center gap-2 overflow-hidden rounded-xl px-3.5 text-[11px] font-semibold transition-all duration-300 ${active
                                                     ? "border border-blue-400/10 bg-gradient-to-r from-blue-500/[0.13] via-violet-500/[0.10] to-cyan-400/[0.08] text-white shadow-[0_0_30px_rgba(59,130,246,.07)]"
