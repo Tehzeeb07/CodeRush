@@ -18,7 +18,7 @@ export function SkeletonCard() {
             <SkeletonRow className="mb-3 h-4 w-1/3" />
             <SkeletonRow className="mb-2 h-3 w-1/2" />
             <SkeletonRow className="h-3 w-1/4" />
-        </div>1
+        </div>
     );
 }
 
