@@ -190,8 +190,8 @@ function PodiumCard({
                 y: -7,
             }}
             className={`group relative overflow-hidden rounded-3xl border ${first
-                    ? "border-blue-400/20"
-                    : "border-white/[0.06]"
+                ? "border-blue-400/20"
+                : "border-white/[0.06]"
                 } bg-[#0d1118] transition-all duration-300 hover:border-white/[0.14] hover:shadow-[0_25px_70px_rgba(0,0,0,0.35)]`}
         >
             {/* Glow */}
@@ -202,8 +202,8 @@ function PodiumCard({
 
             <div
                 className={`h-px w-full bg-gradient-to-r from-transparent ${first
-                        ? "via-blue-400/70"
-                        : "via-violet-400/30"
+                    ? "via-blue-400/70"
+                    : "via-violet-400/30"
                     } to-transparent`}
             />
 
@@ -217,8 +217,8 @@ function PodiumCard({
 
                     <span
                         className={`font-mono text-[11px] font-bold ${first
-                                ? "text-blue-400"
-                                : "text-slate-600"
+                            ? "text-blue-400"
+                            : "text-slate-600"
                             }`}
                     >
                         #{String(position).padStart(2, "0")}
@@ -229,8 +229,8 @@ function PodiumCard({
 
                 <div
                     className={`mx-auto mt-5 flex h-12 w-12 items-center justify-center rounded-2xl border ${first
-                            ? "border-blue-400/20 bg-blue-400/10 text-blue-400"
-                            : "border-white/[0.06] bg-white/[0.03] text-slate-500"
+                        ? "border-blue-400/20 bg-blue-400/10 text-blue-400"
+                        : "border-white/[0.06] bg-white/[0.03] text-slate-500"
                         }`}
                 >
                     {first ? (
@@ -245,8 +245,8 @@ function PodiumCard({
                 <div className="relative mx-auto mt-5 w-fit">
                     <div
                         className={`absolute -inset-3 rounded-full blur-2xl ${first
-                                ? "bg-blue-500/20"
-                                : "bg-violet-500/10"
+                            ? "bg-blue-500/20"
+                            : "bg-violet-500/10"
                             }`}
                     />
 
@@ -336,8 +336,8 @@ function LeaderboardRow({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className={`group border-t border-white/[0.05] transition-all ${isMe
-                    ? "bg-blue-500/[0.045]"
-                    : "hover:bg-white/[0.025]"
+                ? "bg-blue-500/[0.045]"
+                : "hover:bg-white/[0.025]"
                 }`}
         >
             {/* Rank */}
@@ -371,8 +371,8 @@ function LeaderboardRow({
                         <div className="flex items-center gap-2">
                             <span
                                 className={`truncate text-xs font-semibold ${isMe
-                                        ? "text-blue-300"
-                                        : "text-white"
+                                    ? "text-blue-300"
+                                    : "text-white"
                                     }`}
                             >
                                 {entry.username}
@@ -544,8 +544,8 @@ export default function LeaderboardPage() {
     return (
         <div
             className={`min-h-screen overflow-hidden transition-colors duration-500 ${theme === "dark"
-                    ? "bg-[#07090d] text-white"
-                    : "bg-[#f4f6f8] text-black"
+                ? "bg-[#07090d] text-white"
+                : "bg-[#f4f6f8] text-black"
                 }`}
         >
             {/* ============================================================
@@ -555,29 +555,29 @@ export default function LeaderboardPage() {
             <div className="pointer-events-none fixed inset-0 overflow-hidden">
                 <div
                     className={`absolute left-1/2 top-[-180px] h-[500px] w-[700px] -translate-x-1/2 rounded-full blur-[120px] ${theme === "dark"
-                            ? "bg-blue-600/[0.08]"
-                            : "bg-blue-500/[0.06]"
+                        ? "bg-blue-600/[0.08]"
+                        : "bg-blue-500/[0.06]"
                         }`}
                 />
 
                 <div
                     className={`absolute bottom-[-200px] left-[-100px] h-[400px] w-[400px] rounded-full blur-[120px] ${theme === "dark"
-                            ? "bg-violet-600/[0.06]"
-                            : "bg-violet-500/[0.04]"
+                        ? "bg-violet-600/[0.06]"
+                        : "bg-violet-500/[0.04]"
                         }`}
                 />
 
                 <div
                     className={`absolute right-[-150px] top-[30%] h-[400px] w-[400px] rounded-full blur-[120px] ${theme === "dark"
-                            ? "bg-cyan-500/[0.04]"
-                            : "bg-cyan-500/[0.03]"
+                        ? "bg-cyan-500/[0.04]"
+                        : "bg-cyan-500/[0.03]"
                         }`}
                 />
 
                 <div
                     className={`absolute inset-0 ${theme === "dark"
-                            ? "opacity-[0.025]"
-                            : "opacity-[0.03]"
+                        ? "opacity-[0.025]"
+                        : "opacity-[0.03]"
                         }`}
                     style={{
                         backgroundImage:
@@ -731,7 +731,7 @@ export default function LeaderboardPage() {
                                 />
                             }
                             value={totalSolved.toLocaleString()}
-                            label="Platform Solved"
+                            label="Problems Solved"
                             accent="bg-cyan-500"
                         />
 
@@ -786,8 +786,8 @@ export default function LeaderboardPage() {
                                         setPeriod(tab.value)
                                     }
                                     className={`relative flex h-9 flex-1 items-center justify-center rounded-lg px-4 text-[9px] font-black uppercase tracking-[0.13em] transition-all sm:flex-none ${active
-                                            ? "bg-white text-black shadow-lg"
-                                            : "text-slate-600 hover:text-white"
+                                        ? "bg-white text-black shadow-lg"
+                                        : "text-slate-600 hover:text-white"
                                         }`}
                                 >
                                     <span className="hidden sm:inline">

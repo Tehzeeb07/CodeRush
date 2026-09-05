@@ -882,3 +882,42 @@ body {
         scroll-behavior: auto !important;
     }
 }
+
+/* ============================================================
+   CODE ACADEMY
+   ============================================================ */
+
+.academy-input {
+    width: 100%;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+    padding: 8px 12px;
+    font-size: 13px;
+    color: #e4e4e7;
+    outline: none;
+    transition: border-color 160ms ease, background 160ms ease;
+}
+
+.academy-input::placeholder {
+    color: #52525b;
+}
+
+.academy-input:focus {
+    border-color: rgba(99, 102, 241, 0.5);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.academy-content pre {
+    margin: 0;
+}
+
+.academy-content code {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+.academy-content h1,
+.academy-content h2,
+.academy-content h3 {
+    scroll-margin-top: 80px;
+}

@@ -70,39 +70,75 @@ function useCountUp(
 
 interface StatItemProps {
   glyph: string;
-  target: number;
-  suffix: string;
-  decimals: number;
+  target?: number;
+  suffix?: string;
+  decimals?: number;
+  value?: string;
   label: string;
+  description?: string;
 }
 
 function StatItem({
   glyph,
   target,
-  suffix,
-  decimals,
+  suffix = "",
+  decimals = 0,
+  value,
   label,
+  description,
 }: StatItemProps) {
-  const { ref, display } = useCountUp(target, decimals);
+  const { ref, display } = useCountUp(target ?? 0, decimals);
 
   return (
-    <div
+    <motion.div
       ref={ref}
-      className="flex w-[180px] shrink-0 flex-col items-center justify-center text-center sm:w-[220px]"
+      whileHover={{
+        y: -6,
+        scale: 1.04,
+      }}
+      transition={{
+        duration: 0.2,
+      }}
+      className="group flex w-[190px] shrink-0 cursor-default flex-col items-center justify-center text-center sm:w-[230px]"
     >
-      <div className="mb-2 text-3xl sm:text-4xl">
+      {/* Icon */}
+      <motion.div
+        className="mb-2 text-3xl sm:text-4xl"
+        whileHover={{
+          rotate: [0, -8, 8, 0],
+          scale: 1.15,
+        }}
+        transition={{
+          duration: 0.45,
+        }}
+      >
         {glyph}
+      </motion.div>
+
+      {/* Main value */}
+      <div className="text-xl font-bold tabular-nums text-white transition-colors duration-300 group-hover:text-emerald-400 sm:text-2xl">
+        {value ? (
+          value
+        ) : (
+          <>
+            {display}
+            {suffix}
+          </>
+        )}
       </div>
 
-      <div className="text-xl font-bold tabular-nums text-white sm:text-2xl">
-        {display}
-        {suffix}
-      </div>
-
-      <div className="mt-1 whitespace-nowrap text-[11px] uppercase tracking-wider text-neutral-500 sm:text-xs">
+      {/* Label */}
+      <div className="mt-1 whitespace-nowrap text-[11px] uppercase tracking-[0.14em] text-neutral-500 transition-colors duration-300 group-hover:text-neutral-300 sm:text-xs">
         {label}
       </div>
-    </div>
+
+      {/* Description */}
+      {description && (
+        <div className="mt-1 max-w-[180px] text-[10px] text-neutral-700 transition-colors duration-300 group-hover:text-neutral-500 sm:text-[11px]">
+          {description}
+        </div>
+      )}
+    </motion.div>
   );
 }
 
@@ -328,67 +364,101 @@ function HeroSection() {
 }
 
 /* =========================================
-   STATS FOOTER
-   FRAMER MOTION LEFT → RIGHT
+   STATS / FEATURES FOOTER
+   FRAMER MOTION INFINITE MARQUEE
 ========================================= */
 
 function StatsFooter() {
   const stats = [
     {
+      glyph: "🏆",
+      target: 24,
+      suffix: "/7",
+      label: "Always Open",
+      description: "Code whenever you want",
+    },
+
+    {
       glyph: "🧩",
       target: 8,
-      suffix: "",
+      suffix: "+",
       label: "Challenge Types",
+      description: "Multiple ways to practice",
     },
+
     {
       glyph: "⚡",
       target: 100,
       suffix: "+",
       label: "XP Per Challenge",
+      description: "Earn XP while coding",
     },
+
     {
       glyph: "👥",
-      target: 1,
-      suffix: "",
-      label: "Solo or Team",
+      value: "SOLO / TEAM",
+      label: "Compete Together",
+      description: "Build alone or with friends",
     },
+
     {
-      glyph: "🏆",
-      target: 24,
-      suffix: "/7",
-      label: "Always Open",
+      glyph: "🎓",
+      value: "CODE",
+      label: "Academy",
+      description: "Learn. Practice. Master.",
+    },
+
+    {
+      glyph: "💼",
+      value: "TALENT",
+      label: "Connect",
+      description: "Showcase your skills",
+    },
+
+    {
+      glyph: "🌐",
+      value: "WEB",
+      label: "Challenges",
+      description: "Build real web projects",
+    },
+
+    {
+      glyph: "💻",
+      value: "CODING",
+      label: "Problems",
+      description: "Solve. Learn. Improve.",
     },
   ];
 
   return (
     <footer className="relative z-10 w-full overflow-hidden border-t border-white/5 py-7 sm:py-8">
+      {/* Top subtle glow line */}
+      <div className="pointer-events-none absolute left-1/2 top-0 h-px w-2/3 -translate-x-1/2 bg-gradient-to-r from-transparent via-emerald-500/40 to-transparent" />
+
       {/* Left fade */}
-      <div className="pointer-events-none absolute inset-y-0 left-0 z-20 w-20 bg-gradient-to-r from-black via-black/80 to-transparent sm:w-32" />
+      <div className="pointer-events-none absolute inset-y-0 left-0 z-20 w-16 bg-gradient-to-r from-black via-black/85 to-transparent sm:w-32" />
 
       {/* Right fade */}
-      <div className="pointer-events-none absolute inset-y-0 right-0 z-20 w-20 bg-gradient-to-l from-black via-black/80 to-transparent sm:w-32" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 z-20 w-16 bg-gradient-to-l from-black via-black/85 to-transparent sm:w-32" />
 
       {/* Framer Motion viewport */}
       <div className="relative w-full overflow-hidden">
         <motion.div
           className="flex w-max"
           animate={{
-            x: ["-33.3333%", "0%"],
+            x: ["0%", "-33.3333%"],
           }}
           transition={{
             x: {
-              duration: 20,
+              duration: 32,
               ease: "linear",
               repeat: Infinity,
               repeatType: "loop",
             },
           }}
-          whileHover={{
-            animationPlayState: "paused",
-          }}
         >
           {/* SET 1 */}
-          <div className="flex shrink-0 items-center gap-8 px-4 sm:gap-16 sm:px-8">
+          <div className="flex shrink-0 items-center gap-8 px-4 sm:gap-14 sm:px-8">
             {stats.map((stat, index) => (
               <StatItem
                 key={`set1-${index}`}
@@ -396,14 +466,16 @@ function StatsFooter() {
                 target={stat.target}
                 suffix={stat.suffix}
                 decimals={0}
+                value={stat.value}
                 label={stat.label}
+                description={stat.description}
               />
             ))}
           </div>
 
           {/* SET 2 */}
           <div
-            className="flex shrink-0 items-center gap-8 px-4 sm:gap-16 sm:px-8"
+            className="flex shrink-0 items-center gap-8 px-4 sm:gap-14 sm:px-8"
             aria-hidden="true"
           >
             {stats.map((stat, index) => (
@@ -413,14 +485,16 @@ function StatsFooter() {
                 target={stat.target}
                 suffix={stat.suffix}
                 decimals={0}
+                value={stat.value}
                 label={stat.label}
+                description={stat.description}
               />
             ))}
           </div>
 
           {/* SET 3 */}
           <div
-            className="flex shrink-0 items-center gap-8 px-4 sm:gap-16 sm:px-8"
+            className="flex shrink-0 items-center gap-8 px-4 sm:gap-14 sm:px-8"
             aria-hidden="true"
           >
             {stats.map((stat, index) => (
@@ -430,7 +504,9 @@ function StatsFooter() {
                 target={stat.target}
                 suffix={stat.suffix}
                 decimals={0}
+                value={stat.value}
                 label={stat.label}
+                description={stat.description}
               />
             ))}
           </div>
@@ -453,7 +529,7 @@ export default function Home() {
       {/* Hero */}
       <HeroSection />
 
-      {/* Moving Stats */}
+      {/* Moving Stats / Features */}
       <StatsFooter />
 
       {/* Font */}

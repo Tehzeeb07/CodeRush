@@ -8,6 +8,9 @@
  * @module
  */
 
+import type * as academy from "../academy.js";
+import type * as academyAdmin from "../academyAdmin.js";
+import type * as academySeedData from "../academySeedData.js";
 import type * as achievements from "../achievements.js";
 import type * as admin from "../admin.js";
 import type * as analytics from "../analytics.js";
@@ -16,6 +19,7 @@ import type * as auditLogs from "../auditLogs.js";
 import type * as auth from "../auth.js";
 import type * as bookmarks from "../bookmarks.js";
 import type * as challenges from "../challenges.js";
+import type * as emailVerification from "../emailVerification.js";
 import type * as executionLogs from "../executionLogs.js";
 import type * as executions from "../executions.js";
 import type * as follows from "../follows.js";
@@ -30,6 +34,8 @@ import type * as roles from "../roles.js";
 import type * as settings from "../settings.js";
 import type * as showcase from "../showcase.js";
 import type * as submissions from "../submissions.js";
+import type * as talentConnectPosts from "../talentConnectPosts.js";
+import type * as talentConnectSubmissions from "../talentConnectSubmissions.js";
 import type * as teams from "../teams.js";
 import type * as users from "../users.js";
 import type * as webSubmissions from "../webSubmissions.js";
@@ -42,6 +48,9 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  academy: typeof academy;
+  academyAdmin: typeof academyAdmin;
+  academySeedData: typeof academySeedData;
   achievements: typeof achievements;
   admin: typeof admin;
   analytics: typeof analytics;
@@ -50,6 +59,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   bookmarks: typeof bookmarks;
   challenges: typeof challenges;
+  emailVerification: typeof emailVerification;
   executionLogs: typeof executionLogs;
   executions: typeof executions;
   follows: typeof follows;
@@ -64,6 +74,8 @@ declare const fullApi: ApiFromModules<{
   settings: typeof settings;
   showcase: typeof showcase;
   submissions: typeof submissions;
+  talentConnectPosts: typeof talentConnectPosts;
+  talentConnectSubmissions: typeof talentConnectSubmissions;
   teams: typeof teams;
   users: typeof users;
   webSubmissions: typeof webSubmissions;

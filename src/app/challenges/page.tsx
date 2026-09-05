@@ -280,11 +280,10 @@ export default function ChallengesPage() {
                   setActiveTab("problems");
                   setMenuOpen(false);
                 }}
-                className={`rounded-xl border p-3 text-left font-medium transition ${
-                  activeTab === "problems"
+                className={`rounded-xl border p-3 text-left font-medium transition ${activeTab === "problems"
                     ? "border-violet-500 bg-violet-500/20 text-white"
                     : "border-white/10 bg-white/5 text-white/70"
-                }`}
+                  }`}
               >
                 ⚡ Coding Problems
               </button>
@@ -294,11 +293,10 @@ export default function ChallengesPage() {
                   setActiveTab("challenges");
                   setMenuOpen(false);
                 }}
-                className={`rounded-xl border p-3 text-left font-medium transition ${
-                  activeTab === "challenges"
+                className={`rounded-xl border p-3 text-left font-medium transition ${activeTab === "challenges"
                     ? "border-violet-500 bg-violet-500/20 text-white"
                     : "border-white/10 bg-white/5 text-white/70"
-                }`}
+                  }`}
               >
                 🏆 Project Challenges
               </button>
@@ -377,11 +375,10 @@ export default function ChallengesPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab("problems")}
-                className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-semibold transition ${
-                  activeTab === "problems"
+                className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-semibold transition ${activeTab === "problems"
                     ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-600/30"
                     : "text-white/60 hover:text-white"
-                }`}
+                  }`}
               >
                 <Code2 className="h-4 w-4" />
                 <span>Problems</span>
@@ -395,11 +392,10 @@ export default function ChallengesPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab("challenges")}
-                className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-semibold transition ${
-                  activeTab === "challenges"
+                className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-semibold transition ${activeTab === "challenges"
                     ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-600/30"
                     : "text-white/60 hover:text-white"
-                }`}
+                  }`}
               >
                 <Trophy className="h-4 w-4" />
                 <span>Hackathons</span>
@@ -413,11 +409,10 @@ export default function ChallengesPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab("all")}
-                className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-semibold transition ${
-                  activeTab === "all"
+                className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-semibold transition ${activeTab === "all"
                     ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-600/30"
                     : "text-white/60 hover:text-white"
-                }`}
+                  }`}
               >
                 <Layers className="h-4 w-4" />
                 <span>All</span>
@@ -493,17 +488,16 @@ export default function ChallengesPage() {
                       key={d.value}
                       type="button"
                       onClick={() => setProblemDifficulty(d.value)}
-                      className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${
-                        problemDifficulty === d.value
+                      className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${problemDifficulty === d.value
                           ? d.value === "easy"
                             ? "border-emerald-500 bg-emerald-500/20 text-emerald-300"
                             : d.value === "medium"
-                            ? "border-amber-500 bg-amber-500/20 text-amber-300"
-                            : d.value === "hard"
-                            ? "border-rose-500 bg-rose-500/20 text-rose-300"
-                            : "border-violet-500 bg-violet-500/20 text-white"
+                              ? "border-amber-500 bg-amber-500/20 text-amber-300"
+                              : d.value === "hard"
+                                ? "border-rose-500 bg-rose-500/20 text-rose-300"
+                                : "border-violet-500 bg-violet-500/20 text-white"
                           : "border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
-                      }`}
+                        }`}
                     >
                       {d.label}
                     </button>
@@ -523,11 +517,10 @@ export default function ChallengesPage() {
                       key={st}
                       type="button"
                       onClick={() => setProblemStatusFilter(st)}
-                      className={`rounded-lg px-2.5 py-1 text-[11px] capitalize transition ${
-                        problemStatusFilter === st
+                      className={`rounded-lg px-2.5 py-1 text-[11px] capitalize transition ${problemStatusFilter === st
                           ? "bg-violet-600 text-white font-medium"
                           : "text-white/60 hover:text-white hover:bg-white/5"
-                      }`}
+                        }`}
                     >
                       {st}
                     </button>
@@ -551,11 +544,10 @@ export default function ChallengesPage() {
                         key={tag}
                         type="button"
                         onClick={() => setSelectedTag(selectedTag === tag ? "" : tag)}
-                        className={`rounded-full border px-2.5 py-0.5 text-[11px] transition ${
-                          selectedTag === tag
+                        className={`rounded-full border px-2.5 py-0.5 text-[11px] transition ${selectedTag === tag
                             ? "border-cyan-400 bg-cyan-400/20 text-cyan-300"
                             : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
-                        }`}
+                          }`}
                       >
                         #{tag}
                       </button>
@@ -611,22 +603,20 @@ export default function ChallengesPage() {
                         {/* Top Meta row */}
                         <div className="mb-3 flex items-center justify-between gap-2">
                           <span
-                            className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold capitalize ${
-                              problem.difficulty === "easy"
+                            className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold capitalize ${problem.difficulty === "easy"
                                 ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
                                 : problem.difficulty === "medium"
-                                ? "border-amber-500/30 bg-amber-500/10 text-amber-300"
-                                : "border-rose-500/30 bg-rose-500/10 text-rose-300"
-                            }`}
+                                  ? "border-amber-500/30 bg-amber-500/10 text-amber-300"
+                                  : "border-rose-500/30 bg-rose-500/10 text-rose-300"
+                              }`}
                           >
                             <span
-                              className={`h-1.5 w-1.5 rounded-full ${
-                                problem.difficulty === "easy"
+                              className={`h-1.5 w-1.5 rounded-full ${problem.difficulty === "easy"
                                   ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]"
                                   : problem.difficulty === "medium"
-                                  ? "bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)]"
-                                  : "bg-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.8)]"
-                              }`}
+                                    ? "bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)]"
+                                    : "bg-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.8)]"
+                                }`}
                             />
                             {problem.difficulty}
                           </span>
@@ -729,11 +719,10 @@ export default function ChallengesPage() {
                   <button
                     key={c.value}
                     onClick={() => setCategory(c.value)}
-                    className={`${manrope.className} rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-                      category === c.value
+                    className={`${manrope.className} rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${category === c.value
                         ? "border-[#7b39fc] bg-[#7b39fc] text-white shadow-lg shadow-[#7b39fc]/30"
                         : "border-white/10 bg-white/5 text-white/80 hover:bg-white/10"
-                    }`}
+                      }`}
                   >
                     {c.label}
                   </button>
@@ -747,11 +736,10 @@ export default function ChallengesPage() {
                     <button
                       key={d.value}
                       onClick={() => setChallengeDifficulty(d.value)}
-                      className={`${cabin.className} rounded-full border px-3 py-1.5 text-xs transition-colors ${
-                        challengeDifficulty === d.value
+                      className={`${cabin.className} rounded-full border px-3 py-1.5 text-xs transition-colors ${challengeDifficulty === d.value
                           ? "border-white bg-white text-[#171717] font-semibold"
                           : "border-white/10 bg-[#2b2344]/80 text-white/80 hover:bg-[#2b2344]"
-                      }`}
+                        }`}
                     >
                       {d.label}
                     </button>
@@ -921,28 +909,28 @@ const HACKATHON_SECTIONS: Array<{
   blurb: string;
   accent: string;
 }> = [
-  {
-    value: "ai",
-    label: "AI",
-    emoji: "🤖",
-    blurb: "Machine learning, generative AI, agents & intelligent systems.",
-    accent: "text-violet-300 border-violet-500/40 bg-violet-500/10",
-  },
-  {
-    value: "coding",
-    label: "Coding",
-    emoji: "🧩",
-    blurb: "Algorithms, competitive programming & engineering puzzles.",
-    accent: "text-emerald-300 border-emerald-500/40 bg-emerald-500/10",
-  },
-  {
-    value: "web",
-    label: "Web Development",
-    emoji: "🌐",
-    blurb: "Full-stack builds, APIs, and beautiful user experiences.",
-    accent: "text-cyan-300 border-cyan-500/40 bg-cyan-500/10",
-  },
-];
+    {
+      value: "ai",
+      label: "AI",
+      emoji: "🤖",
+      blurb: "Machine learning, generative AI, agents & intelligent systems.",
+      accent: "text-violet-300 border-violet-500/40 bg-violet-500/10",
+    },
+    {
+      value: "coding",
+      label: "Coding",
+      emoji: "🧩",
+      blurb: "Algorithms, competitive programming & engineering puzzles.",
+      accent: "text-emerald-300 border-emerald-500/40 bg-emerald-500/10",
+    },
+    {
+      value: "web",
+      label: "Web Development",
+      emoji: "🌐",
+      blurb: "Full-stack builds, APIs, and beautiful user experiences.",
+      accent: "text-cyan-300 border-cyan-500/40 bg-cyan-500/10",
+    },
+  ];
 
 /* ===========================================================================
  * ChallengeCard — shared card for hackathon groups & the general grid.
@@ -968,18 +956,18 @@ function ChallengeCard({
   const fmt = (ts?: number) =>
     ts
       ? new Date(ts).toLocaleDateString(undefined, {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-        })
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
       : null;
 
   const categoryLabel =
     challenge.category === "hackathon"
       ? HACKATHON_SECTIONS.find((s) => s.value === challenge.hackathonCategory)
-          ?.label ?? "Hackathon"
+        ?.label ?? "Hackathon"
       : CATEGORIES.find((c) => c.value === challenge.category)?.label ??
-        challenge.category;
+      challenge.category;
 
   return (
     <Link

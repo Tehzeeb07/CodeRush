@@ -443,11 +443,10 @@ export function ChangeRoleModal({ open, user, onClose, onNotify }: {
               key={r}
               type="button"
               onClick={() => setNewRole(r)}
-              className={`rounded-lg border px-3 py-3 text-left transition-colors ${
-                newRole === r
-                  ? "border-[#3B82F6] bg-blue-500/10"
-                  : "border-slate-700/50 bg-[#0F172A] hover:border-slate-600"
-              }`}
+              className={`rounded-lg border px-3 py-3 text-left transition-colors ${newRole === r
+                ? "border-[#3B82F6] bg-blue-500/10"
+                : "border-slate-700/50 bg-[#0F172A] hover:border-slate-600"
+                }`}
             >
               <p className="text-sm font-semibold text-white">{r}</p>
               <p className="mt-0.5 text-xs text-slate-400">
@@ -523,11 +522,10 @@ export function BanUnbanModal({ open, user, onClose, onNotify }: {
             type="button"
             onClick={() => void handleConfirm()}
             disabled={busy}
-            className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors disabled:opacity-50 ${
-              banning
-                ? "bg-red-600 hover:bg-red-500"
-                : "bg-emerald-600 hover:bg-emerald-500"
-            }`}
+            className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors disabled:opacity-50 ${banning
+              ? "bg-red-600 hover:bg-red-500"
+              : "bg-emerald-600 hover:bg-emerald-500"
+              }`}
           >
             {busy ? (
               <>
@@ -551,11 +549,19 @@ export function BanUnbanModal({ open, user, onClose, onNotify }: {
             ? "This user will no longer be allowed to access protected CodeRush functionality until their account is unbanned."
             : "This user will regain access to protected CodeRush functionality immediately."}
         </p>
+        {user.isBanned && user.role !== "SUPER_ADMIN" ? (
+          <div className="rounded-lg border border-slate-700/50 bg-[#0F172A] px-3 py-2 text-xs text-slate-400">
+            This account is currently banned. Unbanning restores access
+            immediately.
+          </div>
+        ) : null}
         {error ? <ErrorBox message={error} /> : null}
       </div>
     </ModalShell>
   );
 }
+
+// __MODALS_DELETE__
 
 /* ------------------------------------------------------------------ */
 /* Delete User                                                          */
@@ -568,20 +574,8 @@ export function DeleteUserModal({ open, user, onClose, onNotify }: {
   onNotify: NotifyFn;
 }) {
   const deleteUser = useMutation(api.roles.deleteUser);
-  const [confirmText, setConfirmText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (open) {
-      setConfirmText("");
-      setError(null);
-    }
-  }, [open]);
-
-  if (!open || !user) return null;
-
-  const canDelete = confirmText.trim() === "DELETE";
 
   async function handleConfirm() {
     if (!user) return;
@@ -597,6 +591,8 @@ export function DeleteUserModal({ open, user, onClose, onNotify }: {
       setBusy(false);
     }
   }
+
+  if (!open || !user) return null;
 
   return (
     <ModalShell
@@ -615,7 +611,7 @@ export function DeleteUserModal({ open, user, onClose, onNotify }: {
           <button
             type="button"
             onClick={() => void handleConfirm()}
-            disabled={!canDelete || busy}
+            disabled={busy}
             className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-500 disabled:opacity-50"
           >
             {busy ? (
@@ -631,30 +627,19 @@ export function DeleteUserModal({ open, user, onClose, onNotify }: {
     >
       <div className="space-y-4">
         <p className="text-sm font-semibold text-white">
-          Delete {userLabel(user)} permanently?
+          Delete {userLabel(user)}?
         </p>
         <p className="text-sm text-slate-400">
-          This action permanently deletes this user's CodeRush account data and
-          cannot be undone.
-
+          This permanently removes the user&apos;s account and their CodeRush
+          profile. This action cannot be undone.
         </p>
-        <div>
-          <label className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-            Type DELETE to confirm
-          </label>
-          <input
-            value={confirmText}
-            onChange={(e) => setConfirmText(e.target.value)}
-            placeholder="DELETE"
-            className="mt-1 w-full rounded-lg border border-red-900/50 bg-[#0F172A] px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-red-500 focus:outline-none"
-          />
-        </div>
+        {user.role === "SUPER_ADMIN" ? (
+          <div className="rounded-lg border border-amber-800 bg-amber-950/40 px-3 py-2 text-xs text-amber-300">
+            You are deleting a SUPER_ADMIN account — double-check before
+            confirming.
+          </div>
+        ) : null}
         {error ? <ErrorBox message={error} /> : null}
-        <div className="flex items-center gap-2 rounded-lg border border-slate-700/50 bg-[#0F172A] px-3 py-2 text-xs text-slate-400">
-          <AlertTriangle size={14} className="shrink-0 text-red-400" />
-          This removes their submissions, comments, executions, bookmarks,
-          teams and other related records from the platform.
-        </div>
       </div>
     </ModalShell>
   );

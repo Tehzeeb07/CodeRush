@@ -4,14 +4,46 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useMutation, useConvex } from "convex/react";
+import { useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
-import { destinationForRole, fetchIdentityWithRetry } from "@/lib/role-redirect";
+
+/**
+ * Ask the server to send the verification email. Retried once in case the
+ * Convex Auth cookie has not been synced yet (it is set asynchronously right
+ * after signIn). Returns a user-safe message on failure, never throws.
+ */
+async function requestVerificationEmail(): Promise<string | null> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await fetch("/api/email/send-verification", { method: "POST" });
+      const data: { status?: string; message?: string } = await res
+        .json()
+        .catch(() => ({}));
+      if (res.ok && data.status === "ok") return null; // success
+      if (res.ok && data.status === "already_verified") return null;
+      if (res.status === 401 && attempt === 0) {
+        await new Promise((r) => setTimeout(r, 700)); // cookie may still be syncing
+        continue;
+      }
+      // Surface a safe, actionable message — never silently fail.
+      return (
+        data.message ??
+        "Account created, but the verification email could not be sent. You can resend it from the verification page."
+      );
+    } catch {
+      if (attempt === 0) {
+        await new Promise((r) => setTimeout(r, 700));
+        continue;
+      }
+      return "Account created, but the verification email could not be sent right now. You can resend it from the verification page.";
+    }
+  }
+  return "Account created, but the verification email could not be sent right now. You can resend it from the verification page.";
+}
 
 export default function SignupPage() {
   const router = useRouter();
   const { signIn } = useAuthActions();
-  const convex = useConvex();
   const createProfile = useMutation(api.users.createProfile);
 
   const [email, setEmail] = useState("");
@@ -39,11 +71,13 @@ export default function SignupPage() {
       await new Promise((resolve) => setTimeout(resolve, 300));
       await createProfile({ username });
 
-      // Role-aware routing: an account created with a super-admin email
-      // (resolved server-side in convex/roles.ts) lands on the admin
-      // dashboard; everyone else goes to the normal user dashboard.
-      const identity = await fetchIdentityWithRetry(convex);
-      router.push(destinationForRole(identity?.role));
+      // Send the verification email (non-blocking for account creation).
+      // Failures are surfaced to the user, never silent.
+      const emailError = await requestVerificationEmail();
+
+      // New accounts are not email-verified yet: always land on the
+      // verification page, which offers resend + login/dashboard actions.
+      router.replace(`/verify-email${emailError ? "" : "?sent=1"}`);
       router.refresh();
     } catch (err) {
       const message = err instanceof Error ? err.message : "Something went wrong";

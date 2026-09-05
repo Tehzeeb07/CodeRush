@@ -237,7 +237,7 @@ export const listUsersAdmin = query({
       roleFiltered = results.filter((r) => r.role === args.roleFilter);
     }
 
-        return roleFiltered.slice(0, limit);
+    return roleFiltered.slice(0, limit);
   },
 });
 
@@ -301,7 +301,7 @@ export const updateUserRole = mutation({
       createdAt: Date.now(),
     });
 
-        return { ok: true };
+    return { ok: true };
   },
 });
 
