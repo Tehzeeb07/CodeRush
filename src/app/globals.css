@@ -937,14 +937,11 @@ body {
 
         scroll-behavior: auto !important;
     }
-<<<<<<< HEAD
-
-    .hero-anim,
-    .hero-zoom {
-        animation: none !important;
-        opacity: 1 !important;
-    }
-=======
+.hero-anim,
+.hero-zoom {
+    animation: none !important;
+    opacity: 1 !important;
+}
 }
 
 /* ============================================================
@@ -984,5 +981,4 @@ body {
 .academy-content h2,
 .academy-content h3 {
     scroll-margin-top: 80px;
->>>>>>> development
 }

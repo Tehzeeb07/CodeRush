@@ -578,7 +578,6 @@ export default function SiteNavbar() {
                                     </div>
                                 </form>
 
-<<<<<<< HEAD
                                 {/* Find users */}
                                 <div className="relative hidden 2xl:block">
                                     <input
@@ -607,8 +606,6 @@ export default function SiteNavbar() {
                                 </div>
 
                                 {/* Editor */}
-=======
->>>>>>> development
                                 <Link
                                     href="/code"
                                     title="Code Editor"

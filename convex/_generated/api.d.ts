@@ -25,7 +25,6 @@ import type * as executions from "../executions.js";
 import type * as follows from "../follows.js";
 import type * as http from "../http.js";
 import type * as judgeSubmissions from "../judgeSubmissions.js";
-import type * as leaderboard from "../leaderboard.js";
 import type * as likes from "../likes.js";
 import type * as notifications from "../notifications.js";
 import type * as problems from "../problems.js";
@@ -65,7 +64,6 @@ declare const fullApi: ApiFromModules<{
   follows: typeof follows;
   http: typeof http;
   judgeSubmissions: typeof judgeSubmissions;
-  leaderboard: typeof leaderboard;
   likes: typeof likes;
   notifications: typeof notifications;
   problems: typeof problems;
