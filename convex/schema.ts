@@ -603,6 +603,11 @@ export default defineSchema({
       v.literal("test_case_passed"),
       v.literal("achievement"),
       v.literal("admin_grant"),
+      v.literal("lesson_completed"),
+      v.literal("quiz_completed"),
+      v.literal("practice_completed"),
+      v.literal("module_completed"),
+      v.literal("course_completed"),
     ),
     problemId: v.optional(v.id("problems")),
     problemSlug: v.optional(v.string()),
@@ -614,4 +619,458 @@ export default defineSchema({
     .index("by_unique_key", ["uniqueKey"])
     .index("by_user_createdAt", ["userId", "createdAt"])
     .index("by_user_problem", ["userId", "problemId"]),
+
+  /* ================================================================
+     TALENT CONNECT
+     ================================================================ */
+
+  /**
+   * Talent Connect posts — real-world projects and technical requirements
+   * published by admins/companies so talented developers can submit
+   * professional proposals.
+   *
+   * Completely independent module: shares nothing with coding problems
+   * or web development challenges.
+   */
+  talentConnectPosts: defineTable({
+    title: v.string(),
+    shortDescription: v.string(),
+    fullDescription: v.string(),
+    /** One requirement per entry. */
+    requirements: v.array(v.string()),
+    requiredSkills: v.array(v.string()),
+    category: v.union(
+      v.literal("technical_solution"),
+      v.literal("project_collaboration"),
+      v.literal("startup_idea"),
+      v.literal("freelance_project"),
+      v.literal("job_opportunity"),
+      v.literal("innovation_challenge"),
+      v.literal("open_technical_problem"),
+      v.literal("developer_recruitment")
+    ),
+    difficultyLevel: v.union(
+      v.literal("beginner"),
+      v.literal("intermediate"),
+      v.literal("advanced"),
+      v.literal("expert")
+    ),
+    experienceLevel: v.union(
+      v.literal("beginner"),
+      v.literal("intermediate"),
+      v.literal("experienced"),
+      v.literal("senior"),
+      v.literal("any_level")
+    ),
+    companyName: v.string(),
+    compensationInfo: v.optional(v.string()),
+    /** Optional deadline timestamp (ms). */
+    deadline: v.optional(v.number()),
+    tags: v.array(v.string()),
+    /**
+     * Lifecycle: draft (hidden, editable) → published (visible to users)
+     * → unpublished (hidden again). Archived posts are retired permanently.
+     */
+    status: v.union(
+      v.literal("draft"),
+      v.literal("published"),
+      v.literal("unpublished"),
+      v.literal("archived")
+    ),
+    publishedAt: v.optional(v.number()),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_status", ["status"])
+    .index("by_category", ["category"])
+    .index("by_createdAt", ["createdAt"])
+    .index("by_createdBy", ["createdBy"]),
+
+  /**
+   * Talent Connect proposals submitted by users against a Talent Connect
+   * post. One proposal per user per post — uniqueness is enforced in the
+   * submit mutation via the `by_user_post` index.
+   */
+  talentConnectSubmissions: defineTable({
+    talentConnectPostId: v.id("talentConnectPosts"),
+    userId: v.id("users"),
+    proposedSolution: v.string(),
+    technicalApproach: v.string(),
+    technologyStack: v.array(v.string()),
+    relevantExperience: v.string(),
+    portfolioUrl: v.optional(v.string()),
+    githubUrl: v.optional(v.string()),
+    linkedinUrl: v.optional(v.string()),
+    previousProjects: v.array(
+      v.object({
+        title: v.string(),
+        url: v.optional(v.string()),
+        description: v.optional(v.string()),
+        technologies: v.optional(v.array(v.string())),
+      })
+    ),
+    additionalMessage: v.optional(v.string()),
+    /** Reserved for future resume/CV upload support. */
+    resumeFileId: v.optional(v.id("_storage")),
+    submissionStatus: v.union(
+      v.literal("pending"),
+      v.literal("under_review"),
+      v.literal("shortlisted"),
+      v.literal("approved"),
+      v.literal("rejected")
+    ),
+    adminFeedback: v.optional(v.string()),
+    reviewedBy: v.optional(v.id("users")),
+    reviewedAt: v.optional(v.number()),
+    submittedAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_post", ["talentConnectPostId"])
+    .index("by_user", ["userId"])
+    .index("by_post_status", ["talentConnectPostId", "submissionStatus"])
+    .index("by_user_post", ["userId", "talentConnectPostId"])
+    .index("by_user_updatedAt", ["userId", "updatedAt"]),
+
+  /* ================================================================
+     CODE ACADEMY — LEARNING MANAGEMENT SYSTEM
+     ================================================================ */
+
+  /**
+   * Learnable technologies (C++, HTML, CSS, JavaScript, Python, …)。
+   * Admin-managed; nothing about the supported languages is hardcoded in
+   * the UI — adding a technology here makes it appear across Code Academy.
+   */
+  academyTechnologies: defineTable({
+    name: v.string(),
+    slug: v.string(),
+    description: v.string(),
+    /** Semantic icon key resolved by the frontend (falls back to BookOpen). */
+    icon: v.optional(v.string()),
+    /** Accent color hint (hex) used on cards/badges. */
+    color: v.optional(v.string()),
+    sortOrder: v.number(),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_isActive", ["isActive"]),
+
+  /**
+   * A course inside a technology (e.g. "C++ Fundamentals"). */
+  academyCourses: defineTable({
+    technologyId: v.id("academyTechnologies"),
+    title: v.string(),
+    slug: v.string(),
+    description: v.string(),
+    difficulty: v.union(
+      v.literal("beginner"),
+      v.literal("intermediate"),
+      v.literal("advanced")
+    ),
+    /** Suggested total learning time in minutes. */
+    durationMinutes: v.optional(v.number()),
+    /** Bonus XP granted once when the course is completed (on top of lesson/quiz/practice XP). */
+    xpReward: v.number(),
+    /** Legacy external thumbnail URL field (kept for backward compatibility with
+     * courses created before the cover-photo upload system). New uploads use
+     * `coverImageStorageId` + `coverImageUrl` below. */
+    thumbnailUrl: v.optional(v.string()),
+    /** Convex file storage id of the admin-uploaded course cover photo. */
+    coverImageStorageId: v.optional(v.id("_storage")),
+    /** Public, persistent URL of the uploaded cover photo (rendered everywhere). */
+    coverImageUrl: v.optional(v.string()),
+    published: v.boolean(),
+    sortOrder: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_technology", ["technologyId", "sortOrder"])
+    .index("by_slug", ["slug"])
+    .index("by_published", ["published"])
+    .index("by_difficulty", ["difficulty"]),
+
+  /* __ACADEMY_SPLIT_1__ */
+
+  /**
+   * A module groups lessons withina course (e.g. "Module 3: Operators"). */
+  academyModules: defineTable({
+    courseId: v.id("academyCourses"),
+    title: v.string(),
+    description: v.optional(v.string()),
+    sortOrder: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_course", ["courseId", "sortOrder"]),
+
+  /**
+   * A lesson — the atomic learning unit. Content is stored as structured
+   * blocks (headings, paragraphs, lists, code, images, links, notes,
+   * warnings, tips) so the admin lesson editor can manage it safely. No lesson
+   * content lives inside React files.
+   */
+  academyLessons: defineTable({
+    technologyIds: v.array(v.id("academyTechnologies")),
+    courseId: v.id("academyCourses"),
+    moduleId: v.id("academyModules"),
+    slug: v.string(),
+    title: v.string(),
+    shortDescription: v.string(),
+    difficulty: v.union(
+      v.literal("beginner"),
+      v.literal("intermediate"),
+      v.literal("advanced")
+    ),
+    estimatedMinutes: v.optional(v.number()),
+    content: v.array(
+      v.union(
+        v.object({
+          type: v.literal("heading"),
+          level: v.union(v.literal(1), v.literal(2), v.literal(3)),
+          text: v.string(),
+        }),
+        v.object({ type: v.literal("paragraph"), text: v.string() }),
+        v.object({
+          type: v.literal("list"),
+          ordered: v.boolean(),
+          items: v.array(v.string()),
+        }),
+        v.object({
+          type: v.literal("code"),
+          language: v.string(),
+          code: v.string(),
+          caption: v.optional(v.string()),
+        }),
+        v.object({
+          type: v.literal("image"),
+          url: v.string(),
+          alt: v.optional(v.string()),
+          caption: v.optional(v.string()),
+        }),
+        v.object({ type: v.literal("link"), text: v.string(), url: v.string() }),
+        v.object({ type: v.literal("note"), text: v.string() }),
+        v.object({ type: v.literal("warning"), text: v.string() }),
+        v.object({ type: v.literal("tip"), text: v.string() })
+      )
+    ),
+    /** Runnable/sharable code samples attached to the lesson. */
+    codeExamples: v.array(
+      v.object({
+        title: v.optional(v.string()),
+        language: v.string(),
+        code: v.string(),
+        expectedOutput: v.optional(v.string()),
+        explanation: v.optional(v.string()),
+      })
+    ),
+    sortOrder: v.number(),
+    published: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_course", ["courseId", "sortOrder"])
+    .index("by_module", ["moduleId", "sortOrder"])
+    .index("by_slug", ["slug"])
+    .index("by_course_slug", ["courseId", "slug"]),
+
+  /* __ACADEMY_SPLIT_2__ */
+
+  /**
+   * A small practice exercise attached to a lesson. Exercises are learning
+   * -style (simpler than Coding Problems): run code, see output, submit;
+   * when an expected output is provided the submission is auto-verified against it.
+
+   */
+  academyExercises: defineTable({
+    lessonId: v.id("academyLessons"),
+    title: v.string(),
+    difficulty: v.union(
+      v.literal("beginner"),
+      v.literal("intermediate"),
+      v.literal("advanced")
+    ),
+    question: v.string(),
+    instructions: v.array(v.string()),
+    starterCode: v.string(),
+    /** Execution language id ("cpp", "javascript", "python", "java", "html", "css"). */
+    language: v.string(),
+    /** Expected stdout (trim-compared) when the exercise is auto-graded. */
+    expectedOutput: v.optional(v.string()),
+    solution: v.optional(v.string()),
+    hints: v.optional(v.array(v.string())),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_lesson", ["lessonId"]),
+
+  /**
+   * A quiz attached to a lesson (server-scored, configurable passing %). */
+  academyQuizzes: defineTable({
+    lessonId: v.id("academyLessons"),
+    title: v.string(),
+    passingPercentage: v.number(),
+    allowRetake: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_lesson", ["lessonId"]),
+
+  /**
+   * Quiz questions. `correctAnswerId` and `explanation` are only ever
+   * returned to clients from the submit response (after answering), never
+   * from the initial public quiz fetch — otherwise answers would be leaked.
+   */
+  academyQuizQuestions: defineTable({
+    quizId: v.id("academyQuizzes"),
+    question: v.string(),
+    options: v.array(v.object({ id: v.string(), text: v.string() })),
+    correctAnswerId: v.string(),
+    explanation: v.optional(v.string()),
+    orderIndex: v.number(),
+  })
+    .index("by_quiz", ["quizId", "orderIndex"]),
+
+  /* __ACADEMY_SPLIT_3__ */
+
+  /**
+   * Per-user learning progress for a course (one row per user + course). */
+  academyProgress: defineTable({
+    userId: v.id("users"),
+    courseId: v.id("academyCourses"),
+    technologyId: v.id("academyTechnologies"),
+    currentModuleId: v.optional(v.id("academyModules")),
+    currentLessonId: v.optional(v.id("academyLessons")),
+    /** Most recently opened lesson (drives Continue Learning / recently viewed). */
+    lastAccessedLessonId: v.optional(v.id("academyLessons")),
+    lastAccessedAt: v.number(),
+    completedLessonIds: v.array(v.id("academyLessons")),
+    /** Modules whose lessons are all complete (XP awarded once each). */
+    completedModuleIds: v.array(v.id("academyModules")),
+    /** Lessons whose practice exercise was completed (XP awarded once each). */
+    completedExerciseIds: v.array(v.id("academyLessons")),
+    /** Lessons whose quiz was passed (XP awarded once each). */
+    completedQuizIds: v.array(v.id("academyLessons")),
+    quizScores: v.array(
+      v.object({
+        lessonId: v.id("academyLessons"),
+        score: v.number(),
+        total: v.number(),
+        passedAt: v.number(),
+      })
+    ),
+    completed: v.boolean(),
+    completedAt: v.optional(v.number()),
+    /** Total XP earned from this course (lessons+practice+quizzes+modules+bonus). */
+    xpEarned: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user_course", ["userId", "courseId"])
+    .index("by_user_updatedAt", ["userId", "updatedAt"])
+    .index("by_user_completed", ["userId", "completed"])
+    .index("by_course", ["courseId"]),
+
+  /**
+   * Every practice submission (history-free, append-only). `passed` is
+   * true/false when the exercise is auto-graded, null when self-paced. */
+  academyExerciseAttempts: defineTable({
+    userId: v.id("users"),
+    exerciseId: v.id("academyExercises"),
+    lessonId: v.id("academyLessons"),
+    code: v.string(),
+    output: v.optional(v.string()),
+    passed: v.optional(v.boolean()),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_lesson", ["lessonId"])
+    .index("by_user_lesson", ["userId", "lessonId"]),
+
+  /**
+   * Every quiz submission (append-only; retakes are allowed). */
+  academyQuizAttempts: defineTable({
+    userId: v.id("users"),
+    quizId: v.id("academyQuizzes"),
+    lessonId: v.id("academyLessons"),
+    score: v.number(),
+    total: v.number(),
+    /** Percent score (rounded to two decimals). */
+    percentage: v.number(),
+    passed: v.boolean(),
+    answers: v.array(
+      v.object({
+        questionId: v.string(),
+        selectedAnswerId: v.optional(v.string()),
+      })
+    ),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_lesson", ["lessonId"])
+    .index("by_user_quiz", ["userId", "quizId"]),
+
+  /**
+   * Idempotent Code Academy reward ledger. One row per (user,type,scope) —
+   * `uniqueKey` guarantees every reward (lesson/practice/quiz/module/course) can
+   * only ever be granted once, so re-opening a completed lesson can never farm XP.
+
+   * Rows with type = "course_completed" double as the learner's achievement badges.
+
+
+   */
+  academyRewards: defineTable({
+    userId: v.id("users"),
+    type: v.union(
+      v.literal("lesson_completed"),
+      v.literal("practice_completed"),
+      v.literal("quiz_completed"),
+      v.literal("module_completed"),
+      v.literal("course_completed")
+    ),
+    amount: v.number(),
+    courseId: v.optional(v.id("academyCourses")),
+    lessonId: v.optional(v.id("academyLessons")),
+    moduleId: v.optional(v.id("academyModules")),
+    /** `academy:<type>:<userId>:<scopeId>` — makes rewards idempotent. */
+    uniqueKey: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_user_createdAt", ["userId", "createdAt"])
+    .index("by_unique_key", ["uniqueKey"])
+    .index("by_user_type", ["userId", "type"]),
+
+  /**
+   * Email verification tokens.
+   *
+   * Security properties:
+   * - Only the SHA-256 hash of the token is stored, never the raw token.
+   * - Tokens expire after a configurable TTL (default 24 hours).
+   * - Tokens are single-use: marked with `usedAt` after successful verification.
+   * - Creating a new token for a user invalidates all previous tokens for that user.
+   */
+  emailVerificationTokens: defineTable({
+    userId: v.id("users"),
+    tokenHash: v.string(),
+    expiresAt: v.number(),
+    createdAt: v.number(),
+    usedAt: v.optional(v.number()),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_tokenHash", ["tokenHash"]),
+
+  /**
+   * Tracks which users have verified their email address.
+   *
+   * This is the source of truth for email verification status.
+   * A user is considered email-verified if and only if a row exists
+   * in this table for their userId.
+   */
+  emailVerifications: defineTable({
+    userId: v.id("users"),
+    email: v.string(),
+    verifiedAt: v.number(),
+  })
+    .index("by_userId", ["userId"]),
 });

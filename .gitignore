@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# convex codegen temp (local filesystem for the convex CLI)
+/.convex-tmp

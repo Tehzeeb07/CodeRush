@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
@@ -76,13 +76,10 @@ export function UserMenuPopover({ user, callerRole, anchor, onClose, onAction }:
   // Right-align the menu under the trigger, clamped inside the viewport.
 
 
-
-
   const menuWidth = 192;
   const menuHeight = 300;
-  const left = Math.max(8, Math.min(anchor.x - menuWidth, window.innerWidth - menuWidth -8));
-  const top = Math.max(8, Math.min(anchor.y, window.innerHeight - menuHeight -8));
-
+  const left = Math.max(8, Math.min(anchor.x - menuWidth, window.innerWidth - menuWidth - 8));
+  const top = Math.max(8, Math.min(anchor.y, window.innerHeight - menuHeight - 8));
 
   return (
     <motion.div
@@ -134,9 +131,7 @@ export function UserMenuPopover({ user, callerRole, anchor, onClose, onAction }:
           <Shield size={14} /> Change Role
         </button>
       )}
-      {manageVisible && (
-        <hr className="my-1 border-slate-700/50" />
-      )}
+      <hr className="my-1 border-slate-700/50" />
       {manageVisible && (
         <button
           type="button"

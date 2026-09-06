@@ -29,6 +29,7 @@ import {
   Search,
   Sparkles,
   X,
+  Target,
 } from "lucide-react";
 
 interface NavItem {
@@ -55,9 +56,19 @@ const navItems: NavItem[] = [
     icon: <Puzzle size={19} />,
   },
   {
+    href: "/admin/code-academy",
+    label: "Code Academy",
+    icon: <Sparkles size={19} />,
+  },
+  {
     href: "/admin/challenges",
     label: "Challenges",
     icon: <Trophy size={19} />,
+  },
+  {
+    href: "/admin/talent-connect",
+    label: "Talent Connect",
+    icon: <Target size={19} />,
   },
   {
     href: "/admin/test-cases",

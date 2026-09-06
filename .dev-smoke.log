@@ -1,0 +1,28 @@
+
+> coderush@0.1.0 dev
+> next dev
+
+   ▲ Next.js 15.5.23
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.1.4:3000
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 2.2s
+ ✓ Compiled /middleware in 229ms (202 modules)
+ ○ Compiling /verify-email ...
+ ✓ Compiled /verify-email in 1370ms (1772 modules)
+ GET /verify-email 200 in 1827ms
+ ○ Compiling /login ...
+ ✓ Compiled /login in 1366ms (1781 modules)
+ GET /login 200 in 1700ms
+ ✓ Compiled /api/email/verify in 327ms (1793 modules)
+ POST /api/email/verify 200 in 1490ms
+ POST /api/email/verify 400 in 55ms
+ ○ Compiling /api/email/send-verification ...
+ ✓ Compiled /api/email/send-verification in 592ms (1847 modules)
+ POST /api/email/send-verification 401 in 721ms
+ ✓ Compiled / in 484ms (1854 modules)
+ GET / 200 in 952ms
+ GET / 200 in 157ms
+[?25h
