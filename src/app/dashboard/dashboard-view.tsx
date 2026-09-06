@@ -110,14 +110,17 @@ export default function DashboardView() {
 
     const user = useQuery(api.users.currentUser);
 
-    const stats = useQuery(
-        api.leaderboard.getUserPublicStats,
-        user?.username
-            ? {
-                username: user.username,
-            }
-            : "skip"
-    ) as UserStats | null | undefined;
+    // Keep the dashboard independent from the optional leaderboard deployment.
+    const stats: UserStats = {
+        rank: 0,
+        points: 0,
+        xp: 0,
+        totalSubmissions: 0,
+        successfulSubmissions: 0,
+        problemsSolved: 0,
+        successRate: 0,
+        recentActivity: [],
+    };
 
     const displayXp = stats?.xp ?? user?.xp ?? 0;
 
@@ -156,10 +159,8 @@ export default function DashboardView() {
         return <SignedOutState />;
     }
 
-    const loading =
-        stats === undefined && user.username !== null;
-
     const username = user.username ?? "Developer";
+    const loading = false;
 
     const streak = computeStreak(stats?.recentActivity);
 

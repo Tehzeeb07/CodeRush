@@ -1041,36 +1041,4 @@ export default defineSchema({
     .index("by_unique_key", ["uniqueKey"])
     .index("by_user_type", ["userId", "type"]),
 
-  /**
-   * Email verification tokens.
-   *
-   * Security properties:
-   * - Only the SHA-256 hash of the token is stored, never the raw token.
-   * - Tokens expire after a configurable TTL (default 24 hours).
-   * - Tokens are single-use: marked with `usedAt` after successful verification.
-   * - Creating a new token for a user invalidates all previous tokens for that user.
-   */
-  emailVerificationTokens: defineTable({
-    userId: v.id("users"),
-    tokenHash: v.string(),
-    expiresAt: v.number(),
-    createdAt: v.number(),
-    usedAt: v.optional(v.number()),
-  })
-    .index("by_userId", ["userId"])
-    .index("by_tokenHash", ["tokenHash"]),
-
-  /**
-   * Tracks which users have verified their email address.
-   *
-   * This is the source of truth for email verification status.
-   * A user is considered email-verified if and only if a row exists
-   * in this table for their userId.
-   */
-  emailVerifications: defineTable({
-    userId: v.id("users"),
-    email: v.string(),
-    verifiedAt: v.number(),
-  })
-    .index("by_userId", ["userId"]),
 });

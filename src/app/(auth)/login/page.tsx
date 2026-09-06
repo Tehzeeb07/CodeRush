@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useConvex } from "convex/react";
-import { api } from "../../../../convex/_generated/api";
 import { destinationForRole, fetchIdentityWithRetry } from "@/lib/role-redirect";
 
 export default function LoginPage() {
@@ -32,17 +31,6 @@ export default function LoginPage() {
       // roles.me and send admins / super admins to the admin dashboard.
       const identity = await fetchIdentityWithRetry(convex);
       const destination = destinationForRole(identity?.role);
-
-      // Email verification gate: unverified users go to the verify page,
-      // which offers a resend option (prevents protect-route bounce-backs).
-      const verified = await convex
-        .query(api.emailVerification.isCurrentUserEmailVerified)
-        .catch(() => true);
-      if (verified === false) {
-        router.replace("/verify-email");
-        router.refresh();
-        return;
-      }
 
       // Explicit ?next= target always wins over the default destination.
       router.push(next ?? destination);

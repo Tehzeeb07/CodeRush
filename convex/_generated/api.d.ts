@@ -19,7 +19,6 @@ import type * as auditLogs from "../auditLogs.js";
 import type * as auth from "../auth.js";
 import type * as bookmarks from "../bookmarks.js";
 import type * as challenges from "../challenges.js";
-import type * as emailVerification from "../emailVerification.js";
 import type * as executionLogs from "../executionLogs.js";
 import type * as executions from "../executions.js";
 import type * as follows from "../follows.js";
@@ -58,7 +57,6 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   bookmarks: typeof bookmarks;
   challenges: typeof challenges;
-  emailVerification: typeof emailVerification;
   executionLogs: typeof executionLogs;
   executions: typeof executions;
   follows: typeof follows;
