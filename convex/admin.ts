@@ -13,7 +13,7 @@ import { resolveIdentity, requireNotBanned } from "./roles";
 /** Helper: check if email is a super admin. */
 function superAdminEmailCheck(email: string | undefined): boolean {
   if (!email) return false;
-  const raw = process.env.SUPER_ADMINS ?? "gb8585438@gmail.com";
+  const raw = process.env.SUPER_ADMINS ?? "bhattimurshid@gma";
   const admins = raw.split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
   return admins.includes(email.toLowerCase());
 }
@@ -136,7 +136,7 @@ export const getDashboardOverview = query({
           }),
           ),
       },
-        };
+    };
   },
 });
 

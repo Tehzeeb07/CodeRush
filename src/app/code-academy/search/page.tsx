@@ -110,7 +110,7 @@ export default function SearchPage() {
             <>
               Search results for{" "}
               <span className="bg-gradient-to-r from-violet-300 via-purple-300 to-blue-300 bg-clip-text text-transparent">
-                "{q}"
+                &quot;{q}&quot;
               </span>
             </>
           ) : (
@@ -161,7 +161,7 @@ export default function SearchPage() {
               count={results.technologies.length}
             >
               <div className="grid gap-3 sm:grid-cols-2">
-                {results.technologies.map((t: any) => (
+                {results.technologies.map((t) => (
                   <Link
                     key={t._id}
                     href={`/code-academy/${t.slug}`}
@@ -206,7 +206,7 @@ export default function SearchPage() {
               count={results.courses.length}
             >
               <div className="grid gap-3">
-                {results.courses.map((c: any) => (
+                {results.courses.map((c) => (
                   <Link
                     key={c._id}
                     href={`/code-academy/${c.technology?.slug}/${c.slug}`}
@@ -268,7 +268,7 @@ export default function SearchPage() {
               count={results.lessons.length}
             >
               <div className="grid gap-3 sm:grid-cols-2">
-                {results.lessons.map((l: any) => (
+                {results.lessons.map((l) => (
                   <Link
                     key={l._id}
                     href={`/code-academy/${l.technologySlug}/${l.courseSlug}/${l.slug}`}
@@ -317,9 +317,9 @@ export default function SearchPage() {
           </h2>
 
           <p className="relative mx-auto mt-2 max-w-md text-sm leading-6 text-neutral-500">
-            We couldn't find anything matching{" "}
+            We couldn&apos;t find anything matching{" "}
             <span className="font-semibold text-neutral-300">
-              "{q}"
+              &quot;{q}&quot;
             </span>
             . Try searching for a different course, technology, or lesson.
           </p>

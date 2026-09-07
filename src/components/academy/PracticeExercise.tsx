@@ -9,6 +9,7 @@
 import { useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 import CodeEditor from "@/components/code-editor/CodeEditor";
 import { Check, RotateCw, Send, Terminal } from "lucide-react";
 
@@ -74,7 +75,7 @@ export default function PracticeExercise({
     const outText = output?.stdout ?? "";
     try {
       const res = await submitExercise({
-        exerciseId: exercise._id as any,
+        exerciseId: exercise._id as Id<"academyExercises">,
         code,
         output: outText,
       });

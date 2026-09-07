@@ -8,7 +8,9 @@
 
 import { useState } from "react";
 import { useMutation } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 import { Check, RotateCw, Send, Trophy } from "lucide-react";
 
 interface QuizQuestion {
@@ -16,6 +18,8 @@ interface QuizQuestion {
   question: string;
   options: Array<{ id: string; text: string }>;
 }
+
+type QuizResult = FunctionReturnType<typeof api.academy.submitQuiz>;
 
 export default function LessonQuiz({
   quiz,
@@ -33,21 +37,7 @@ export default function LessonQuiz({
   const submitQuiz = useMutation(api.academy.submitQuiz);
   const [selected, setSelected] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
-  const [result, setResult] = useState<{
-    score: number;
-    total: number;
-    percentage: number;
-    passed: boolean;
-    xpAwarded: number;
-    alreadyPassed: boolean;
-    results: Array<{
-      questionId: string;
-      selectedAnswerId: string | null;
-      correct: boolean;
-      correctAnswerId: string;
-      explanation: string | null;
-    }>;
-  } | null>(null);
+  const [result, setResult] = useState<QuizResult | null>(null);
 
   const allAnswered = quiz.questions.every((q) => selected[q._id]);
 
@@ -55,7 +45,7 @@ export default function LessonQuiz({
     setSubmitting(true);
     try {
       const res = await submitQuiz({
-        quizId: quiz._id as any,
+        quizId: quiz._id as Id<"academyQuizzes">,
         answers: quiz.questions.map((q) => ({
           questionId: q._id,
           selectedAnswerId: selected[q._id] ?? undefined,
@@ -169,7 +159,7 @@ function ResultView({
   allowRetake,
   onRetake,
 }: {
-  result: NonNullable<ReturnType<typeof LessonQuiz> extends never ? never : any>;
+  result: QuizResult;
   quiz: { title: string; questions: QuizQuestion[]; passingPercentage: number };
   scorePct: number;
   allowRetake: boolean;
@@ -209,7 +199,7 @@ function ResultView({
       <div className="space-y-4">
         {quiz.questions.map((q, idx) => {
           const r = result.results.find(
-            (x: any) => x.questionId === q._id
+            (x) => x.questionId === q._id
           );
           if (!r) return null;
           const correctOpt = q.options.find((o) => o.id === r.correctAnswerId);

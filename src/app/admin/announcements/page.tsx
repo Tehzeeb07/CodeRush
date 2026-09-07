@@ -15,6 +15,7 @@ import {
   Info,
   Wrench,
   Trophy,
+  type LucideIcon,
 } from "lucide-react";
 
 const TYPE_COLORS: Record<string, string> = {
@@ -25,7 +26,7 @@ const TYPE_COLORS: Record<string, string> = {
   contest: "bg-purple-500/20 text-purple-400",
 };
 
-const TYPE_ICONS: Record<string, any> = {
+const TYPE_ICONS: Record<string, LucideIcon> = {
   info: Info,
   warning: AlertCircle,
   maintenance: Wrench,
@@ -168,7 +169,7 @@ export default function AdminAnnouncementsPage() {
 
       {/* Announcement List */}
       <div className="space-y-4">
-        {announcements.map((ann: any) => {
+        {announcements.map((ann) => {
           const Icon = TYPE_ICONS[ann.type] ?? Info;
 
           const typeColor =

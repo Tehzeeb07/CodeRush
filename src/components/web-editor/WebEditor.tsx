@@ -12,9 +12,10 @@
  *   Submit → stores a `pending` web submission for admin review
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { api } from "@/../convex/_generated/api";
 import type { Doc } from "@/../convex/_generated/dataModel";
 
@@ -38,20 +39,62 @@ export interface WebEditorProps {
   challenge: Doc<"challenges">;
 }
 
-const EMPTY_CODE: WebProjectCode = { html: "", css: "", javascript: "" };
+type WebDraft = NonNullable<
+  FunctionReturnType<typeof api.webSubmissions.getMyDraft>
+>;
 
 export default function WebEditor({ challenge }: WebEditorProps) {
-  const router = useRouter();
-  const { toasts, push } = useToasts();
-
   const draft = useQuery(api.webSubmissions.getMyDraft, {
     challengeId: challenge._id,
   });
+
+  if (draft === undefined) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-neutral-950 text-neutral-400">
+        <div className="flex items-center gap-3">
+          <span className="h-5 w-5 animate-spin rounded-full border-2 border-neutral-700 border-t-emerald-400" />
+          Loading editor…
+        </div>
+      </div>
+    );
+  }
+
+  // Keying by the draft id remounts the editor when the loaded draft changes,
+  // so the initial code can be derived from props instead of being copied
+  // into state from an effect.
+  return <WebEditorReady key={draft?._id ?? "new"} challenge={challenge} draft={draft} />;
+}
+
+function WebEditorReady({
+  challenge,
+  draft,
+}: {
+  challenge: Doc<"challenges">;
+  draft: WebDraft | null;
+}) {
+  const router = useRouter();
+  const { toasts, push } = useToasts();
+
   const saveDraft = useMutation(api.webSubmissions.saveDraft);
   const submitWeb = useMutation(api.webSubmissions.submitWebChallenge);
 
+  const restored = draft !== null;
   const [activeFile, setActiveFile] = useState<WebFileId>("html");
-  const [codes, setCodes] = useState<WebProjectCode | null>(null);
+  // Initial editor content: saved draft → challenge starter template →
+  // default starter (derived once at mount from the resolved draft).
+  const [codes, setCodes] = useState<WebProjectCode>(() =>
+    draft
+      ? {
+          html: draft.htmlCode,
+          css: draft.cssCode,
+          javascript: draft.javascriptCode,
+        }
+      : {
+          html: challenge.starterHtml ?? DEFAULT_STARTER_HTML,
+          css: challenge.starterCss ?? DEFAULT_STARTER_CSS,
+          javascript: challenge.starterJavascript ?? DEFAULT_STARTER_JAVASCRIPT,
+        },
+  );
   const [previewStatus, setPreviewStatus] = useState<PreviewStatus>("idle");
   const [runId, setRunId] = useState(0);
   const [saveState, setSaveState] = useState<SaveState>("idle");
@@ -62,30 +105,10 @@ export default function WebEditor({ challenge }: WebEditorProps) {
     text: string;
   } | null>(null);
 
-  // Initialize editor content exactly once: saved draft → challenge starter
-  // template → default starter. `draft === undefined` means still loading.
-  const initialized = useRef(false);
+  // Notify (once per mount) when the editor content came from a saved draft.
   useEffect(() => {
-    if (initialized.current) return;
-    if (draft === undefined) return;
-    initialized.current = true;
-
-    if (draft) {
-      setCodes({
-        html: draft.htmlCode,
-        css: draft.cssCode,
-        javascript: draft.javascriptCode,
-      });
-      push("Restored your saved draft", "info");
-    } else {
-      setCodes({
-        html: challenge.starterHtml ?? DEFAULT_STARTER_HTML,
-        css: challenge.starterCss ?? DEFAULT_STARTER_CSS,
-        javascript: challenge.starterJavascript ?? DEFAULT_STARTER_JAVASCRIPT,
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [challenge, draft]);
+    if (restored) push("Restored your saved draft", "info");
+  }, [restored, push]);
 // ------------------------------------------------------------------
   // Run → browser preview (never Piston for web challenges).
   // ------------------------------------------------------------------
@@ -183,27 +206,15 @@ export default function WebEditor({ challenge }: WebEditorProps) {
     [activeFile],
   );
 
-  const activeValue = codes
-    ? activeFile === "html"
-      ? codes.html
-      : activeFile === "css"
-        ? codes.css
-        : codes.javascript
-    : "";
+  const activeValue = activeFile === "html"
+    ? codes.html
+    : activeFile === "css"
+      ? codes.css
+      : codes.javascript;
   const activeLanguage =
     activeFile === "html" ? "html" : activeFile === "css" ? "css" : "javascript";
 
-  if (!codes) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-neutral-950 text-neutral-400">
-        <div className="flex items-center gap-3">
-          <span className="h-5 w-5 animate-spin rounded-full border-2 border-neutral-700 border-t-emerald-400" />
-          Loading editor…
-        </div>
-      </div>
-    );
-  }
-return (
+  return (
     <div className="flex min-h-screen flex-col bg-neutral-950 text-white">
       <WebToolbar
         challengeName={challenge.title}
@@ -232,7 +243,7 @@ return (
         {/* Preview side */}
         <div className="flex h-[45vh] w-full shrink-0 lg:h-auto lg:w-1/2 lg:max-w-[50%]">
           <WebPreview
-            code={codes ?? EMPTY_CODE}
+            code={codes}
             runId={runId}
             onStatusChange={setPreviewStatus}
             className="w-full"

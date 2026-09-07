@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { useParams } from "next/navigation";
+import type { FunctionReturnType } from "convex/server";
 import { api } from "../../../../../../convex/_generated/api";
 import Link from "next/link";
 import LessonContentRenderer from "@/components/academy/LessonContentRenderer";
@@ -24,6 +25,10 @@ import {
   Lock,
   Trophy,
 } from "lucide-react";
+
+type LessonPageData = NonNullable<
+  FunctionReturnType<typeof api.academy.getLessonPage>
+>;
 
 export default function LessonPage() {
   const params = useParams();
@@ -112,7 +117,7 @@ export default function LessonPage() {
 
                 <div className="mt-6">
                   <LessonContentRenderer
-                    content={lesson.content as any}
+                    content={lesson.content}
                     codeExamples={lesson.codeExamples}
                   />
                 </div>
@@ -166,7 +171,7 @@ export default function LessonPage() {
     </div>
   );
 }
-function LessonHeader({ lesson, technology, completed, percent, completedLessonCount, totalLessons }: { lesson: any; technology: any; completed: boolean; percent: number; completedLessonCount: number; totalLessons: number }) {
+function LessonHeader({ lesson, technology, completed, percent, completedLessonCount, totalLessons }: { lesson: LessonPageData["lesson"]; technology: LessonPageData["technology"]; completed: boolean; percent: number; completedLessonCount: number; totalLessons: number }) {
   return (
     <div>
       <div className="flex flex-wrap items-center gap-2">

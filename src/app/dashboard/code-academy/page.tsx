@@ -50,7 +50,7 @@ export default function CodeAcademyDashboard() {
         <section className="mt-10">
           <h2 className="text-lg font-semibold text-white">Progress by path</h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {overview.perTechnology.map((t: any) => (
+            {overview.perTechnology.map((t) => (
               <div key={t.slug} className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4">
                 <div className="flex items-center gap-2">
                   <TechnologyIcon icon={t.icon} color={t.color} />
@@ -70,7 +70,7 @@ export default function CodeAcademyDashboard() {
         <section className="mt-10">
           <h2 className="text-lg font-semibold text-white">Continue learning</h2>
           <div className="mt-4 space-y-3">
-            {inProgress.map((c: any) => (
+            {inProgress.map((c) => (
               <div key={c.course._id} className="flex items-center gap-4 rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4">
                 {c.course.coverImage && (
                   <CourseCoverImage src={c.course.coverImage} alt={c.course.title} className="h-14 w-20 shrink-0" />
@@ -97,7 +97,7 @@ export default function CodeAcademyDashboard() {
         <section className="mt-10">
           <h2 className="text-lg font-semibold text-white">Completed courses</h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {completed.map((c: any) => (
+            {completed.map((c) => (
               <div key={c.course._id} className="flex items-center gap-3 rounded-2xl border border-emerald-500/15 bg-emerald-500/[0.04] p-4">
                 {c.course.coverImage && (
                   <CourseCoverImage src={c.course.coverImage} alt={c.course.title} className="h-12 w-16 shrink-0" />
@@ -119,7 +119,7 @@ export default function CodeAcademyDashboard() {
         <section className="mt-10">
           <h2 className="text-lg font-semibold text-white">Achievements</h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {badges.map((b: any) => (
+            {badges.map((b) => (
               <div key={b.courseId} className="flex items-center gap-3 rounded-2xl border border-amber-500/15 bg-amber-500/[0.05] p-4">
                 <Trophy size={22} className="text-amber-400" />
                 <div className="min-w-0">

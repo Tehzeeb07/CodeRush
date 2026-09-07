@@ -2,6 +2,7 @@
 
 import { useQuery } from "convex/react";
 import { useParams } from "next/navigation";
+import type { FunctionReturnType } from "convex/server";
 import { api } from "../../../../../convex/_generated/api";
 import Link from "next/link";
 import {
@@ -12,6 +13,11 @@ import {
 } from "@/components/academy/academy-ui";
 import CourseCoverImage from "@/components/academy/CourseCoverImage";
 import { ArrowLeft, BookOpen, CheckCircle2, Lock, Play } from "lucide-react";
+
+type CoursePageData = NonNullable<
+  FunctionReturnType<typeof api.academy.getCoursePage>
+>;
+type CourseProgress = CoursePageData["progress"];
 
 function Row({ label, value }: { label: string; value: string | number }) {
   return (
@@ -92,7 +98,7 @@ export default function CoursePage() {
   );
 }
 
-function Header({ data }: { data: any }) {
+function Header({ data }: { data: CoursePageData }) {
   return (
     <div>
       {data.course.coverImage && (
@@ -117,7 +123,7 @@ function Header({ data }: { data: any }) {
   );
 }
 
-function ProgressPanel({ progress, total }: { progress: any; total: number }) {
+function ProgressPanel({ progress, total }: { progress: NonNullable<CourseProgress>; total: number }) {
   return (
     <div className="mt-6 rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5">
       <div className="flex items-center justify-between">
@@ -137,10 +143,10 @@ function ProgressPanel({ progress, total }: { progress: any; total: number }) {
   );
 }
 
-function Modules({ data, technologySlug, courseSlug }: { data: any; technologySlug: string; courseSlug: string }) {
+function Modules({ data, technologySlug, courseSlug }: { data: CoursePageData; technologySlug: string; courseSlug: string }) {
   return (
     <div className="mt-8 space-y-6">
-      {data.modules.map((mod: any, mi: number) => (
+      {data.modules.map((mod, mi: number) => (
         <div key={mod._id}>
           <h2 className="text-lg font-semibold text-white">
             <span className="mr-2 text-neutral-500">Module {mi + 1}:</span>
@@ -148,9 +154,9 @@ function Modules({ data, technologySlug, courseSlug }: { data: any; technologySl
           </h2>
           {mod.description && <p className="mt-0.5 text-sm text-neutral-500">{mod.description}</p>}
           <div className="mt-3 space-y-1.5">
-            {mod.lessons.map((lesson: any, li: number) => {
-              const completed = data.completedLessonIds.some((id: any) => id === lesson._id);
-              const flatIndex = data.modules.flatMap((m: any) => m.lessons).findIndex((l: any) => l._id === lesson._id);
+            {mod.lessons.map((lesson, li: number) => {
+              const completed = data.completedLessonIds.some((id) => id === lesson._id);
+              const flatIndex = data.modules.flatMap((m) => m.lessons).findIndex((l) => l._id === lesson._id);
               const locked = !data.unlockFlags[flatIndex];
               const href = locked ? "#" : `/code-academy/${technologySlug}/${courseSlug}/${lesson.slug}`;
               return (
@@ -171,7 +177,7 @@ function Modules({ data, technologySlug, courseSlug }: { data: any; technologySl
   );
 }
 
-function Sidebar({ data, progress, technologySlug, courseSlug }: { data: any; progress: any; technologySlug: string; courseSlug: string }) {
+function Sidebar({ data, progress, technologySlug, courseSlug }: { data: CoursePageData; progress: CourseProgress; technologySlug: string; courseSlug: string }) {
   return (
     <aside className="w-full shrink-0 lg:w-72">
       <div className="sticky top-6 rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5">

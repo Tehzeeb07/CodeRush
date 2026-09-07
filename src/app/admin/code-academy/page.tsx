@@ -2,16 +2,18 @@
 
 import { useQuery, useMutation } from "convex/react";
 import { useState } from "react";
+import Link from "next/link";
 import { api } from "../../../../convex/_generated/api";
+import type { Id } from "../../../../convex/_generated/dataModel";
 import CourseCoverImage from "@/components/academy/CourseCoverImage";
 import { BookOpen, ChevronRight, Layers, Plus, School, Sprout } from "lucide-react";
 
 function QuickLink({ href, label }: { href: string; label: string }) {
   return (
-    <a href={href} className="flex items-center justify-between rounded-lg border border-white/[0.08] px-3 py-2.5 text-sm text-neutral-300 transition-colors hover:border-white/[0.16] hover:bg-white/[0.04] hover:text-white">
+    <Link href={href} className="flex items-center justify-between rounded-lg border border-white/[0.08] px-3 py-2.5 text-sm text-neutral-300 transition-colors hover:border-white/[0.16] hover:bg-white/[0.04] hover:text-white">
       {label}
       <ChevronRight size={15} className="text-neutral-500" />
-    </a>
+    </Link>
   );
 }
 
@@ -28,14 +30,14 @@ export default function AdminCodeAcademy() {
     try {
       const res = await seed();
       setSeedResult(`Created: ${res.technologies} technologies, ${res.courses} courses, ${res.modules} modules, ${res.lessons} lessons, ${res.quizzes} quizzes, ${res.exercises} exercises.`);
-    } catch (e: any) {
-      setSeedResult(`Error: ${e.message}`);
+    } catch (e) {
+      setSeedResult(`Error: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       setSeeding(false);
     }
   };
 
-  const courses = useQuery(api.academyAdmin.listCoursesAdmin, activeTech ? { technologyId: activeTech as any } : "skip");
+  const courses = useQuery(api.academyAdmin.listCoursesAdmin, activeTech ? { technologyId: activeTech as Id<"academyTechnologies"> } : "skip");
 
   return (
     <div>
@@ -45,9 +47,9 @@ export default function AdminCodeAcademy() {
           <p className="mt-1 text-sm text-neutral-400">Manage learning technologies, courses, modules and lessons.</p>
         </div>
         <div className="flex items-center gap-2">
-          <a href="/admin/code-academy/lessons/new" className="flex items-center gap-1.5 rounded-lg bg-indigo-500 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-400">
+          <Link href="/admin/code-academy/lessons/new" className="flex items-center gap-1.5 rounded-lg bg-indigo-500 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-400">
             <Plus size={15} /> New lesson
-          </a>
+          </Link>
           <button type="button" onClick={handleSeed} disabled={seeding} className="flex items-center gap-1.5 rounded-lg border border-white/[0.1] px-4 py-2 text-sm text-neutral-300 hover:bg-white/[0.05]">
             <Sprout size={15} />
             {seeding ? "Seeding…" : "Seed starter curriculum"}
@@ -67,7 +69,7 @@ export default function AdminCodeAcademy() {
           </div>
           <div className="mt-3 space-y-1.5">
             {technologies.length === 0 && <p className="text-sm text-neutral-500">No technologies yet.</p>}
-            {technologies.map((tech: any) => (
+            {technologies.map((tech) => (
               <button key={tech._id} type="button" onClick={() => setActiveTech(activeTech === tech._id ? null : tech._id)} className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors ${activeTech === tech._id ? "bg-indigo-500/10 text-white" : "text-neutral-300 hover:bg-white/[0.04]"}`}>
                 <span className="truncate">{tech.name}</span>
                 <span className="text-xs text-neutral-500">{tech.courseCount} courses</span>
@@ -83,7 +85,7 @@ export default function AdminCodeAcademy() {
           </div>
           <div className="mt-3 space-y-1.5">
             {!activeTech && <p className="text-sm text-neutral-500">Select a technology to view its courses.</p>}
-            {activeTech && courses && courses.map((course: any) => (
+            {activeTech && courses && courses.map((course) => (
               <div key={course._id} className="group flex items-center justify-between gap-2 rounded-lg px-3 py-2 transition-colors hover:bg-white/[0.04]">
                 <a href={`/admin/code-academy/${course._id}`} className="flex min-w-0 flex-1 items-center gap-2">
                   {course.coverImage && (

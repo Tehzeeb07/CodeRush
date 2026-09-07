@@ -15,9 +15,10 @@
  *    the reactive Convex query refreshes the card immediately.
  */
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { api } from "../../../../../../convex/_generated/api";
 import {
     ArrowLeft,
@@ -52,6 +53,25 @@ const inputClass =
 const labelClass = "mb-2 block text-sm text-slate-300";
 const errorTextClass = "mt-1.5 text-xs text-red-400";
 
+type ProblemFull = NonNullable<
+    FunctionReturnType<typeof api.problems.getProblemFull>
+>;
+
+/* Field-level validation message, rendered below the matching input. */
+function FieldError({
+    errors,
+    name,
+}: {
+    errors: Record<string, string>;
+    name: string;
+}) {
+    return errors[name] ? (
+        <p className={errorTextClass}>
+            {errors[name]}
+        </p>
+    ) : null;
+}
+
 export default function AdminEditProblemPage() {
     const params = useParams();
     const router = useRouter();
@@ -66,31 +86,105 @@ export default function AdminEditProblemPage() {
         slug: slugParam,
     });
 
+    if (problem === undefined) {
+        return (
+            <div className="min-h-screen bg-[#0F1117] text-white">
+                <div className="flex min-h-[500px] items-center justify-center">
+                    <div className="flex items-center gap-3 text-slate-400">
+                        <Loader2
+                            size={22}
+                            className="animate-spin"
+                        />
+                        Loading problem...
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (problem === null) {
+        return (
+            <div className="min-h-screen bg-[#0F1117] p-8 text-white">
+                <div className="mx-auto max-w-6xl">
+                    <button
+                        type="button"
+                        onClick={() =>
+                            router.push("/admin/problems")
+                        }
+                        className="mb-6 inline-flex items-center gap-2 text-sm text-slate-400 hover:text-white"
+                    >
+                        <ArrowLeft size={17} />
+                        Back to Problems
+                    </button>
+
+                    <h1 className="text-2xl font-bold">
+                        Problem not found
+                    </h1>
+
+                    <p className="mt-2 text-sm text-slate-400">
+                        The problem you are trying to edit
+                        does not exist or may have been
+                        deleted.
+                    </p>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <ProblemEditForm
+            problem={problem}
+            slugParam={slugParam}
+            router={router}
+        />
+    );
+}
+
+function ProblemEditForm({
+    problem,
+    slugParam,
+    router,
+}: {
+    problem: ProblemFull;
+    slugParam: string;
+    router: ReturnType<typeof useRouter>;
+}) {
     const updateProblem = useMutation(
         api.problems.updateProblem
     );
 
-    const [title, setTitle] = useState("");
-    const [slug, setSlug] = useState("");
+    // The form state is initialized directly from the loaded problem
+    // document: this component only mounts after the query above has
+    // resolved, so no effect-based data copying is required.
+    const [title, setTitle] = useState(problem.title);
+    const [slug, setSlug] = useState(problem.slug);
     const [difficulty, setDifficulty] = useState<
         "easy" | "medium" | "hard"
-    >("easy");
-    const [category, setCategory] = useState("");
-    const [tags, setTags] = useState("");
-    const [description, setDescription] = useState("");
-    const [constraints, setConstraints] = useState("");
-    const [timeLimitMs, setTimeLimitMs] = useState(1000);
-    const [memoryLimitMb, setMemoryLimitMb] = useState(256);
-    const [inputFormat, setInputFormat] = useState("");
-    const [outputFormat, setOutputFormat] = useState("");
-    const [hints, setHints] = useState("");
-    const [editorial, setEditorial] = useState("");
+    >(problem.difficulty);
+    const [category, setCategory] = useState(problem.category ?? "");
+    const [tags, setTags] = useState(problem.tags.join(", "));
+    const [description, setDescription] = useState(problem.description);
+    const [constraints, setConstraints] = useState(
+        problem.constraints.join("\n")
+    );
+    const [timeLimitMs, setTimeLimitMs] = useState(problem.timeLimitMs);
+    const [memoryLimitMb, setMemoryLimitMb] = useState(problem.memoryLimitMb);
+    const [inputFormat, setInputFormat] = useState(problem.inputFormat ?? "");
+    const [outputFormat, setOutputFormat] = useState(problem.outputFormat ?? "");
+    const [hints, setHints] = useState((problem.hints ?? []).join("\n"));
+    const [editorial, setEditorial] = useState(problem.editorial ?? "");
     const [supportedLanguages, setSupportedLanguages] =
-        useState("");
-    const [status, setStatus] = useState<Status>("draft");
+        useState((problem.supportedLanguages ?? []).join(", "));
+    const [status, setStatus] = useState<Status>(
+        problem.archived
+            ? "archived"
+            : problem.published
+              ? "published"
+              : "draft"
+    );
 
-    const [examples, setExamples] = useState<Example[]>([]);
-    const [testCases, setTestCases] = useState<TestCase[]>([]);
+    const [examples, setExamples] = useState<Example[]>(problem.examples);
+    const [testCases, setTestCases] = useState<TestCase[]>(problem.testCases);
 
     const [fieldErrors, setFieldErrors] = useState<
         Record<string, string>
@@ -98,39 +192,6 @@ export default function AdminEditProblemPage() {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
-
-    /* ---------------- PREFILL FROM DATABASE ---------------- */
-
-    useEffect(() => {
-        if (!problem) return;
-
-        setTitle(problem.title);
-        setSlug(problem.slug);
-        setDifficulty(problem.difficulty);
-        setCategory(problem.category ?? "");
-        setTags(problem.tags.join(", "));
-        setDescription(problem.description);
-        setConstraints(problem.constraints.join("\n"));
-        setTimeLimitMs(problem.timeLimitMs);
-        setMemoryLimitMb(problem.memoryLimitMb);
-        setInputFormat(problem.inputFormat ?? "");
-        setOutputFormat(problem.outputFormat ?? "");
-        setHints((problem.hints ?? []).join("\n"));
-        setEditorial(problem.editorial ?? "");
-        setSupportedLanguages(
-            (problem.supportedLanguages ?? []).join(", ")
-        );
-        setExamples(problem.examples);
-        setTestCases(problem.testCases);
-
-        if (problem.archived) {
-            setStatus("archived");
-        } else if (problem.published) {
-            setStatus("published");
-        } else {
-            setStatus("draft");
-        }
-    }, [problem]);
 
     /* ---------------- EDITOR HELPERS ---------------- */
 
@@ -351,59 +412,7 @@ export default function AdminEditProblemPage() {
         }
     };
 
-    /* ---------------- STATE HELPERS FOR JSX ---------------- */
-
-    const FieldError = ({ name }: { name: string }) =>
-        fieldErrors[name] ? (
-            <p className={errorTextClass}>
-                {fieldErrors[name]}
-            </p>
-        ) : null;
-
-    if (problem === undefined) {
-        return (
-            <div className="min-h-screen bg-[#0F1117] text-white">
-                <div className="flex min-h-[500px] items-center justify-center">
-                    <div className="flex items-center gap-3 text-slate-400">
-                        <Loader2
-                            size={22}
-                            className="animate-spin"
-                        />
-                        Loading problem...
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    if (problem === null) {
-        return (
-            <div className="min-h-screen bg-[#0F1117] p-8 text-white">
-                <div className="mx-auto max-w-6xl">
-                    <button
-                        type="button"
-                        onClick={() =>
-                            router.push("/admin/problems")
-                        }
-                        className="mb-6 inline-flex items-center gap-2 text-sm text-slate-400 hover:text-white"
-                    >
-                        <ArrowLeft size={17} />
-                        Back to Problems
-                    </button>
-
-                    <h1 className="text-2xl font-bold">
-                        Problem not found
-                    </h1>
-
-                    <p className="mt-2 text-sm text-slate-400">
-                        The problem you are trying to edit
-                        does not exist or may have been
-                        deleted.
-                    </p>
-                </div>
-            </div>
-        );
-    }
+    /* ---------------- JSX ---------------- */
 
     return (
         <div className="min-h-screen bg-[#0F1117] p-6 text-white md:p-8">
@@ -495,7 +504,7 @@ export default function AdminEditProblemPage() {
                                     className={`${inputClass} ${fieldErrors.title ? "border-red-500/60" : ""}`}
                                     placeholder="Sum Any Two Numbers"
                                 />
-                                <FieldError name="title" />
+                                <FieldError errors={fieldErrors} name="title" />
                             </div>
                             <div>
                                 <label htmlFor="problem-slug" className={labelClass}>
@@ -511,7 +520,7 @@ export default function AdminEditProblemPage() {
                                         placeholder="sum-any-two-numbers"
                                     />
                                 </div>
-                                <FieldError name="slug" />
+                                <FieldError errors={fieldErrors} name="slug" />
                             </div>
                             <div className="grid gap-5 md:grid-cols-3">
                                 <div>
@@ -577,7 +586,7 @@ export default function AdminEditProblemPage() {
                                     onChange={(e) => setTimeLimitMs(Number(e.target.value))}
                                     className={`${inputClass} ${fieldErrors.timeLimitMs ? "border-red-500/60" : ""}`}
                                 />
-                                <FieldError name="timeLimitMs" />
+                                <FieldError errors={fieldErrors} name="timeLimitMs" />
                             </div>
                             <div>
                                 <label htmlFor="problem-memory" className={labelClass}>
@@ -591,7 +600,7 @@ export default function AdminEditProblemPage() {
                                     onChange={(e) => setMemoryLimitMb(Number(e.target.value))}
                                     className={`${inputClass} ${fieldErrors.memoryLimitMb ? "border-red-500/60" : ""}`}
                                 />
-                                <FieldError name="memoryLimitMb" />
+                                <FieldError errors={fieldErrors} name="memoryLimitMb" />
                             </div>
                         </div>
                     </section>
@@ -614,7 +623,7 @@ export default function AdminEditProblemPage() {
                                     className={`${inputClass} font-mono ${fieldErrors.description ? "border-red-500/60" : ""}`}
                                     placeholder="Describe the problem..."
                                 />
-                                <FieldError name="description" />
+                                <FieldError errors={fieldErrors} name="description" />
                             </div>
                             <div className="grid gap-5 md:grid-cols-2">
                                 <div>
@@ -673,7 +682,7 @@ export default function AdminEditProblemPage() {
                                 Add Example
                             </button>
                         </div>
-                        <FieldError name="examples" />
+                        <FieldError errors={fieldErrors} name="examples" />
                         {examples.length === 0 && (
                             <p className="text-sm text-slate-500">
                                 No examples yet. Add one to show
@@ -765,7 +774,7 @@ export default function AdminEditProblemPage() {
                                 Add Test Case
                             </button>
                         </div>
-                        <FieldError name="testCases" />
+                        <FieldError errors={fieldErrors} name="testCases" />
                         <div className="space-y-4">
                             {testCases.map((testCase, index) => (
                                 <div

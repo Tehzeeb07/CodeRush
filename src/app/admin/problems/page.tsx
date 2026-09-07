@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
+import type { Id } from "../../../../convex/_generated/dataModel";
 import {
   Plus,
   Eye,
@@ -87,7 +88,7 @@ export default function AdminProblemsPage() {
       // Backend generates a unique "-copy" slug (with numeric suffixes if
       // needed) and sets the duplicated problem to Draft status.
       await duplicateProblem({
-        id: id as any,
+        id: id as Id<"problems">,
       });
 
       showSuccess(
@@ -129,7 +130,7 @@ export default function AdminProblemsPage() {
       setActionLoading(`archive-${id}`);
 
       await archiveProblem({
-        id: id as any,
+        id: id as Id<"problems">,
         archived: !currentlyArchived,
       });
 
@@ -169,7 +170,7 @@ export default function AdminProblemsPage() {
       setActionLoading(`delete-${id}`);
 
       await deleteProblem({
-        id: id as any,
+        id: id as Id<"problems">,
       });
 
       showSuccess("Problem deleted permanently.");

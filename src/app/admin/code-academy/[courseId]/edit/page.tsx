@@ -17,7 +17,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../../../convex/_generated/api";
-import type { Id } from "../../../../../../convex/_generated/dataModel";
+import type { Doc, Id } from "../../../../../../convex/_generated/dataModel";
 import CourseCoverUploader from "@/components/academy/CourseCoverUploader";
 import {
   ArrowLeft,
@@ -60,22 +60,80 @@ export default function AdminCourseEditPage() {
   );
   const technologies = useQuery(api.academyAdmin.listTechnologiesAdmin) ?? [];
 
+  if (!courseId || data === null) {
+    return (
+      <div>
+        <button
+          type="button"
+          onClick={() => router.push("/admin/code-academy")}
+          className="mb-6 inline-flex items-center gap-2 text-sm text-neutral-400 transition-colors hover:text-white"
+        >
+          <ArrowLeft size={17} />
+          Back to Code Academy
+        </button>
+        <div className="rounded-2xl border border-white/[0.08] bg-[#0c0e14] p-10 text-center">
+          <BookOpen size={36} className="mx-auto text-neutral-600" />
+          <h1 className="mt-4 text-xl font-bold text-white">Course not found</h1>
+          <p className="mt-2 text-sm text-neutral-400">
+            The course you are looking for does not exist or may have been
+            deleted.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (data === undefined) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="flex items-center gap-3 text-neutral-400">
+          <Loader2 size={22} className="animate-spin" />
+          Loading course…
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <CourseEditForm
+      course={data.course}
+      technologies={technologies}
+      courseIdTyped={courseIdTyped}
+      router={router}
+    />
+  );
+}
+
+function CourseEditForm({
+  course,
+  technologies,
+  courseIdTyped,
+  router,
+}: {
+  course: Doc<"academyCourses">;
+  technologies: Doc<"academyTechnologies">[];
+  courseIdTyped: Id<"academyCourses">;
+  router: ReturnType<typeof useRouter>;
+}) {
   const upsertCourse = useMutation(api.academyAdmin.upsertCourse);
   const generateCoverUploadUrl = useMutation(
     api.academyAdmin.generateCourseCoverUploadUrl
   );
 
+  // The form state is initialized directly from the loaded course document:
+  // this component only mounts after the query above has resolved, so no
+  // effect-based data copying is required.
   const [form, setForm] = useState({
-    technologyId: "",
-    title: "",
-    slug: "",
-    description: "",
-    difficulty: "beginner" as Difficulty,
-    durationMinutes: "",
-    xpReward: "",
-    published: false,
+    technologyId: String(course.technologyId),
+    title: course.title,
+    slug: course.slug,
+    description: course.description,
+    difficulty: course.difficulty,
+    durationMinutes:
+      course.durationMinutes != null ? String(course.durationMinutes) : "",
+    xpReward: course.xpReward != null ? String(course.xpReward) : "",
+    published: course.published ?? false,
   });
-  const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -99,24 +157,6 @@ export default function AdminCourseEditPage() {
       coverPreviewRef.current = null;
     }
   };
-
-  // Pre-populate the form from the existing course document (once).
-  useEffect(() => {
-    if (!courseId || !data || loaded) return;
-    const course = data.course;
-    setForm({
-      technologyId: String(course.technologyId),
-      title: course.title,
-      slug: course.slug,
-      description: course.description,
-      difficulty: course.difficulty,
-      durationMinutes:
-        course.durationMinutes != null ? String(course.durationMinutes) : "",
-      xpReward: course.xpReward != null ? String(course.xpReward) : "",
-      published: course.published,
-    });
-    setLoaded(true);
-  }, [courseId, data, loaded]);
 
   // Free the preview object URL when the form unmounts.
   useEffect(() => {
@@ -207,56 +247,22 @@ export default function AdminCourseEditPage() {
 
       setSuccess("Course updated successfully. Redirecting…");
       setTimeout(() => {
-        router.push(`/admin/code-academy/${courseId}`);
+        router.push(`/admin/code-academy/${courseIdTyped}`);
       }, 900);
-    } catch (e: any) {
-      setError(e && e.message ? e.message : "Failed to save the course.");
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Failed to save the course."
+      );
     } finally {
       setSaving(false);
     }
   };
 
-  const backTo = courseId
-    ? `/admin/code-academy/${courseId}`
-    : "/admin/code-academy";
-
-  if (!courseId || data === null) {
-    return (
-      <div>
-        <button
-          type="button"
-          onClick={() => router.push("/admin/code-academy")}
-          className="mb-6 inline-flex items-center gap-2 text-sm text-neutral-400 transition-colors hover:text-white"
-        >
-          <ArrowLeft size={17} />
-          Back to Code Academy
-        </button>
-        <div className="rounded-2xl border border-white/[0.08] bg-[#0c0e14] p-10 text-center">
-          <BookOpen size={36} className="mx-auto text-neutral-600" />
-          <h1 className="mt-4 text-xl font-bold text-white">Course not found</h1>
-          <p className="mt-2 text-sm text-neutral-400">
-            The course you are looking for does not exist or may have been
-            deleted.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (data === undefined) {
-    return (
-      <div className="flex min-h-[400px] items-center justify-center">
-        <div className="flex items-center gap-3 text-neutral-400">
-          <Loader2 size={22} className="animate-spin" />
-          Loading course…
-        </div>
-      </div>
-    );
-  }
+  const backTo = `/admin/code-academy/${courseIdTyped}`;
 
   // Canonical cover photo for the uploader: the uploaded cover, with the
   // legacy thumbnail URL as a fallback for pre-upload courses.
-  const existingCoverUrl = data.course.coverImageUrl ?? data.course.thumbnailUrl ?? null;
+  const existingCoverUrl = course.coverImageUrl ?? course.thumbnailUrl ?? null;
 
   return (
     <div>

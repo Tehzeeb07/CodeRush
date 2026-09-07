@@ -40,29 +40,98 @@ export default function WebPreview({
   onStatusChange,
   className = "",
 }: WebPreviewProps) {
-  const [srcDoc, setSrcDoc] = useState<string>("");
-  const [status, setStatus] = useState<PreviewStatus>("idle");
-  const [error, setError] = useState<string | null>(null);
+  if (runId <= 0) {
+    // Nothing to preview until the first Run.
+    return (
+      <PreviewView
+        status="idle"
+        error={null}
+        doc=""
+        runId={0}
+        className={className}
+      />
+    );
+  }
 
-  const transitionTo = (next: PreviewStatus) => {
-    setStatus(next);
-    onStatusChange?.(next);
-  };
+  // Keying by `runId` remounts the frame for every Run, so the document is
+  // built once at mount from the current code — no effect-based state sync
+  // and no cascading renders.
+  return (
+    <PreviewFrame
+      key={runId}
+      code={code}
+      runId={runId}
+      onStatusChange={onStatusChange}
+      className={className}
+    />
+  );
+}
 
-  useEffect(() => {
-    if (runId <= 0) return; // nothing to preview until first Run
-    transitionTo("running");
-    setError(null);
+function PreviewFrame({
+  code,
+  runId,
+  onStatusChange,
+  className,
+}: {
+  code: WebProjectCode;
+  runId: number;
+  onStatusChange?: (status: PreviewStatus) => void;
+  className: string;
+}) {
+  // Build the preview document once at mount (this component remounts for
+  // every run). Pure computation, so it is safe to derive during render.
+  const [built] = useState(() => {
     try {
-      const doc = buildPreviewDocument(code);
-      setSrcDoc(doc);
+      return { doc: buildPreviewDocument(code), error: null as string | null };
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not build the preview.");
-      transitionTo("error");
+      return {
+        doc: "",
+        error:
+          e instanceof Error ? e.message : "Could not build the preview.",
+      };
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [runId]);
+  });
+  // Tracks whether the iframe has finished loading for this run.
+  const [loaded, setLoaded] = useState(false);
 
+  const status: PreviewStatus = built.error
+    ? "error"
+    : loaded
+      ? "ready"
+      : "running";
+
+  // Let the parent mirror the preview status (e.g. to drive the toolbar).
+  useEffect(() => {
+    onStatusChange?.(status);
+  }, [status, onStatusChange]);
+
+  return (
+    <PreviewView
+      status={status}
+      error={built.error}
+      doc={built.doc}
+      runId={runId}
+      onLoaded={() => setLoaded(true)}
+      className={className}
+    />
+  );
+}
+
+function PreviewView({
+  status,
+  error,
+  doc,
+  runId,
+  onLoaded,
+  className,
+}: {
+  status: PreviewStatus;
+  error: string | null;
+  doc: string;
+  runId: number;
+  onLoaded?: () => void;
+  className: string;
+}) {
   return (
     <div className={`flex h-full min-h-0 flex-col ${className}`}>
       {/* Panel header */}
@@ -90,13 +159,13 @@ export default function WebPreview({
 
       {/* Preview body */}
       <div className="relative min-h-0 flex-1 bg-white">
-        {srcDoc && (
+        {doc && (
           <iframe
             key={runId}
             title="Web Development Preview"
             sandbox="allow-scripts"
-            srcDoc={srcDoc}
-            onLoad={() => transitionTo("ready")}
+            srcDoc={doc}
+            onLoad={onLoaded}
             className="h-full w-full border-0 bg-white"
           />
         )}

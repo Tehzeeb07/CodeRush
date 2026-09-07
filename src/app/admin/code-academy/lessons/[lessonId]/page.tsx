@@ -8,10 +8,12 @@
 
 import { useQuery, useMutation } from "convex/react";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import type { Dispatch, SetStateAction } from "react";
+import type { FunctionReturnType } from "convex/server";
 import { api } from "../../../../../../convex/_generated/api";
+import type { Doc, Id } from "../../../../../../convex/_generated/dataModel";
 import {
-  ChevronRight,
   Plus,
   Save,
   Trash2,
@@ -31,20 +33,129 @@ interface QuestionDraft {
 }
 
 type LessonDifficulty = "beginner" | "intermediate" | "advanced";
+type LessonContentBlock = Doc<"academyLessons">["content"][number];
+type LessonCodeExample = Doc<"academyLessons">["codeExamples"][number];
+type TechnologyAdmin = Doc<"academyTechnologies"> & { courseCount: number };
+type LessonAdminData = NonNullable<
+  FunctionReturnType<typeof api.academyAdmin.getLessonAdmin>
+>;
 
-const EMPTY_LESSON = {
+interface LessonFormState {
+  title: string;
+  slug: string;
+  shortDescription: string;
+  difficulty: LessonDifficulty;
+  estimatedMinutes: number;
+  content: LessonContentBlock[];
+  codeExamples: LessonCodeExample[];
+  technologyIds: string[];
+  technologyId: string;
+  courseId: string;
+  moduleId: string;
+  published: boolean;
+}
+
+interface ExerciseFormState {
+  title: string;
+  difficulty: LessonDifficulty;
+  question: string;
+  instructions: string[];
+  starterCode: string;
+  language: string;
+  expectedOutput: string;
+  hints: string[];
+}
+
+interface QuizFormState {
+  title: string;
+  passingPercentage: number;
+  allowRetake: boolean;
+  questions: QuestionDraft[];
+}
+
+const EMPTY_FORM: LessonFormState = {
   title: "",
   slug: "",
   shortDescription: "",
-  difficulty: "beginner" as LessonDifficulty,
+  difficulty: "beginner",
   estimatedMinutes: 10,
-  content: [] as any[],
-  codeExamples: [] as any[],
-    technologyIds: [] as string[],
+  content: [],
+  codeExamples: [],
+  technologyIds: [],
+  technologyId: "",
   courseId: "",
   moduleId: "",
   published: false,
 };
+
+const EMPTY_EXERCISE: ExerciseFormState = {
+  title: "",
+  difficulty: "beginner",
+  question: "",
+  instructions: [""],
+  starterCode: "",
+  language: "cpp",
+  expectedOutput: "",
+  hints: [""],
+};
+
+const EMPTY_QUIZ: QuizFormState = {
+  title: "",
+  passingPercentage: 70,
+  allowRetake: true,
+  questions: [],
+};
+
+function lessonFormFromData(data: LessonAdminData): LessonFormState {
+  const lesson = data.lesson;
+  return {
+    title: lesson.title,
+    slug: lesson.slug,
+    shortDescription: lesson.shortDescription,
+    difficulty: lesson.difficulty,
+    estimatedMinutes: lesson.estimatedMinutes ?? 10,
+    content: lesson.content ?? [],
+    codeExamples: lesson.codeExamples ?? [],
+    technologyIds: (lesson.technologyIds ?? []).map((tid) => String(tid)),
+    technologyId: "",
+    courseId: String(lesson.courseId),
+    moduleId: String(lesson.moduleId),
+    published: lesson.published ?? false,
+  };
+}
+
+function exerciseFormFromData(
+  exercise: NonNullable<LessonAdminData["exercise"]>
+): ExerciseFormState {
+  return {
+    title: exercise.title,
+    difficulty: exercise.difficulty,
+    question: exercise.question,
+    instructions:
+      exercise.instructions.length > 0 ? exercise.instructions : [""],
+    starterCode: exercise.starterCode,
+    language: exercise.language,
+    expectedOutput: exercise.expectedOutput ?? "",
+    hints: exercise.hints && exercise.hints.length > 0 ? exercise.hints : [""],
+  };
+}
+
+function quizFormFromData(
+  quiz: NonNullable<LessonAdminData["quiz"]>
+): QuizFormState {
+  return {
+    title: quiz.title,
+    passingPercentage: quiz.passingPercentage,
+    allowRetake: quiz.allowRetake,
+    questions: quiz.questions.map((q) => ({
+      id: String(q._id),
+      question: q.question,
+      options: q.options,
+      correctAnswerId: q.correctAnswerId,
+      explanation: q.explanation ?? "",
+    })),
+  };
+}
 
 export default function AdminLessonEditor() {
   const params = useParams();
@@ -54,88 +165,58 @@ export default function AdminLessonEditor() {
 
   const existing = useQuery(
     api.academyAdmin.getLessonAdmin,
-    isEdit && id ? { lessonId: id as any } : "skip"
+    isEdit && id ? { lessonId: id as Id<"academyLessons"> } : "skip"
   );
   const technologies = useQuery(api.academyAdmin.listTechnologiesAdmin) ?? [];
 
-  const [form, setForm] = useState(EMPTY_LESSON);
+  // Existing lesson data (when editing) seeds the editor's *initial* state.
+  // The `key` below remounts the editor once the data arrives, replacing the
+  // previous "copy data into state from an effect" approach — same result,
+  // without cascading renders.
+  return (
+    <LessonEditorBody
+      key={existing?.lesson._id ?? "empty"}
+      existing={existing ?? null}
+      technologies={technologies}
+      isEdit={isEdit}
+      lessonId={id}
+      router={router}
+    />
+  );
+}
+
+function LessonEditorBody({
+  existing,
+  technologies,
+  isEdit,
+  lessonId,
+  router,
+}: {
+  existing: LessonAdminData | null;
+  technologies: TechnologyAdmin[];
+  isEdit: boolean;
+  lessonId: string | null;
+  router: ReturnType<typeof useRouter>;
+}) {
+  const upsertLesson = useMutation(api.academyAdmin.upsertLesson);
+
+  const [form, setForm] = useState<LessonFormState>(
+    existing ? lessonFormFromData(existing) : EMPTY_FORM
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const upsertLesson = useMutation(api.academyAdmin.upsertLesson);
-
-  // Load existing lesson data into form state when editing
-  useEffect(() => {
-    if (!isEdit || !existing) return;
-    const lesson = existing.lesson;
-    setForm({
-      title: lesson.title,
-      slug: lesson.slug,
-      shortDescription: lesson.shortDescription,
-      difficulty: lesson.difficulty,
-      estimatedMinutes: lesson.estimatedMinutes ?? 10,
-      content: lesson.content ?? [],
-      codeExamples: lesson.codeExamples ?? [],
-      technologyIds: (lesson.technologyIds ?? []).map((id: any) => String(id)),
-      courseId: String(lesson.courseId),
-      moduleId: String(lesson.moduleId),
-      published: lesson.published,
-    });
-    if (existing.exercise) {
-      setExEnabled(true);
-      setExForm({
-        title: existing.exercise.title,
-        difficulty: existing.exercise.difficulty,
-        question: existing.exercise.question,
-        instructions: existing.exercise.instructions.length > 0
-          ? existing.exercise.instructions
-          : [""],
-        starterCode: existing.exercise.starterCode,
-        language: existing.exercise.language,
-        expectedOutput: existing.exercise.expectedOutput ?? "",
-        hints: existing.exercise.hints && existing.exercise.hints.length > 0
-          ? existing.exercise.hints
-          : [""],
-      });
-    }
-    if (existing.quiz) {
-      setQuizEnabled(true);
-      setQuizForm({
-        title: existing.quiz.title,
-        passingPercentage: existing.quiz.passingPercentage,
-        allowRetake: existing.quiz.allowRetake,
-        questions: existing.quiz.questions.map((q: any) => ({
-          id: String(q._id),
-          question: q.question,
-          options: q.options,
-          correctAnswerId: q.correctAnswerId,
-          explanation: q.explanation ?? "",
-        })),
-      });
-    }
-  }, [existing, isEdit]);
-
   // Exercise draft
-  const [exEnabled, setExEnabled] = useState(false);
-  const [exForm, setExForm] = useState({
-    title: "",
-    difficulty: "beginner",
-    question: "",
-    instructions: [""],
-    starterCode: "",
-    language: "cpp",
-    expectedOutput: "",
-    hints: [""],
-  });
+  const [exEnabled, setExEnabled] = useState(existing?.exercise != null);
+  const [exForm, setExForm] = useState<ExerciseFormState>(
+    existing?.exercise ? exerciseFormFromData(existing.exercise) : EMPTY_EXERCISE
+  );
 
   // Quiz draft
-  const [quizEnabled, setQuizEnabled] = useState(false);
-  const [quizForm, setQuizForm] = useState({
-    title: "",
-    passingPercentage: 70,
-    allowRetake: true,
-    questions: [] as QuestionDraft[],
-  });
+  const [quizEnabled, setQuizEnabled] = useState(existing?.quiz != null);
+  const [quizForm, setQuizForm] = useState<QuizFormState>(
+    existing?.quiz ? quizFormFromData(existing.quiz) : EMPTY_QUIZ
+  );
 
   const addQuestion = () => {
     setQuizForm((f) => ({
@@ -191,10 +272,10 @@ export default function AdminLessonEditor() {
         setSaving(false);
         return;
       }
-      const payload: any = {
-        technologyIds: form.technologyIds,
-        courseId: form.courseId,
-        moduleId: form.moduleId,
+      const lessonPayload = {
+        technologyIds: form.technologyIds as Id<"academyTechnologies">[],
+        courseId: form.courseId as Id<"academyCourses">,
+        moduleId: form.moduleId as Id<"academyModules">,
         title: form.title,
         slug: form.slug,
         shortDescription: form.shortDescription,
@@ -229,11 +310,14 @@ export default function AdminLessonEditor() {
             }
           : null,
       };
-      if (isEdit && id) payload.id = id;
-      const lessonId = await upsertLesson(payload);
-      router.push(`/admin/code-academy/lessons/${lessonId}`);
-    } catch (e: any) {
-      setError(e.message);
+      const savedLessonId = await upsertLesson(
+        isEdit && lessonId
+          ? { ...lessonPayload, id: lessonId as Id<"academyLessons"> }
+          : lessonPayload
+      );
+      router.push(`/admin/code-academy/lessons/${savedLessonId}`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
     } finally {
       setSaving(false);
     }
@@ -296,7 +380,7 @@ export default function AdminLessonEditor() {
   );
 }
 
-function BasicInfo({ form, setForm, technologies }: { form: any; setForm: any; technologies: any[] }) {
+function BasicInfo({ form, setForm, technologies }: { form: LessonFormState; setForm: Dispatch<SetStateAction<LessonFormState>>; technologies: TechnologyAdmin[] }) {
   return (
     <div className="rounded-2xl border border-white/[0.08] bg-[#0c0e14] p-5">
       <h2 className="mb-4 text-sm font-semibold text-white">Basic information</h2>
@@ -311,7 +395,7 @@ function BasicInfo({ form, setForm, technologies }: { form: any; setForm: any; t
           <input value={form.shortDescription} onChange={(e) => setForm({ ...form, shortDescription: e.target.value })} className="academy-input" />
         </Field>
         <Field label="Difficulty">
-          <select value={form.difficulty} onChange={(e) => setForm({ ...form, difficulty: e.target.value })} className="academy-input">
+          <select value={form.difficulty} onChange={(e) => setForm({ ...form, difficulty: e.target.value as LessonDifficulty })} className="academy-input">
             <option value="beginner">Beginner</option>
             <option value="intermediate">Intermediate</option>
             <option value="advanced">Advanced</option>
@@ -323,7 +407,7 @@ function BasicInfo({ form, setForm, technologies }: { form: any; setForm: any; t
         <Field label="Technology">
           <select value={form.technologyId} onChange={(e) => setForm({ ...form, technologyId: e.target.value })} className="academy-input">
             <option value="">Select…</option>
-            {technologies.map((t: any) => (
+            {technologies.map((t) => (
               <option key={t._id} value={t._id}>{t.name}</option>
             ))}
           </select>
@@ -352,19 +436,20 @@ function Field({ label, children, className }: { label: string; children: React.
   );
 }
 
-function ContentEditor({ form, setForm }: { form: any; setForm: any }) {
+function ContentEditor({ form, setForm }: { form: LessonFormState; setForm: Dispatch<SetStateAction<LessonFormState>> }) {
   const addBlock = (type: string) => {
-    const b: any = { type };
-    if (type === "heading") { b.level = 2; b.text = ""; }
-    else if (type === "paragraph") { b.text = ""; }
-    else if (type === "list") { b.ordered = false; b.items = [""]; }
-    else if (type === "code") { b.language = "cpp"; b.code = ""; b.caption = ""; }
-    else if (type === "note" || type === "warning" || b.type === "tip") { b.text = ""; }
+    let b: LessonContentBlock;
+    if (type === "heading") { b = { type: "heading", level: 2, text: "" }; }
+    else if (type === "paragraph") { b = { type: "paragraph", text: "" }; }
+    else if (type === "list") { b = { type: "list", ordered: false, items: [""] }; }
+    else if (type === "code") { b = { type: "code", language: "cpp", code: "", caption: "" }; }
+    else if (type === "note" || type === "warning" || type === "tip") { b = { type, text: "" }; }
+    else { b = { type: "paragraph", text: "" }; }
     setForm({ ...form, content: [...form.content, b] });
   };
-  const removeBlock = (idx: number) => setForm({ ...form, content: form.content.filter((_: any, i: number) => i !== idx) });
-  const updateBlock = (idx: number, patch: any) => {
-    const next = form.content.map((b: any, i: number) => (i === idx ? { ...b, ...patch } : b));
+  const removeBlock = (idx: number) => setForm({ ...form, content: form.content.filter((_, i) => i !== idx) });
+  const updateBlock = (idx: number, patch: Partial<LessonContentBlock>) => {
+    const next = form.content.map((b, i) => (i === idx ? ({ ...b, ...patch } as LessonContentBlock) : b));
     setForm({ ...form, content: next });
   };
 
@@ -380,15 +465,15 @@ function ContentEditor({ form, setForm }: { form: any; setForm: any }) {
       </div>
       <div className="space-y-3">
         {form.content.length === 0 && <p className="text-sm text-neutral-500">No content blocks yet.</p>}
-        {form.content.map((block: any, idx: number) => (
+        {form.content.map((block, idx) => (
           <div key={idx} className="rounded-xl border border-white/[0.06] p-3">
             <div className="mb-2 flex items-center justify-between">
               <span className="text-xs font-medium text-indigo-300">{block.type}</span>
               <button type="button" onClick={() => removeBlock(idx)} className="text-neutral-500 hover:text-rose-400"><Trash2 size={14} /></button>
             </div>
-            {block.type === "heading" && <div className="flex gap-2"><select value={block.level} onChange={(e) => updateBlock(idx, { level: Number(e.target.value) })} className="academy-input w-20"><option value={1}>H1</option><option value={2}>H2</option><option value={3}>H3</option></select><input value={block.text} onChange={(e) => updateBlock(idx, { text: e.target.value })} className="academy-input flex-1" /></div>}
+            {block.type === "heading" && <div className="flex gap-2"><select value={block.level} onChange={(e) => updateBlock(idx, { level: Number(e.target.value) as 1 | 2 | 3 })} className="academy-input w-20"><option value={1}>H1</option><option value={2}>H2</option><option value={3}>H3</option></select><input value={block.text} onChange={(e) => updateBlock(idx, { text: e.target.value })} className="academy-input flex-1" /></div>}
             {(block.type === "paragraph" || block.type === "note" || block.type === "warning" || block.type === "tip") && <textarea value={block.text} onChange={(e) => updateBlock(idx, { text: e.target.value })} className="academy-input min-h-[60px]" />}
-            {block.type === "list" && <div className="space-y-1.5"><label className="flex items-center gap-2 text-xs text-neutral-400"><input type="checkbox" checked={block.ordered} onChange={(e) => updateBlock(idx, { ordered: e.target.checked })} className="h-3.5 w-3.5 rounded" /> Ordered</label>{block.items.map((item: string, i: number) => (<input key={i} value={item} onChange={(e) => { const items = [...block.items]; items[i] = e.target.value; updateBlock(idx, { items }); }} className="academy-input" />))}<button type="button" onClick={() => updateBlock(idx, { items: [...block.items, ""] })} className="text-xs text-indigo-300">+ Add item</button></div>}
+            {block.type === "list" && <div className="space-y-1.5"><label className="flex items-center gap-2 text-xs text-neutral-400"><input type="checkbox" checked={block.ordered} onChange={(e) => updateBlock(idx, { ordered: e.target.checked })} className="h-3.5 w-3.5 rounded" /> Ordered</label>{block.items.map((item, i: number) => (<input key={i} value={item} onChange={(e) => { const items = [...block.items]; items[i] = e.target.value; updateBlock(idx, { items }); }} className="academy-input" />))}<button type="button" onClick={() => updateBlock(idx, { items: [...block.items, ""] })} className="text-xs text-indigo-300">+ Add item</button></div>}
             {block.type === "code" && <div className="space-y-2"><input value={block.language} onChange={(e) => updateBlock(idx, { language: e.target.value })} className="academy-input w-40" placeholder="language" /><textarea value={block.code} onChange={(e) => updateBlock(idx, { code: e.target.value })} className="academy-input min-h-[80px] font-mono text-[13px]" /><input value={block.caption ?? ""} onChange={(e) => updateBlock(idx, { caption: e.target.value })} className="academy-input" placeholder="Caption" /></div>}
           </div>
         ))}
@@ -397,7 +482,7 @@ function ContentEditor({ form, setForm }: { form: any; setForm: any }) {
   );
 }
 
-function ExercisePanel({ enabled, setEnabled, form, setForm }: { enabled: boolean; setEnabled: (v: boolean) => void; form: any; setForm: any }) {
+function ExercisePanel({ enabled, setEnabled, form, setForm }: { enabled: boolean; setEnabled: (v: boolean) => void; form: ExerciseFormState; setForm: Dispatch<SetStateAction<ExerciseFormState>> }) {
   return (
     <div className="rounded-2xl border border-white/[0.08] bg-[#0c0e14] p-5">
       <label className="flex items-center justify-between">
@@ -413,7 +498,7 @@ function ExercisePanel({ enabled, setEnabled, form, setForm }: { enabled: boolea
             <select value={form.language} onChange={(e) => setForm({ ...form, language: e.target.value })} className="academy-input">
               <option value="cpp">C++</option><option value="python">Python</option><option value="javascript">JavaScript</option><option value="java">Java</option>
             </select>
-            <input value={form.difficulty} onChange={(e) => setForm({ ...form, difficulty: e.target.value })} className="academy-input" placeholder="difficulty" />
+            <input value={form.difficulty} onChange={(e) => setForm({ ...form, difficulty: e.target.value as ExerciseFormState["difficulty"] })} className="academy-input" placeholder="difficulty" />
           </div>
           <input value={form.expectedOutput} onChange={(e) => setForm({ ...form, expectedOutput: e.target.value })} className="academy-input" placeholder="Expected output (optional)" />
         </div>
@@ -422,7 +507,7 @@ function ExercisePanel({ enabled, setEnabled, form, setForm }: { enabled: boolea
   );
 }
 
-function QuizPanel({ enabled, setEnabled, form, setForm, addQuestion }: { enabled: boolean; setEnabled: (v: boolean) => void; form: any; setForm: any; addQuestion: () => void }) {
+function QuizPanel({ enabled, setEnabled, form, setForm, addQuestion }: { enabled: boolean; setEnabled: (v: boolean) => void; form: QuizFormState; setForm: Dispatch<SetStateAction<QuizFormState>>; addQuestion: () => void }) {
   return (
     <div className="rounded-2xl border border-white/[0.08] bg-[#0c0e14] p-5">
       <label className="flex items-center justify-between">
@@ -439,16 +524,16 @@ function QuizPanel({ enabled, setEnabled, form, setForm, addQuestion }: { enable
             </label>
           </div>
           <div className="space-y-3">
-            {form.questions.map((q: any, qi: number) => (
+            {form.questions.map((q, qi) => (
               <div key={qi} className="rounded-xl border border-white/[0.06] p-3 space-y-2">
                 <input value={q.question} onChange={(e) => { const qs = [...form.questions]; qs[qi] = { ...qs[qi], question: e.target.value }; setForm({ ...form, questions: qs }); }} className="academy-input" placeholder={`Question ${qi + 1}`} />
-                {q.options.map((opt: any, oi: number) => (
+                {q.options.map((opt, oi) => (
                   <div key={oi} className="flex items-center gap-2">
                     <input type="radio" name={`correct-${qi}`} checked={q.correctAnswerId === opt.id} onChange={() => { const qs = [...form.questions]; qs[qi] = { ...qs[qi], correctAnswerId: opt.id }; setForm({ ...form, questions: qs }); }} className="h-3.5 w-3.5" />
-                    <input value={opt.text} onChange={(e) => { const qs = [...form.questions]; qs[qi].options[oi].text = e.target.value; setForm({ ...form, questions: qs }); }} className="academy-input flex-1" placeholder={`Option ${opt.id}`} />
+                    <input value={opt.text} onChange={(e) => { const qs = [...form.questions]; qs[qi] = { ...qs[qi], options: qs[qi].options.map((o, i) => (i === oi ? { ...o, text: e.target.value } : o)) }; setForm({ ...form, questions: qs }); }} className="academy-input flex-1" placeholder={`Option ${opt.id}`} />
                   </div>
                 ))}
-                <input value={q.explanation} onChange={(e) => { const qs = [...form.questions]; qs[qi].explanation = e.target.value; setForm({ ...form, questions: qs }); }} className="academy-input" placeholder="Explanation (optional)" />
+                <input value={q.explanation} onChange={(e) => { const qs = [...form.questions]; qs[qi] = { ...qs[qi], explanation: e.target.value }; setForm({ ...form, questions: qs }); }} className="academy-input" placeholder="Explanation (optional)" />
               </div>
             ))}
           </div>

@@ -107,17 +107,23 @@ export function ViewProfileModal({ open, user, onClose }: {
   user: AdminListUser | null;
   onClose: () => void;
 }) {
+  if (!open || !user) return null;
+  // Mounting fresh content per user (keyed by _id) means the loading/detail
+  // state can be derived from props instead of being reset in an effect.
+  return <ViewProfileContent key={user._id} user={user} onClose={onClose} />;
+}
+
+function ViewProfileContent({ user, onClose }: {
+  user: AdminListUser;
+  onClose: () => void;
+}) {
   const convex = useConvex();
   const [detail, setDetail] = useState<AdminUserDetail | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!open || !user) return;
     let cancelled = false;
-    setLoading(true);
-    setError(null);
-    setDetail(null);
     convex
       .query(api.roles.adminGetUser, { userId: user._id })
       .then((d) => {
@@ -132,9 +138,7 @@ export function ViewProfileModal({ open, user, onClose }: {
     return () => {
       cancelled = true;
     };
-  }, [open, user, convex]);
-
-  if (!open || !user) return null;
+  }, [user, convex]);
 
   const role = (detail?.role ?? user.role) as AdminUserDetail["role"];
   const banned = detail?.isBanned ?? user.isBanned;
@@ -214,24 +218,29 @@ export function EditUserModal({ open, user, onClose, onNotify }: {
   onClose: () => void;
   onNotify: NotifyFn;
 }) {
+  if (!open || !user) return null;
+  // Mounting fresh content per user (keyed by _id) means the form fields can
+  // be initialized from props instead of being reset in an effect.
+  return <EditUserContent key={user._id} user={user} onClose={onClose} onNotify={onNotify} />;
+}
+
+function EditUserContent({ user, onClose, onNotify }: {
+  user: AdminListUser;
+  onClose: () => void;
+  onNotify: NotifyFn;
+}) {
   const convex = useConvex();
   const updateUser = useMutation(api.roles.adminUpdateUser);
   const [detail, setDetail] = useState<AdminUserDetail | null>(null);
-  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [loadingDetail, setLoadingDetail] = useState(true);
   const [detailError, setDetailError] = useState<string | null>(null);
-  const [username, setUsername] = useState("");
+  const [username, setUsername] = useState(user.username ?? "");
   const [bio, setBio] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!open || !user) return;
     let cancelled = false;
-    setUsername(user.username ?? "");
-    setBio("");
-    setFormError(null);
-    setLoadingDetail(true);
-    setDetailError(null);
     convex
       .query(api.roles.adminGetUser, { userId: user._id })
       .then((d) => {
@@ -252,7 +261,7 @@ export function EditUserModal({ open, user, onClose, onNotify }: {
     return () => {
       cancelled = true;
     };
-  }, [open, user, convex]);
+  }, [user, convex]);
 
   async function handleSave() {
     if (!user) return;
@@ -372,19 +381,22 @@ export function ChangeRoleModal({ open, user, onClose, onNotify }: {
   onClose: () => void;
   onNotify: NotifyFn;
 }) {
+  if (!open || !user) return null;
+  // The initial selection is derived from the user prop; no effect needed.
+  return <ChangeRoleContent key={user._id} user={user} onClose={onClose} onNotify={onNotify} />;
+}
+
+function ChangeRoleContent({ user, onClose, onNotify }: {
+  user: AdminListUser;
+  onClose: () => void;
+  onNotify: NotifyFn;
+}) {
   const changeRole = useMutation(api.roles.updateUserRole);
-  const [newRole, setNewRole] = useState<"USER" | "ADMIN">("ADMIN");
+  const [newRole, setNewRole] = useState<"USER" | "ADMIN">(
+    user.role === "ADMIN" ? "USER" : "ADMIN"
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (open && user) {
-      setNewRole(user.role === "ADMIN" ? "USER" : "ADMIN");
-      setError(null);
-    }
-  }, [open, user]);
-
-  if (!open || !user) return null;
 
   const oldRole = user.role as "USER" | "ADMIN";
   const confirmText = `Change ${userLabel(user)}'s role from ${oldRole} to ${newRole}?`;

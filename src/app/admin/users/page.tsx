@@ -26,7 +26,7 @@ import {
 
 export default function AdminUsersPage() {
   const [search, setSearch] = useState("");
-  const [roleFilter, setRoleFilter] = useState<string>("ALL");
+  const [roleFilter, setRoleFilter] = useState<AppRole | "ALL">("ALL");
   const [page, setPage] = useState(0);
   const [menuState, setMenuState] = useState<{ user: AdminListUser; anchor: { x: number; y: number } } | null>(null);
   const [selectedUser, setSelectedUser] = useState<AdminListUser | null>(null);
@@ -36,7 +36,7 @@ export default function AdminUsersPage() {
   const me = useQuery(api.roles.me);
   const usersData = useQuery(api.admin.adminListUsers, {
     search: search || undefined,
-    roleFilter: roleFilter as any,
+    roleFilter: roleFilter,
     page,
     pageSize: 10,
   });
@@ -92,7 +92,7 @@ export default function AdminUsersPage() {
         </div>
         <select
           value={roleFilter}
-          onChange={(e) => { setRoleFilter(e.target.value); setPage(0); }}
+          onChange={(e) => { setRoleFilter(e.target.value as AppRole | "ALL"); setPage(0); }}
           className="rounded-lg border border-slate-700/50 bg-[#1E293B] px-4 py-2.5 text-sm text-white focus:border-[#3B82F6] focus:outline-none"
         >
           <option value="ALL">All Roles</option>
